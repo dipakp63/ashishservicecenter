@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+
+# Database
+database.sqlite
+*.sqlite
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Reports (generated files)
+reports/
+
+# Recovery/debug files
+recovered_*.html
+recovered_*.txt
+hpcl_backup.html
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Vercel
+.vercel/
+
+# Logs
+*.log
+npm-debug.log*

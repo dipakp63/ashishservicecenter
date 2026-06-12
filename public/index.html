@@ -1,0 +1,1710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Petrol Pump ERP - Daily Operations Dashboard">
+  <title>Petrol Pump ERP - Dashboard</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <span class="logo-icon">⛽</span>
+        <h2>PumpERP</h2>
+      </div>
+      
+      <nav class="sidebar-nav">
+        <ul>
+          <li>
+            <a href="#" class="nav-item active" id="nav-day-closing">
+              <span class="nav-icon">📅</span>
+              <span class="nav-text">Day Closing</span>
+            </a>
+          </li>
+            <li>
+              <a href="#" class="nav-item" id="nav-udhari" onclick="alert('Feature coming soon!')">
+                <span class="nav-icon">📝</span>
+                <span class="nav-text">उधारी</span>
+              </a>
+            </li>
+          <li>
+            <a href="#" class="nav-item" id="nav-tanker-calc">
+              <span class="nav-icon">🚚</span>
+              <span class="nav-text">Tanker Calculation</span>
+            </a>
+          </li>
+          <li>
+            <a href="#" class="nav-item" id="nav-cash-calc">
+              <span class="nav-icon">💵</span>
+              <span class="nav-text">Cash Calculator</span>
+            </a>
+          </li>
+          <li>
+            <a href="#" class="nav-item" id="nav-hpcl-tracker">
+              <span class="nav-icon">📊</span>
+              <span class="nav-text">HPCL Portal Balance</span>
+            </a>
+          </li>
+          <li>
+            <a href="#" class="nav-item" id="nav-tt-tracker" onclick="alert('Feature coming soon!')">
+              <span class="nav-icon">🚛</span>
+              <span class="nav-text">TT (MH-19-CY-5682)</span>
+            </a>
+          </li>
+          <li>
+            <a href="#" class="nav-item" id="nav-reminders" onclick="alert('Feature coming soon!')">
+              <span class="nav-icon">🔔</span>
+              <span class="nav-text">Reminders</span>
+            </a>
+          </li>
+          <li>
+            <a href="#" class="nav-item" id="nav-gst">
+              <span class="nav-icon">📄</span>
+              <span class="nav-text">GST R1 & 3B Data</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+      
+      <!-- Theme Switcher -->
+      <div class="theme-switcher-sidebar">
+        <label>Theme Selection</label>
+        <div class="theme-btn-group">
+          <button type="button" class="theme-btn active" data-theme="dark">
+            🌙 Dark
+          </button>
+          <button type="button" class="theme-btn" data-theme="hpcl">
+            🔵 HPCL
+          </button>
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <p>v1.6.0-autosave</p>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="main-content">
+      
+      <!-- VIEW 1: DU Calculations (Day Closing Step 1) -->
+      <div id="view-du-calculations" class="view-pane">
+        <header class="content-header">
+          <div class="header-title-wrapper">
+            <h1>Day Closing</h1>
+            <p class="subtitle">Step 1: DU Calculations (Record closing meter readings)</p>
+          </div>
+        </header>
+
+        <main class="content-body">
+          <!-- Input Form Card -->
+          <section class="card form-card">
+            <div class="card-header">
+              <h2>Record Closing Readings</h2>
+              <p>Input closing readings; opening readings are loaded automatically from the database.</p>
+            </div>
+            
+            <form id="readings-form" class="readings-form">
+              <div id="form-error-banner" class="form-error-banner" style="display: none;"></div>
+              <div class="form-row-group">
+                <div class="form-group date-group">
+                  <label for="reading-date">Select Date</label>
+                  <div class="date-input-wrapper" style="display: flex; align-items: center; gap: 1rem;">
+                    <input type="date" id="reading-date" name="reading-date">
+                    <span id="formatted-date-display" style="font-size: 1.1rem; font-weight: 700; color: var(--accent); padding: 0.25rem 0.75rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 0.5rem; min-width: 140px; text-align: center;"></span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Custom Form Table matching spreadsheet structure -->
+              <div class="nozzle-form-table">
+                <div class="nozzle-form-header">
+                  <div class="header-col">Nozzle / Product</div>
+                  <div class="header-col">Opening Reading</div>
+                  <div class="header-col">Closing Reading</div>
+                  <div class="header-col">Difference</div>
+                </div>
+
+                <!-- Nozzle 1 Row (Petrol) -->
+                <div class="nozzle-form-row product-petrol" data-product="Petrol">
+                  <div class="col-nozzle">
+                    <span class="nozzle-badge">N1</span> Petrol
+                  </div>
+                  <div class="col-input">
+                    <input type="number" id="nozzle-1-opening" class="opening-input" data-nozzle="1" step="0.001" min="0" placeholder="0.000">
+                  </div>
+                  <div class="col-input">
+                    <input type="number" id="nozzle-1-closing" class="closing-input" data-nozzle="1" step="0.001" min="0" placeholder="0.000">
+                  </div>
+                  <div class="col-diff">
+                    <span id="nozzle-1-diff" class="diff-val">0.000</span>
+                  </div>
+                </div>
+
+                <!-- Nozzle 2 Row (Petrol) -->
+                <div class="nozzle-form-row product-petrol" data-product="Petrol">
+                  <div class="col-nozzle">
+                    <span class="nozzle-badge">N2</span> Petrol
+                  </div>
+                  <div class="col-input">
+                    <input type="number" id="nozzle-2-opening" class="opening-input" data-nozzle="2" step="0.001" min="0" placeholder="0.000">
+                  </div>
+                  <div class="col-input">
+                    <input type="number" id="nozzle-2-closing" class="closing-input" data-nozzle="2" step="0.001" min="0" placeholder="0.000">
+                  </div>
+                  <div class="col-diff">
+                    <span id="nozzle-2-diff" class="diff-val">0.000</span>
+                  </div>
+                </div>
+
+                <!-- Nozzle 3 Row (Petrol) -->
+                <div class="nozzle-form-row product-petrol" data-product="Petrol">
+                  <div class="col-nozzle">
+                    <span class="nozzle-badge">N3</span> Petrol
+                  </div>
+                  <div class="col-input">
+                    <input type="number" id="nozzle-3-opening" class="opening-input" data-nozzle="3" step="0.001" min="0" placeholder="0.000">
+                  </div>
+                  <div class="col-input">
+                    <input type="number" id="nozzle-3-closing" class="closing-input" data-nozzle="3" step="0.001" min="0" placeholder="0.000">
+                  </div>
+                  <div class="col-diff">
+                    <span id="nozzle-3-diff" class="diff-val">0.000</span>
+                  </div>
+                </div>
+
+                <!-- Nozzle 4 Row (Diesel) -->
+                <div class="nozzle-form-row product-diesel" data-product="Diesel">
+                  <div class="col-nozzle">
+                    <span class="nozzle-badge">N4</span> Diesel
+                  </div>
+                  <div class="col-input">
+                    <input type="number" id="nozzle-4-opening" class="opening-input" data-nozzle="4" step="0.001" min="0" placeholder="0.000">
+                  </div>
+                  <div class="col-input">
+                    <input type="number" id="nozzle-4-closing" class="closing-input" data-nozzle="4" step="0.001" min="0" placeholder="0.000">
+                  </div>
+                  <div class="col-diff">
+                    <span id="nozzle-4-diff" class="diff-val">0.000</span>
+                  </div>
+                </div>
+
+                <!-- Nozzle 5 Row (Diesel) -->
+                <div class="nozzle-form-row product-diesel" data-product="Diesel">
+                  <div class="col-nozzle">
+                    <span class="nozzle-badge">N5</span> Diesel
+                  </div>
+                  <div class="col-input">
+                    <input type="number" id="nozzle-5-opening" class="opening-input" data-nozzle="5" step="0.001" min="0" placeholder="0.000">
+                  </div>
+                  <div class="col-input">
+                    <input type="number" id="nozzle-5-closing" class="closing-input" data-nozzle="5" step="0.001" min="0" placeholder="0.000">
+                  </div>
+                  <div class="col-diff">
+                    <span id="nozzle-5-diff" class="diff-val">0.000</span>
+                  </div>
+                </div>
+
+                <!-- Nozzle 6 Row (poWer) -->
+                <div class="nozzle-form-row product-power" data-product="poWer">
+                  <div class="col-nozzle">
+                    <span class="nozzle-badge">N6</span> poWer
+                  </div>
+                  <div class="col-input">
+                    <input type="number" id="nozzle-6-opening" class="opening-input" data-nozzle="6" step="0.001" min="0" placeholder="0.000">
+                  </div>
+                  <div class="col-input">
+                    <input type="number" id="nozzle-6-closing" class="closing-input" data-nozzle="6" step="0.001" min="0" placeholder="0.000">
+                  </div>
+                  <div class="col-diff">
+                    <span id="nozzle-6-diff" class="diff-val">0.000</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-actions-row">
+                <button type="submit" id="btn-next" class="btn btn-primary">
+                  Next Step: Nozzle Testing ➔
+                </button>
+              </div>
+            </form>
+          </section>
+        </main>
+      </div>
+
+      <!-- VIEW: Nozzle Testing (Day Closing Step 2) -->
+      <div id="view-nozzle-testing" class="view-pane" style="display: none;">
+        <header class="content-header">
+          <div class="header-title-wrapper">
+            <h1>Day Closing</h1>
+            <p class="subtitle">Step 2: Nozzle Testing (Record calibration testing for each nozzle)</p>
+          </div>
+        </header>
+
+        <main class="content-body">
+          <section class="card testing-card">
+            <div class="card-header">
+              <h2>Record Nozzle Testing</h2>
+              <p>Default value is 5L. If a nozzle was inoperative (difference <= 5L), the test quantity must be 0.</p>
+            </div>
+
+            <form id="testing-form" class="testing-form">
+              <div class="nozzle-testing-table">
+                <div class="testing-table-header">
+                  <div>Nozzle / Product</div>
+                  <div class="text-right">Sales Difference (L)</div>
+                  <div class="text-right">Testing Quantity (L)</div>
+                </div>
+
+                <!-- Nozzle 1 Row -->
+                <div class="testing-table-row product-petrol" data-nozzle="1">
+                  <div class="col-nozzle">
+                    <span class="nozzle-badge">N1</span> Petrol
+                  </div>
+                  <div class="text-right col-diff-readonly">
+                    <span id="nozzle-1-test-diff">0.000</span>
+                  </div>
+                  <div class="col-input">
+                    <input type="number" id="nozzle-1-test-qty" class="testing-qty-input" step="0.001" min="0" placeholder="5.000">
+                  </div>
+                </div>
+
+                <!-- Nozzle 2 Row -->
+                <div class="testing-table-row product-petrol" data-nozzle="2">
+                  <div class="col-nozzle">
+                    <span class="nozzle-badge">N2</span> Petrol
+                  </div>
+                  <div class="text-right col-diff-readonly">
+                    <span id="nozzle-2-test-diff">0.000</span>
+                  </div>
+                  <div class="col-input">
+                    <input type="number" id="nozzle-2-test-qty" class="testing-qty-input" step="0.001" min="0" placeholder="5.000">
+                  </div>
+                </div>
+
+                <!-- Nozzle 3 Row -->
+                <div class="testing-table-row product-petrol" data-nozzle="3">
+                  <div class="col-nozzle">
+                    <span class="nozzle-badge">N3</span> Petrol
+                  </div>
+                  <div class="text-right col-diff-readonly">
+                    <span id="nozzle-3-test-diff">0.000</span>
+                  </div>
+                  <div class="col-input">
+                    <input type="number" id="nozzle-3-test-qty" class="testing-qty-input" step="0.001" min="0" placeholder="5.000">
+                  </div>
+                </div>
+
+                <!-- Nozzle 4 Row -->
+                <div class="testing-table-row product-diesel" data-nozzle="4">
+                  <div class="col-nozzle">
+                    <span class="nozzle-badge">N4</span> Diesel
+                  </div>
+                  <div class="text-right col-diff-readonly">
+                    <span id="nozzle-4-test-diff">0.000</span>
+                  </div>
+                  <div class="col-input">
+                    <input type="number" id="nozzle-4-test-qty" class="testing-qty-input" step="0.001" min="0" placeholder="5.000">
+                  </div>
+                </div>
+
+                <!-- Nozzle 5 Row -->
+                <div class="testing-table-row product-diesel" data-nozzle="5">
+                  <div class="col-nozzle">
+                    <span class="nozzle-badge">N5</span> Diesel
+                  </div>
+                  <div class="text-right col-diff-readonly">
+                    <span id="nozzle-5-test-diff">0.000</span>
+                  </div>
+                  <div class="col-input">
+                    <input type="number" id="nozzle-5-test-qty" class="testing-qty-input" step="0.001" min="0" placeholder="5.000">
+                  </div>
+                </div>
+
+                <!-- Nozzle 6 Row -->
+                <div class="testing-table-row product-power" data-nozzle="6">
+                  <div class="col-nozzle">
+                    <span class="nozzle-badge">N6</span> poWer
+                  </div>
+                  <div class="text-right col-diff-readonly">
+                    <span id="nozzle-6-test-diff">0.000</span>
+                  </div>
+                  <div class="col-input">
+                    <input type="number" id="nozzle-6-test-qty" class="testing-qty-input" step="0.001" min="0" placeholder="5.000">
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-actions-row">
+                <button type="button" id="btn-back-to-du" class="btn btn-secondary">
+                  ⬅ Back to DU
+                </button>
+                 <button type="submit" id="btn-testing-next" class="btn btn-primary">
+                  Next Step: Rate Confirmation ➔
+                </button>
+              </div>
+            </form>
+          </section>
+        </main>
+      </div>
+
+      <!-- VIEW: Rate Confirmation (Day Closing Step 3) -->
+      <div id="view-rate-confirmation" class="view-pane" style="display: none;">
+        <header class="content-header">
+          <div class="header-title-wrapper">
+            <h1>Day Closing</h1>
+            <p class="subtitle">Step 3: Rate Confirmation (Confirm daily selling rates)</p>
+          </div>
+        </header>
+
+        <main class="content-body">
+          <section class="card rates-card" style="max-width: 600px; width: 100%; margin: auto;">
+            <div class="card-header">
+              <h2>Confirm Daily Product Rates</h2>
+              <p>Confirm the daily selling rate (Rs/L) for each product. Rates will be used for calculations.</p>
+            </div>
+
+            <form id="rates-form" class="rates-form" style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem;">
+              <div class="rates-inputs-grid-view" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <div class="form-group product-power" style="background: var(--power-bg); border: 1px solid var(--power-border); padding: 0.75rem 1rem; border-radius: 0.75rem; display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 1rem;">
+                  <label for="rate-power" style="margin-bottom: 0;">poWer Rate (Rs/L)</label>
+                  <input type="number" id="rate-power" min="0" placeholder="0.00" value="0.00" step="0.01" style="text-align: right; font-size: 1.15rem; font-weight: 700; color: var(--power-color); max-width: 140px; width: 100%; margin-left: auto;" oninput="if(this.value.length > 7) this.value = this.value.slice(0, 7);">
+                </div>
+                <div class="form-group product-petrol" style="background: var(--petrol-bg); border: 1px solid var(--petrol-border); padding: 0.75rem 1rem; border-radius: 0.75rem; display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 1rem;">
+                  <label for="rate-petrol" style="margin-bottom: 0;">Petrol Rate (Rs/L)</label>
+                  <input type="number" id="rate-petrol" min="0" placeholder="0.00" value="0.00" step="0.01" style="text-align: right; font-size: 1.15rem; font-weight: 700; color: var(--petrol-color); max-width: 140px; width: 100%; margin-left: auto;" oninput="if(this.value.length > 7) this.value = this.value.slice(0, 7);">
+                </div>
+                <div class="form-group product-diesel" style="background: var(--diesel-bg); border: 1px solid var(--diesel-border); padding: 0.75rem 1rem; border-radius: 0.75rem; display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 1rem;">
+                  <label for="rate-diesel" style="margin-bottom: 0;">Diesel Rate (Rs/L)</label>
+                  <input type="number" id="rate-diesel" min="0" placeholder="0.00" value="0.00" step="0.01" style="text-align: right; font-size: 1.15rem; font-weight: 700; color: var(--diesel-color); max-width: 140px; width: 100%; margin-left: auto;" oninput="if(this.value.length > 7) this.value = this.value.slice(0, 7);">
+                </div>
+              </div>
+
+              <div class="form-actions-row">
+                <button type="button" id="btn-back-to-testing" class="btn btn-secondary">
+                  ⬅ Back to Testing
+                </button>
+                <button type="submit" id="btn-rate-next" class="btn btn-primary">
+                  Next Step: Tank Stock ➔
+                </button>
+              </div>
+            </form>
+          </section>
+        </main>
+      </div>
+
+      <!-- VIEW: Tank Stock (Day Closing Step 4) -->
+      <div id="view-tank-stock" class="view-pane" style="display: none;">
+        <header class="content-header">
+          <div class="header-title-wrapper">
+            <h1>Day Closing</h1>
+            <p class="subtitle">Step 4: Tank Stock (Record stock position DIP and Stock of all three tanks)</p>
+          </div>
+        </header>
+
+        <main class="content-body">
+          <section class="card tank-card">
+            <div class="card-header">
+              <h2>Record Tank Stocks</h2>
+              <p>Input closing DIP and closing stock; opening stock is loaded automatically from the database.</p>
+            </div>
+
+            <form id="tank-form" class="tank-form">
+              <div class="tank-form-table">
+                <div class="tank-form-header">
+                  <div>Tank / Product (Cap)</div>
+                  <div class="text-right">Opening DIP (cm)</div>
+                  <div class="text-right">Opening Stock (L)</div>
+                  <div class="text-right">Closing DIP (cm)</div>
+                  <div class="text-right">Closing Stock (L)</div>
+                </div>
+
+                <!-- Tank 1 Row (poWer) -->
+                <div class="tank-form-row product-power" data-tank="1" data-product="poWer" data-name="Tank 1" data-capacity="9000">
+                  <div class="col-tank">
+                    <span class="nozzle-badge">T1</span> poWer <span class="cap-lbl">(9K L)</span>
+                  </div>
+                  <div class="col-input">
+                    <input type="number" id="tank-1-opening-dip" class="tank-opening-dip-input" step="0.1" min="0" placeholder="0.0">
+                  </div>
+                  <div class="col-input">
+                    <input type="number" id="tank-1-opening" class="tank-opening-input" step="0.01" min="0" placeholder="0.00">
+                  </div>
+                  <div class="col-input">
+                    <input type="number" id="tank-1-dip" class="tank-dip-input" step="0.1" min="0" placeholder="0.0">
+                  </div>
+                  <div class="col-input">
+                    <input type="number" id="tank-1-closing" class="tank-closing-input" step="0.01" min="0" placeholder="0.00">
+                  </div>
+                </div>
+
+                <!-- Tank 2 Row (Petrol) -->
+                <div class="tank-form-row product-petrol" data-tank="2" data-product="Petrol" data-name="Tank 2" data-capacity="16000">
+                  <div class="col-tank">
+                    <span class="nozzle-badge">T2</span> Petrol <span class="cap-lbl">(16K L)</span>
+                  </div>
+                  <div class="col-input">
+                    <input type="number" id="tank-2-opening-dip" class="tank-opening-dip-input" step="0.1" min="0" placeholder="0.0">
+                  </div>
+                  <div class="col-input">
+                    <input type="number" id="tank-2-opening" class="tank-opening-input" step="0.01" min="0" placeholder="0.00">
+                  </div>
+                  <div class="col-input">
+                    <input type="number" id="tank-2-dip" class="tank-dip-input" step="0.1" min="0" placeholder="0.0">
+                  </div>
+                  <div class="col-input">
+                    <input type="number" id="tank-2-closing" class="tank-closing-input" step="0.01" min="0" placeholder="0.00">
+                  </div>
+                </div>
+
+                <!-- Tank 3 Row (Diesel) -->
+                <div class="tank-form-row product-diesel" data-tank="3" data-product="Diesel" data-name="Tank 3" data-capacity="35000">
+                  <div class="col-tank">
+                    <span class="nozzle-badge">T3</span> Diesel <span class="cap-lbl">(35K L)</span>
+                  </div>
+                  <div class="col-input">
+                    <input type="number" id="tank-3-opening-dip" class="tank-opening-dip-input" step="0.1" min="0" placeholder="0.0">
+                  </div>
+                  <div class="col-input">
+                    <input type="number" id="tank-3-opening" class="tank-opening-input" step="0.01" min="0" placeholder="0.00">
+                  </div>
+                  <div class="col-input">
+                    <input type="number" id="tank-3-dip" class="tank-dip-input" step="0.1" min="0" placeholder="0.0">
+                  </div>
+                  <div class="col-input">
+                    <input type="number" id="tank-3-closing" class="tank-closing-input" step="0.01" min="0" placeholder="0.00">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Animated Tank Visuals -->
+              <div class="tanks-visual-container">
+                <!-- Tank 1 poWer -->
+                <div class="tank-visual-card power" id="tank-visual-1">
+                  <div class="tank-cylinder">
+                    <div class="fluid-wave" id="fluid-wave-1" style="height: 50%;"></div>
+                    <div class="tank-fill-label" id="tank-fill-label-1">50%</div>
+                  </div>
+                  <div class="tank-info">
+                    <span class="tank-name">T1 (poWer)</span>
+                    <span class="tank-status" id="tank-status-1">4,500 L / 9,000 L</span>
+                  </div>
+                </div>
+                <!-- Tank 2 Petrol -->
+                <div class="tank-visual-card petrol" id="tank-visual-2">
+                  <div class="tank-cylinder">
+                    <div class="fluid-wave" id="fluid-wave-2" style="height: 50%;"></div>
+                    <div class="tank-fill-label" id="tank-fill-label-2">50%</div>
+                  </div>
+                  <div class="tank-info">
+                    <span class="tank-name">T2 (Petrol)</span>
+                    <span class="tank-status" id="tank-status-2">8,000 L / 16,000 L</span>
+                  </div>
+                </div>
+                <!-- Tank 3 Diesel -->
+                <div class="tank-visual-card diesel" id="tank-visual-3">
+                  <div class="tank-cylinder">
+                    <div class="fluid-wave" id="fluid-wave-3" style="height: 50%;"></div>
+                    <div class="tank-fill-label" id="tank-fill-label-3">50%</div>
+                  </div>
+                  <div class="tank-info">
+                    <span class="tank-name">T3 (Diesel)</span>
+                    <span class="tank-status" id="tank-status-3">17,500 L / 35,000 L</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Decantation Question at the bottom of Step 3 -->
+              <div class="form-row-group decantation-question-row" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed rgba(255, 255, 255, 0.08); flex-shrink: 0;">
+                <div class="form-group decantation-group" style="margin-left: 0;">
+                  <label style="font-size: 0.85rem; font-weight: 700; color: var(--accent);">Decantation (Fuel Load Received) today?</label>
+                  <div class="radio-group" style="margin-top: 0.25rem;">
+                    <label class="radio-label">
+                      <input type="radio" name="decantation-toggle" value="no" checked> No
+                    </label>
+                    <label class="radio-label">
+                      <input type="radio" name="decantation-toggle" value="yes"> Yes
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-actions-row">
+                <button type="button" id="btn-back-to-rates" class="btn btn-secondary">
+                  ⬅ Back to Rates
+                </button>
+                <button type="submit" id="btn-tank-next" class="btn btn-primary">
+                  Next Step: Cash Reconciliation ➔
+                </button>
+              </div>
+            </form>
+          </section>
+        </main>
+      </div>
+
+      <!-- VIEW: Decantation Details (Day Closing Step 5) -->
+      <div id="view-decantation" class="view-pane" style="display: none;">
+        <header class="content-header">
+          <div class="header-title-wrapper">
+            <h1>Day Closing</h1>
+            <p class="subtitle">Step 5: Decantation Details (Record received fuel loads)</p>
+          </div>
+        </header>
+
+        <main class="content-body">
+          <section class="card decantation-card">
+            <div class="card-header">
+              <h2>Record Received Fuel Loads</h2>
+              <p>Specify the quantity of fuel received in Liters for each product.</p>
+            </div>
+
+            <form id="decantation-form" class="decantation-form">
+              <div class="decantation-inputs-grid-view" style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 0.75rem;">
+                <div class="form-group product-power" style="background: var(--power-bg); border: 1px solid var(--power-border); padding: 0.75rem 1rem; border-radius: 0.75rem; display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 1rem;">
+                  <label for="load-power" style="margin-bottom: 0;">poWer Load (L)</label>
+                  <input type="number" id="load-power" min="0" placeholder="0" value="0" step="1000" style="text-align: right; font-size: 1.15rem; font-weight: 700; color: var(--power-color); max-width: 140px; width: 100%; margin-left: auto;" oninput="if(this.value.length > 7) this.value = this.value.slice(0, 7);">
+                </div>
+                <div class="form-group product-petrol" style="background: var(--petrol-bg); border: 1px solid var(--petrol-border); padding: 0.75rem 1rem; border-radius: 0.75rem; display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 1rem;">
+                  <label for="load-petrol" style="margin-bottom: 0;">Petrol Load (L)</label>
+                  <input type="number" id="load-petrol" min="0" placeholder="0" value="0" step="1000" style="text-align: right; font-size: 1.15rem; font-weight: 700; color: var(--petrol-color); max-width: 140px; width: 100%; margin-left: auto;" oninput="if(this.value.length > 7) this.value = this.value.slice(0, 7);">
+                </div>
+                <div class="form-group product-diesel" style="background: var(--diesel-bg); border: 1px solid var(--diesel-border); padding: 0.75rem 1rem; border-radius: 0.75rem; display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 1rem;">
+                  <label for="load-diesel" style="margin-bottom: 0;">Diesel Load (L)</label>
+                  <input type="number" id="load-diesel" min="0" placeholder="0" value="0" step="1000" style="text-align: right; font-size: 1.15rem; font-weight: 700; color: var(--diesel-color); max-width: 140px; width: 100%; margin-left: auto;" oninput="if(this.value.length > 7) this.value = this.value.slice(0, 7);">
+                </div>
+              <div class="form-actions-row">
+                <button type="button" id="btn-back-to-tank" class="btn btn-secondary">
+                  ⬅ Back to Tank Stock
+                </button>
+                <button type="submit" id="btn-decantation-next" class="btn btn-primary">
+                  Next Step: DSR Reconciliation ➔
+                </button>
+              </div>
+            </form>
+          </section>
+        </main>
+      </div>
+
+      <!-- VIEW: DSR Data (Day Closing Step 5/6 - New Page) -->
+      <div id="view-dsr-data" class="view-pane" style="display: none;">
+        <header class="content-header">
+          <div class="header-title-wrapper">
+            <h1>Day Closing</h1>
+            <p class="subtitle">Step 5/6: DSR (Daily Sales & Stock Reconciliation)</p>
+          </div>
+        </header>
+
+        <main class="content-body">
+          <section class="card dsr-card">
+            <div class="card-header">
+              <h2>Daily Sales & Stock Reconciliation (DSR)</h2>
+              <p>Reconcile physical tank stocks against calculated nozzle sales and decantation receipts.</p>
+            </div>
+
+            <!-- DSR Table -->
+            <div class="dsr-table-wrapper" style="margin-top: 1.5rem; overflow-x: auto;">
+              <div class="dsr-table" style="display: flex; flex-direction: column; gap: 0.5rem; min-width: 600px;">
+                <div class="dsr-header" style="display: grid; grid-template-columns: 1.2fr 1.1fr 1fr 1.1fr 1.1fr 1.1fr; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); border-bottom: 2px solid rgba(255,255,255,0.08); padding-bottom: 0.5rem; gap: 0.25rem;">
+                  <div>Product / Tank</div>
+                  <div class="text-right" title="Gross Difference in Nozzle Readings">Nozzle Diff</div>
+                  <div class="text-right" title="Total Testing Done">Testing</div>
+                  <div class="text-right" title="Actual Sale (Net)">Actual Sale</div>
+                  <div class="text-right" title="Tank Wise Sale (Opening + Receipt - Closing)">Tank Sale</div>
+                  <div class="text-right" title="Variation (Tank Sale - Actual Sale)">Variation</div>
+                </div>
+
+                <div id="dsr-table-body" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                  <!-- Dynamic rows for Petrol, Diesel, poWer -->
+                </div>
+              </div>
+            </div>
+
+            <!-- DSR Summary / Insights -->
+            <div id="dsr-insights" style="margin-top: 1.5rem; padding: 1rem; border-radius: 0.75rem; border: 1px solid rgba(255,255,255,0.05); background: rgba(8,12,22,0.2); font-size: 0.85rem; line-height: 1.4;">
+              <!-- Dynamic short message -->
+            </div>
+
+            <div class="form-actions-row" style="margin-top: 1.5rem;">
+              <button type="button" id="btn-back-to-decantation-or-tank-from-dsr" class="btn btn-secondary">
+                ⬅ Back
+              </button>
+              <button type="button" id="btn-dsr-next" class="btn btn-primary">
+                Next Step: Cash Reconciliation ➔
+              </button>
+            </div>
+          </section>
+        </main>
+      </div>
+
+      <!-- VIEW: Cash Reconciliation (Day Closing Step 5/6) -->
+      <div id="view-cash-reconciliation" class="view-pane" style="display: none;">
+        <header class="content-header">
+          <div class="header-title-wrapper">
+            <h1>Day Closing</h1>
+            <p class="subtitle">Step 5/6: Cash Reconciliation (Record bank notes & coins)</p>
+          </div>
+        </header>
+
+        <main class="content-body">
+          <section class="card cash-card" style="max-width: 960px; width: 100%; margin: auto;">
+            <div class="card-header">
+              <h2>Cash Reconciliation</h2>
+              <p>Enter the count of bank notes and coins received to reconcile against calculated sales revenue.</p>
+            </div>
+
+            <form id="cash-form" class="cash-form">
+              <!-- Three-column layout: Left for Notes, Middle for Coins, Right for Summary & Shortfall -->
+              <div class="cash-reconciliation-grid" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.25rem;">
+                
+                <!-- Left Panel: Note Inputs -->
+                <div class="note-inputs-table" style="display: flex; flex-direction: column; gap: 0.35rem;">
+                  <div class="note-row-header" style="display: grid; grid-template-columns: 1fr 1.2fr 1fr; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); padding: 0.15rem 0.5rem;">
+                    <div>Denomination</div>
+                    <div class="text-right" style="padding-right: 0.75rem;">Count</div>
+                    <div class="text-right">Amount (Rs)</div>
+                  </div>
+                  
+                  <!-- Rs 500 -->
+                  <div class="note-row" style="display: grid; grid-template-columns: 1fr 1.2fr 1fr; align-items: center; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.03); padding: 0.35rem 0.5rem; border-radius: 0.5rem;">
+                    <div style="font-weight: 600; font-size: 0.85rem; color: var(--text-main);">Rs. 500</div>
+                    <div class="col-input" style="padding-right: 0.5rem;"><input type="number" id="notes-500" class="note-count-input" min="0" value="0" step="1" style="text-align: right; padding: 0.25rem 0.5rem; font-size: 0.85rem; height: 32px;"></div>
+                    <div id="notes-500-amount" class="text-right" style="font-weight: 700; font-size: 0.9rem; color: var(--text-main);">0</div>
+                  </div>
+
+                  <!-- Rs 200 -->
+                  <div class="note-row" style="display: grid; grid-template-columns: 1fr 1.2fr 1fr; align-items: center; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.03); padding: 0.35rem 0.5rem; border-radius: 0.5rem;">
+                    <div style="font-weight: 600; font-size: 0.85rem; color: var(--text-main);">Rs. 200</div>
+                    <div class="col-input" style="padding-right: 0.5rem;"><input type="number" id="notes-200" class="note-count-input" min="0" value="0" step="1" style="text-align: right; padding: 0.25rem 0.5rem; font-size: 0.85rem; height: 32px;"></div>
+                    <div id="notes-200-amount" class="text-right" style="font-weight: 700; font-size: 0.9rem; color: var(--text-main);">0</div>
+                  </div>
+
+                  <!-- Rs 100 -->
+                  <div class="note-row" style="display: grid; grid-template-columns: 1fr 1.2fr 1fr; align-items: center; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.03); padding: 0.35rem 0.5rem; border-radius: 0.5rem;">
+                    <div style="font-weight: 600; font-size: 0.85rem; color: var(--text-main);">Rs. 100</div>
+                    <div class="col-input" style="padding-right: 0.5rem;"><input type="number" id="notes-100" class="note-count-input" min="0" value="0" step="1" style="text-align: right; padding: 0.25rem 0.5rem; font-size: 0.85rem; height: 32px;"></div>
+                    <div id="notes-100-amount" class="text-right" style="font-weight: 700; font-size: 0.9rem; color: var(--text-main);">0</div>
+                  </div>
+
+                  <!-- Rs 50 -->
+                  <div class="note-row" style="display: grid; grid-template-columns: 1fr 1.2fr 1fr; align-items: center; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.03); padding: 0.35rem 0.5rem; border-radius: 0.5rem;">
+                    <div style="font-weight: 600; font-size: 0.85rem; color: var(--text-main);">Rs. 50</div>
+                    <div class="col-input" style="padding-right: 0.5rem;"><input type="number" id="notes-50" class="note-count-input" min="0" value="0" step="1" style="text-align: right; padding: 0.25rem 0.5rem; font-size: 0.85rem; height: 32px;"></div>
+                    <div id="notes-50-amount" class="text-right" style="font-weight: 700; font-size: 0.9rem; color: var(--text-main);">0</div>
+                  </div>
+
+                  <!-- Rs 20 -->
+                  <div class="note-row" style="display: grid; grid-template-columns: 1fr 1.2fr 1fr; align-items: center; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.03); padding: 0.35rem 0.5rem; border-radius: 0.5rem;">
+                    <div style="font-weight: 600; font-size: 0.85rem; color: var(--text-main);">Rs. 20</div>
+                    <div class="col-input" style="padding-right: 0.5rem;"><input type="number" id="notes-20" class="note-count-input" min="0" value="0" step="1" style="text-align: right; padding: 0.25rem 0.5rem; font-size: 0.85rem; height: 32px;"></div>
+                    <div id="notes-20-amount" class="text-right" style="font-weight: 700; font-size: 0.9rem; color: var(--text-main);">0</div>
+                  </div>
+
+                  <!-- Rs 10 -->
+                  <div class="note-row" style="display: grid; grid-template-columns: 1fr 1.2fr 1fr; align-items: center; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.03); padding: 0.35rem 0.5rem; border-radius: 0.5rem;">
+                    <div style="font-weight: 600; font-size: 0.85rem; color: var(--text-main);">Rs. 10</div>
+                    <div class="col-input" style="padding-right: 0.5rem;"><input type="number" id="notes-10" class="note-count-input" min="0" value="0" step="1" style="text-align: right; padding: 0.25rem 0.5rem; font-size: 0.85rem; height: 32px;"></div>
+                    <div id="notes-10-amount" class="text-right" style="font-weight: 700; font-size: 0.9rem; color: var(--text-main);">0</div>
+                  </div>
+                </div>
+
+                <!-- Middle Panel: Coin Inputs -->
+                <div class="coin-inputs-table" style="display: flex; flex-direction: column; gap: 0.35rem;">
+                  <div class="note-row-header" style="display: grid; grid-template-columns: 1fr 1.2fr 1fr; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); padding: 0.15rem 0.5rem;">
+                    <div>Coin</div>
+                    <div class="text-right" style="padding-right: 0.75rem;">Count</div>
+                    <div class="text-right">Amount (Rs)</div>
+                  </div>
+
+                  <!-- Coin 20 -->
+                  <div class="note-row" style="display: grid; grid-template-columns: 1fr 1.2fr 1fr; align-items: center; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.03); padding: 0.35rem 0.5rem; border-radius: 0.5rem;">
+                    <div style="font-weight: 600; font-size: 0.85rem; color: var(--text-main);">₹ 20 Coin</div>
+                    <div class="col-input" style="padding-right: 0.5rem;"><input type="number" id="coins-20" class="coin-count-input" data-val="20" min="0" value="0" step="1" style="text-align: right; padding: 0.25rem 0.5rem; font-size: 0.85rem; height: 32px;"></div>
+                    <div id="coins-20-amount" class="text-right" style="font-weight: 700; font-size: 0.9rem; color: var(--text-main);">0</div>
+                  </div>
+
+                  <!-- Coin 10 -->
+                  <div class="note-row" style="display: grid; grid-template-columns: 1fr 1.2fr 1fr; align-items: center; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.03); padding: 0.35rem 0.5rem; border-radius: 0.5rem;">
+                    <div style="font-weight: 600; font-size: 0.85rem; color: var(--text-main);">₹ 10 Coin</div>
+                    <div class="col-input" style="padding-right: 0.5rem;"><input type="number" id="coins-10" class="coin-count-input" data-val="10" min="0" value="0" step="1" style="text-align: right; padding: 0.25rem 0.5rem; font-size: 0.85rem; height: 32px;"></div>
+                    <div id="coins-10-amount" class="text-right" style="font-weight: 700; font-size: 0.9rem; color: var(--text-main);">0</div>
+                  </div>
+
+                  <!-- Coin 5 -->
+                  <div class="note-row" style="display: grid; grid-template-columns: 1fr 1.2fr 1fr; align-items: center; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.03); padding: 0.35rem 0.5rem; border-radius: 0.5rem;">
+                    <div style="font-weight: 600; font-size: 0.85rem; color: var(--text-main);">₹ 5 Coin</div>
+                    <div class="col-input" style="padding-right: 0.5rem;"><input type="number" id="coins-5" class="coin-count-input" data-val="5" min="0" value="0" step="1" style="text-align: right; padding: 0.25rem 0.5rem; font-size: 0.85rem; height: 32px;"></div>
+                    <div id="coins-5-amount" class="text-right" style="font-weight: 700; font-size: 0.9rem; color: var(--text-main);">0</div>
+                  </div>
+
+                  <!-- Coin 2 -->
+                  <div class="note-row" style="display: grid; grid-template-columns: 1fr 1.2fr 1fr; align-items: center; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.03); padding: 0.35rem 0.5rem; border-radius: 0.5rem;">
+                    <div style="font-weight: 600; font-size: 0.85rem; color: var(--text-main);">₹ 2 Coin</div>
+                    <div class="col-input" style="padding-right: 0.5rem;"><input type="number" id="coins-2" class="coin-count-input" data-val="2" min="0" value="0" step="1" style="text-align: right; padding: 0.25rem 0.5rem; font-size: 0.85rem; height: 32px;"></div>
+                    <div id="coins-2-amount" class="text-right" style="font-weight: 700; font-size: 0.9rem; color: var(--text-main);">0</div>
+                  </div>
+
+                  <!-- Coin 1 -->
+                  <div class="note-row" style="display: grid; grid-template-columns: 1fr 1.2fr 1fr; align-items: center; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.03); padding: 0.35rem 0.5rem; border-radius: 0.5rem;">
+                    <div style="font-weight: 600; font-size: 0.85rem; color: var(--text-main);">₹ 1 Coin</div>
+                    <div class="col-input" style="padding-right: 0.5rem;"><input type="number" id="coins-1" class="coin-count-input" data-val="1" min="0" value="0" step="1" style="text-align: right; padding: 0.25rem 0.5rem; font-size: 0.85rem; height: 32px;"></div>
+                    <div id="coins-1-amount" class="text-right" style="font-weight: 700; font-size: 0.9rem; color: var(--text-main);">0</div>
+                  </div>
+
+                  <!-- Hidden input to store total coins and retro-compatibility -->
+                  <input type="hidden" id="coins-amount" value="0">
+                </div>
+
+                <!-- Right Panel: Summary Calculations & Shortfall -->
+                <div class="cash-summary-panel" style="display: flex; flex-direction: column; gap: 0.5rem; background: rgba(8,12,22,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 0.75rem; border-radius: 0.75rem; justify-content: space-between;">
+                  <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <h3 style="font-family: var(--font-header); font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--accent); letter-spacing: 0.03em; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.35rem;">Sales Reconciliation</h3>
+                    
+                    <div class="summary-line" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem;">
+                      <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600;">CALCULATED SALES:</span>
+                      <span id="sales-value-display" style="font-weight: 700; color: var(--text-main);">Rs. 0</span>
+                    </div>
+
+                    <div class="summary-line" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem;">
+                      <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600;">COINS VALUE:</span>
+                      <span id="coins-value-display-summary" style="font-weight: 700; color: var(--accent);">Rs. 0</span>
+                    </div>
+                    
+                    <div class="summary-line" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem;">
+                      <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600;">TOTAL CASH RECEIVED:</span>
+                      <span id="cash-received-display" style="font-weight: 700; color: var(--success);">Rs. 0</span>
+                    </div>
+
+                    <div class="shortfall-container" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); padding: 0.6rem; border-radius: 0.5rem; margin-top: 0.35rem; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                      <span style="font-size: 0.65rem; color: var(--accent); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Status</span>
+                      <span id="cash-status-prompt" style="font-size: 0.95rem; font-weight: 700; color: var(--accent); margin-top: 0.1rem; text-align: center;">Cash count recorded</span>
+                    </div>
+                  </div>
+
+                  <!-- Information Note -->
+                  <p style="font-size: 0.65rem; color: var(--text-muted); line-height: 1.3;">
+                    Reconcile cash received against calculations. Any shortfall is saved and logged in the daily summary.
+                  </p>
+                </div>
+              </div>
+
+              <div class="form-actions-row">
+                <button type="button" id="btn-back-to-decantation-or-tank" class="btn btn-secondary">
+                  ⬅ Back
+                </button>
+                <button type="submit" id="btn-cash-next" class="btn btn-primary">
+                  Next Step: UPI & Credit ➔
+                </button>
+              </div>
+            </form>
+          </section>
+        </main>
+      </div>
+
+      <!-- VIEW: Other Payments / Credit (New Step) -->
+      <div id="view-other-payments" class="view-pane" style="display: none;">
+        <header class="content-header">
+          <div class="header-title-wrapper">
+            <h1>Day Closing</h1>
+            <p class="subtitle">Step 7: Other Payments / Credit (Record UPI & Credit Sales)</p>
+          </div>
+        </header>
+
+        <main class="content-body">
+          <section class="card other-payments-card" style="max-width: 960px; width: 100%; margin: auto;">
+            <div class="card-header">
+              <h2>UPI & Credit Reconciliation</h2>
+              <p>Enter UPI payments and Credit customer sales to reconcile against calculated sales revenue.</p>
+            </div>
+
+            <form id="other-payments-form" class="other-payments-form">
+              <!-- Grid with form inputs (Left) and Live Summary (Right) -->
+              <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.25rem;">
+                
+                <!-- Left Panel: Up to 20 rows of UPI/Credit Entries in a scrollable table -->
+                <div style="background: rgba(8,12,22,0.2); border: 1px solid rgba(255,255,255,0.03); padding: 0.75rem; border-radius: 0.75rem;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                      <h3 style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Transaction Log</h3>
+                      <span id="non-cash-row-badge" style="font-size: 0.65rem; color: var(--accent); font-weight: 700; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); padding: 0.1rem 0.4rem; border-radius: 0.25rem;">5 rows</span>
+                    </div>
+                    <span style="font-size: 0.65rem; color: var(--text-muted);">Press <strong style="color:var(--accent);">+</strong> to add more rows</span>
+                  </div>
+                  
+                  <div style="max-height: 380px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.04); border-radius: 0.5rem 0.5rem 0 0; padding-right: 0.25rem;" id="other-payments-scroll">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.8rem;">
+                      <thead>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.2); position: sticky; top: 0; z-index: 1;">
+                          <th style="padding: 0.4rem; font-weight: 700; width: 40px; text-align: center;">No.</th>
+                          <th style="padding: 0.4rem; font-weight: 700; width: 120px;">Type</th>
+                          <th style="padding: 0.4rem; font-weight: 700;">Customer / Description</th>
+                          <th style="padding: 0.4rem; font-weight: 700; width: 120px; text-align: right; padding-right: 0.75rem;">Amount (Rs)</th>
+                        </tr>
+                      </thead>
+                      <tbody id="other-payments-rows">
+                        <!-- generated dynamically in app.js -->
+                      </tbody>
+                    </table>
+                  </div>
+                  <!-- + Add Row / − Remove Row buttons -->
+                  <div style="display: flex; border-top: none; border-radius: 0 0 0.5rem 0.5rem; overflow: hidden;">
+                    <button type="button" id="btn-add-noncash-row"
+                      style="flex: 1; padding: 0.45rem; margin-top: 0; border: 1px dashed rgba(255,255,255,0.12); border-top: none; border-right: none; border-radius: 0; background: rgba(8,12,22,0.35); color: var(--accent); font-size: 0.78rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.4rem; transition: background 0.2s;">
+                      <span style="font-size: 1.05rem; line-height: 1;">＋</span> Add Row
+                    </button>
+                    <button type="button" id="btn-remove-noncash-row"
+                      style="flex: 1; padding: 0.45rem; margin-top: 0; border: 1px dashed rgba(255,255,255,0.12); border-top: none; border-radius: 0; background: rgba(8,12,22,0.35); color: var(--danger); font-size: 0.78rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.4rem; transition: background 0.2s;">
+                      <span style="font-size: 1.05rem; line-height: 1;">－</span> Remove Row
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Right Panel: Live Reconciliation calculations -->
+                <div class="other-payments-summary-panel" style="display: flex; flex-direction: column; gap: 0.5rem; background: rgba(8,12,22,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 0.75rem; border-radius: 0.75rem; justify-content: space-between;">
+                  <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <h3 style="font-family: var(--font-header); font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--accent); letter-spacing: 0.03em; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.35rem;">Daily Settlement</h3>
+                    
+                    <div class="summary-line" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem;">
+                      <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600;">CALCULATED SALES:</span>
+                      <span id="other-sales-display" style="font-weight: 700; color: var(--text-main);">Rs. 0</span>
+                    </div>
+
+                    <div class="summary-line" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem;">
+                      <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600;">CASH RECEIVED:</span>
+                      <span id="other-cash-display" style="font-weight: 700; color: var(--success);">Rs. 0</span>
+                    </div>
+
+                    <div class="summary-line" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem;">
+                      <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600;">UPI & CREDIT:</span>
+                      <span id="other-noncash-display" style="font-weight: 700; color: var(--accent);">Rs. 0</span>
+                    </div>
+                    
+                    <div class="summary-line" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 0.35rem;">
+                      <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600;">TOTAL ACCOUNTED:</span>
+                      <span id="other-total-settled-display" style="font-weight: 700; color: var(--success);">Rs. 0</span>
+                    </div>
+
+                    <div class="net-shortfall-container" style="background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.15); padding: 0.6rem; border-radius: 0.5rem; margin-top: 0.35rem; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                      <span style="font-size: 0.65rem; color: var(--danger); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;" id="net-shortfall-lbl">Shortfall / Deficit</span>
+                      <span id="net-shortfall-display-val" style="font-size: 1.25rem; font-weight: 800; color: var(--danger); margin-top: 0.1rem;">Rs. 0</span>
+                    </div>
+                  </div>
+
+                  <!-- Information Note -->
+                  <p style="font-size: 0.65rem; color: var(--text-muted); line-height: 1.3;">
+                    This final reconciliation checks Cash + UPI + Credits against nozzle sales. Any deviation is logged as shortfall/surplus.
+                  </p>
+                </div>
+              </div>
+
+              <div class="form-actions-row">
+                <button type="button" id="btn-back-to-cash" class="btn btn-secondary">
+                  ⬅ Back
+                </button>
+                <button type="submit" id="btn-other-submit" class="btn btn-primary">
+                  Preview Day Summary 👁️
+                </button>
+              </div>
+            </form>
+          </section>
+        </main>
+      </div>
+
+      <!-- VIEW: Day Closing Preview (Step 8 / Step 9 if decantation) -->
+      <div id="view-preview" class="view-pane" style="display: none;">
+        <header class="content-header">
+          <div class="header-title-wrapper">
+            <h1>Day Closing</h1>
+            <p class="subtitle">Step 8: Preview — Verify before closing</p>
+          </div>
+        </header>
+
+        <main class="content-body">
+          <section class="card finish-card">
+
+            <!-- Preview Warning Banner -->
+            <div style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.3); border-radius: 0.75rem; padding: 0.65rem 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0;">
+              <span style="font-size: 1.3rem;">👁️</span>
+              <div>
+                <p style="font-weight: 700; font-size: 0.85rem; color: var(--warning); margin: 0;">Preview Mode — Day is NOT yet closed</p>
+                <p style="font-size: 0.72rem; color: var(--text-muted); margin: 0.1rem 0 0;">Review all figures carefully. Click <strong style="color:var(--accent);">← Back to Edit</strong> to make corrections, or <strong style="color:#22c55e;">✓ Confirm &amp; Close Day</strong> to finalize.</p>
+              </div>
+            </div>
+
+            <div class="card-header">
+              <div style="display: flex; align-items: center; gap: 0.6rem;">
+                <span style="font-size: 1.25rem;">📋</span>
+                <h2>Day Summary for <strong id="preview-date">—</strong></h2>
+              </div>
+              <p>Please verify all entries below before confirming the day close.</p>
+            </div>
+
+            <div class="summary-section" style="display: flex; flex-direction: column; gap: 0.5rem; overflow-y: auto; flex: 1;">
+
+              <!-- Product Volume Cards -->
+              <div class="product-summary-cards">
+                <div class="summary-mini-card petrol">
+                  <span class="label">Total Petrol</span>
+                  <span class="value" id="preview-total-petrol">0.000 L</span>
+                  <span class="pct-label" id="preview-pct-petrol" style="font-size: 0.65rem; font-weight: 600; opacity: 0.85; margin-top: 0.05rem;">0.00% Sale</span>
+                </div>
+                <div class="summary-mini-card diesel">
+                  <span class="label">Total Diesel</span>
+                  <span class="value" id="preview-total-diesel">0.000 L</span>
+                  <span class="pct-label" id="preview-pct-diesel" style="font-size: 0.65rem; font-weight: 600; opacity: 0.85; margin-top: 0.05rem;">0.00% Sale</span>
+                </div>
+                <div class="summary-mini-card power">
+                  <span class="label">Total poWer</span>
+                  <span class="value" id="preview-total-power">0.000 L</span>
+                  <span class="pct-label" id="preview-pct-power" style="font-size: 0.65rem; font-weight: 600; opacity: 0.85; margin-top: 0.05rem;">0.00% Sale</span>
+                </div>
+              </div>
+
+              <!-- Product Rates Summary -->
+              <div class="product-summary-cards" style="margin-top: -0.25rem;">
+                <div class="summary-mini-card petrol" style="padding: 0.25rem 0.4rem; background: rgba(16,185,129,0.02); border: 1px solid rgba(16,185,129,0.08); display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                  <span class="label" style="font-size: 0.55rem; margin-bottom: 0; text-transform: uppercase; font-weight: 700; color: var(--text-muted); letter-spacing: 0.03em;">Petrol Rate</span>
+                  <span class="value" id="preview-rate-petrol" style="font-size: 0.85rem; font-weight: 700; color: var(--petrol-color);">Rs. 0.00/L</span>
+                </div>
+                <div class="summary-mini-card diesel" style="padding: 0.25rem 0.4rem; background: rgba(59,130,246,0.02); border: 1px solid rgba(59,130,246,0.08); display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                  <span class="label" style="font-size: 0.55rem; margin-bottom: 0; text-transform: uppercase; font-weight: 700; color: var(--text-muted); letter-spacing: 0.03em;">Diesel Rate</span>
+                  <span class="value" id="preview-rate-diesel" style="font-size: 0.85rem; font-weight: 700; color: var(--diesel-color);">Rs. 0.00/L</span>
+                </div>
+                <div class="summary-mini-card power" style="padding: 0.25rem 0.4rem; background: rgba(244,63,94,0.02); border: 1px solid rgba(244,63,94,0.08); display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                  <span class="label" style="font-size: 0.55rem; margin-bottom: 0; text-transform: uppercase; font-weight: 700; color: var(--text-muted); letter-spacing: 0.03em;">poWer Rate</span>
+                  <span class="value" id="preview-rate-power" style="font-size: 0.85rem; font-weight: 700; color: var(--power-color);">Rs. 0.00/L</span>
+                </div>
+              </div>
+
+              <!-- Cash & Settlement Summary Card -->
+              <div class="summary-cash-card" style="padding: 0.4rem 0.75rem; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.04); border-radius: 0.75rem; display: flex; flex-direction: column; gap: 0.35rem; flex-shrink: 0;">
+                <h3 style="font-family: var(--font-header); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--accent); letter-spacing: 0.03em; margin-bottom: 0.1rem;">Settlement Summary</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 0.5rem;">
+                  <div style="background: rgba(8,12,22,0.4); border: 1px solid rgba(255,255,255,0.02); padding: 0.25rem 0.4rem; border-radius: 0.5rem; display: flex; flex-direction: column;">
+                    <span style="font-size: 0.52rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Calculated Sales</span>
+                    <span id="preview-calc-sales" style="font-size: 0.85rem; font-weight: 700;">Rs. 0</span>
+                  </div>
+                  <div style="background: rgba(8,12,22,0.4); border: 1px solid rgba(255,255,255,0.02); padding: 0.25rem 0.4rem; border-radius: 0.5rem; display: flex; flex-direction: column;">
+                    <span style="font-size: 0.52rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Cash Received</span>
+                    <span id="preview-cash-received" style="font-size: 0.85rem; font-weight: 700; color: var(--success);">Rs. 0</span>
+                  </div>
+                  <div style="background: rgba(8,12,22,0.4); border: 1px solid rgba(255,255,255,0.02); padding: 0.25rem 0.4rem; border-radius: 0.5rem; display: flex; flex-direction: column;">
+                    <span style="font-size: 0.52rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">UPI &amp; Credit</span>
+                    <span id="preview-other-received" style="font-size: 0.85rem; font-weight: 700; color: var(--accent);">Rs. 0</span>
+                  </div>
+                  <div id="preview-shortfall-card" style="background: rgba(239,68,68,0.05); border: 1px solid rgba(239,68,68,0.12); padding: 0.25rem 0.4rem; border-radius: 0.5rem; display: flex; flex-direction: column;">
+                    <span style="font-size: 0.52rem; color: var(--danger); font-weight: 700; text-transform: uppercase;" id="preview-shortfall-lbl">Shortfall / Deficit</span>
+                    <span id="preview-cash-shortfall" style="font-size: 0.85rem; font-weight: 800; color: var(--danger);">Rs. 0</span>
+                  </div>
+                </div>
+                <!-- Denomination breakdown -->
+                <div id="preview-denominations" style="font-size: 0.62rem; color: var(--text-muted); border-top: 1px solid rgba(255,255,255,0.04); padding-top: 0.25rem; display: flex; flex-wrap: wrap; gap: 0.5rem; line-height: 1.3;"></div>
+                <!-- UPI/Credit list -->
+                <div id="preview-other-payments-list" style="font-size: 0.62rem; color: var(--text-muted); border-top: 1px dotted rgba(255,255,255,0.04); padding-top: 0.25rem; display: flex; flex-direction: column; gap: 0.2rem; line-height: 1.3;"></div>
+              </div>
+
+              <!-- Nozzle Summary Table -->
+              <div class="summary-nozzle-table">
+                <div class="summary-table-header">
+                  <div>Nozzle</div>
+                  <div>Product</div>
+                  <div class="text-right">Opening Reading</div>
+                  <div class="text-right">Closing Reading</div>
+                  <div class="text-right">Difference</div>
+                  <div class="text-right">Testing (L)</div>
+                  <div class="text-right">Net Sales (L)</div>
+                </div>
+                <div id="preview-table-body" class="summary-table-body"></div>
+              </div>
+
+              <!-- Tank Stock Summary Table -->
+              <div class="summary-nozzle-table" style="margin-top: 0.5rem;">
+                <div class="summary-table-header summary-tank-grid">
+                  <div>Tank</div>
+                  <div>Product</div>
+                  <div class="text-right">Opening DIP (cm)</div>
+                  <div class="text-right">Opening Stock (L)</div>
+                  <div class="text-right">Decantation (L)</div>
+                  <div class="text-right">Closing DIP (cm)</div>
+                  <div class="text-right">Closing Stock (L)</div>
+                </div>
+                <div id="preview-tank-body" class="summary-table-body"></div>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="form-actions-row" style="margin-top: 1rem;">
+              <button type="button" id="btn-preview-back" class="btn btn-secondary">
+                ⬅ Back to Edit
+              </button>
+              <button type="button" id="btn-preview-confirm" class="btn btn-primary" style="background: linear-gradient(135deg,#22c55e,#16a34a); border-color: #22c55e; color: #fff;">
+                ✓ Confirm &amp; Close Day
+              </button>
+            </div>
+          </section>
+        </main>
+      </div>
+
+      <!-- VIEW 3: Finish Page (Day Closing Step 6/7) -->
+      <div id="view-finish" class="view-pane" style="display: none;">
+        <header class="content-header">
+          <div class="header-title-wrapper">
+            <h1>Day Closing</h1>
+            <p class="subtitle">Step 6/7: Day Closing Summary & Finish</p>
+          </div>
+        </header>
+
+        <main class="content-body">
+          <section class="card finish-card">
+            <div class="card-header">
+              <div class="success-badge-wrapper">
+                <span class="success-icon">✓</span>
+                <h2>Day Closed Successfully!</h2>
+              </div>
+              <p>Below is the summary of calculations recorded for <strong id="summary-date">04-06-2026</strong>.</p>
+            </div>
+
+            <!-- Summary Table of Sales -->
+            <div class="summary-section" style="display: flex; flex-direction: column; gap: 0.5rem; overflow-y: auto; flex: 1;">
+              <div class="product-summary-cards">
+                <div class="summary-mini-card petrol">
+                  <span class="label">Total Petrol</span>
+                  <span class="value" id="summary-total-petrol">0.000 L</span>
+                  <span class="pct-label" id="summary-pct-petrol" style="font-size: 0.65rem; font-weight: 600; opacity: 0.85; margin-top: 0.05rem;">0.00% Sale</span>
+                </div>
+                <div class="summary-mini-card diesel">
+                  <span class="label">Total Diesel</span>
+                  <span class="value" id="summary-total-diesel">0.000 L</span>
+                  <span class="pct-label" id="summary-pct-diesel" style="font-size: 0.65rem; font-weight: 600; opacity: 0.85; margin-top: 0.05rem;">0.00% Sale</span>
+                </div>
+                <div class="summary-mini-card power">
+                  <span class="label">Total poWer</span>
+                  <span class="value" id="summary-total-power">0.000 L</span>
+                  <span class="pct-label" id="summary-pct-power" style="font-size: 0.65rem; font-weight: 600; opacity: 0.85; margin-top: 0.05rem;">0.00% Sale</span>
+                </div>
+              </div>
+
+              <!-- Product Rates Summary -->
+              <div class="product-summary-cards" style="margin-top: -0.25rem;">
+                <div class="summary-mini-card petrol" style="padding: 0.25rem 0.4rem; background: rgba(16, 185, 129, 0.02); border: 1px solid rgba(16, 185, 129, 0.08); display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                  <span class="label" style="font-size: 0.55rem; margin-bottom: 0; text-transform: uppercase; font-weight: 700; color: var(--text-muted); letter-spacing: 0.03em;">Petrol Rate</span>
+                  <span class="value" id="summary-rate-petrol" style="font-size: 0.85rem; font-weight: 700; color: var(--petrol-color);">Rs. 0.00/L</span>
+                </div>
+                <div class="summary-mini-card diesel" style="padding: 0.25rem 0.4rem; background: rgba(59, 130, 246, 0.02); border: 1px solid rgba(59, 130, 246, 0.08); display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                  <span class="label" style="font-size: 0.55rem; margin-bottom: 0; text-transform: uppercase; font-weight: 700; color: var(--text-muted); letter-spacing: 0.03em;">Diesel Rate</span>
+                  <span class="value" id="summary-rate-diesel" style="font-size: 0.85rem; font-weight: 700; color: var(--diesel-color);">Rs. 0.00/L</span>
+                </div>
+                <div class="summary-mini-card power" style="padding: 0.25rem 0.4rem; background: rgba(244, 63, 94, 0.02); border: 1px solid rgba(244, 63, 94, 0.08); display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                  <span class="label" style="font-size: 0.55rem; margin-bottom: 0; text-transform: uppercase; font-weight: 700; color: var(--text-muted); letter-spacing: 0.03em;">poWer Rate</span>
+                  <span class="value" id="summary-rate-power" style="font-size: 0.85rem; font-weight: 700; color: var(--power-color);">Rs. 0.00/L</span>
+                </div>
+              </div>
+
+              <!-- Cash & Settlement Summary Card -->
+              <div class="summary-cash-card" style="padding: 0.4rem 0.75rem; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.04); border-radius: 0.75rem; display: flex; flex-direction: column; gap: 0.35rem; flex-shrink: 0;">
+                <h3 style="font-family: var(--font-header); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--accent); letter-spacing: 0.03em; margin-bottom: 0.1rem;">Settlement Summary</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 0.5rem;">
+                  <div style="background: rgba(8,12,22,0.4); border: 1px solid rgba(255,255,255,0.02); padding: 0.25rem 0.4rem; border-radius: 0.5rem; display: flex; flex-direction: column;">
+                    <span style="font-size: 0.52rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Calculated Sales</span>
+                    <span id="summary-calc-sales" style="font-size: 0.85rem; font-weight: 700;">Rs. 0</span>
+                  </div>
+                  <div style="background: rgba(8,12,22,0.4); border: 1px solid rgba(255,255,255,0.02); padding: 0.25rem 0.4rem; border-radius: 0.5rem; display: flex; flex-direction: column;">
+                    <span style="font-size: 0.52rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Cash Received</span>
+                    <span id="summary-cash-received" style="font-size: 0.85rem; font-weight: 700; color: var(--success);">Rs. 0</span>
+                  </div>
+                  <div style="background: rgba(8,12,22,0.4); border: 1px solid rgba(255,255,255,0.02); padding: 0.25rem 0.4rem; border-radius: 0.5rem; display: flex; flex-direction: column;">
+                    <span style="font-size: 0.52rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">UPI & Credit</span>
+                    <span id="summary-other-received" style="font-size: 0.85rem; font-weight: 700; color: var(--accent);">Rs. 0</span>
+                  </div>
+                  <div id="summary-shortfall-card" style="background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.12); padding: 0.25rem 0.4rem; border-radius: 0.5rem; display: flex; flex-direction: column;">
+                    <span style="font-size: 0.52rem; color: var(--danger); font-weight: 700; text-transform: uppercase;" id="summary-shortfall-lbl">Shortfall / Deficit</span>
+                    <span id="summary-cash-shortfall" style="font-size: 0.85rem; font-weight: 800; color: var(--danger);">Rs. 0</span>
+                  </div>
+                </div>
+                <!-- Denomination breakdown -->
+                <div id="summary-denominations" style="font-size: 0.62rem; color: var(--text-muted); border-top: 1px solid rgba(255,255,255,0.04); padding-top: 0.25rem; display: flex; flex-wrap: wrap; gap: 0.5rem; line-height: 1.3;">
+                  <!-- Dynamically populated -->
+                </div>
+                <!-- UPI/Credit list summary -->
+                <div id="summary-other-payments-list" style="font-size: 0.62rem; color: var(--text-muted); border-top: 1px dotted rgba(255,255,255,0.04); padding-top: 0.25rem; display: flex; flex-direction: column; gap: 0.2rem; line-height: 1.3;">
+                  <!-- Dynamically populated -->
+                </div>
+              </div>
+
+              <div class="summary-nozzle-table">
+                <div class="summary-table-header">
+                  <div>Nozzle</div>
+                  <div>Product</div>
+                  <div class="text-right">Opening Reading</div>
+                  <div class="text-right">Closing Reading</div>
+                  <div class="text-right">Difference</div>
+                  <div class="text-right">Testing (L)</div>
+                  <div class="text-right">Net Sales (L)</div>
+                </div>
+                <div id="summary-table-body" class="summary-table-body">
+                  <!-- Dynamically populated rows -->
+                </div>
+              </div>
+
+              <!-- Tank Stock Summary Table -->
+              <div class="summary-nozzle-table" style="margin-top: 0.5rem;">
+                <div class="summary-table-header summary-tank-grid">
+                  <div>Tank</div>
+                  <div>Product</div>
+                  <div class="text-right">Opening DIP (cm)</div>
+                  <div class="text-right">Opening Stock (L)</div>
+                  <div class="text-right">Decantation (L)</div>
+                  <div class="text-right">Closing DIP (cm)</div>
+                  <div class="text-right">Closing Stock (L)</div>
+                </div>
+                <div id="summary-tank-body" class="summary-table-body">
+                  <!-- Dynamically populated rows -->
+                </div>
+              </div>
+            </div>
+
+            <div class="form-actions-row" style="justify-content: space-between;">
+              <!-- Jump to Cash Calculator for bank deposit -->
+              <button type="button" id="btn-goto-cash-calc-from-finish" class="btn btn-secondary"
+                style="display: flex; align-items: center; gap: 0.5rem; background: linear-gradient(135deg, rgba(0,45,98,0.4), rgba(0,45,98,0.2)); border-color: rgba(0,120,215,0.4); color: #60a5fa; font-weight: 700;">
+                🏦 Bank Deposit Calculator
+              </button>
+              <button type="button" id="btn-start-new-day" class="btn btn-primary">
+                Start Next Day 🔄
+              </button>
+            </div>
+          </section>
+        </main>
+      </div>
+
+      <footer class="app-footer">
+        <p>&copy; 2026 Petrol Pump ERP. Powered by SQLite.</p>
+      </footer>
+      
+      <!-- VIEW: Tanker Calculation -->
+      <div id="view-tanker-calculation" class="view-pane" style="display: none;">
+        <header class="content-header">
+          <div class="header-title-wrapper">
+            <h1>Tanker Calculation</h1>
+            <p class="subtitle">Calculate tanker volumes and densities</p>
+          </div>
+        </header>
+        <main class="content-body">
+          <section class="card">
+            <div class="card-header">
+              <h2>Tanker RTGS Calculator</h2>
+              <p>Enter the required volume for each product. Billing rates are automatically calculated (RSP - Commission).</p>
+            </div>
+            <form id="tanker-calc-form" class="tanker-form" style="margin-top: 1.5rem;">
+              <div class="tanker-calc-grid" style="display: flex; flex-direction: column; gap: 1rem; max-width: 600px; margin: 0 auto;">
+                
+                <!-- poWer Row -->
+                <div class="product-power" style="display: grid; grid-template-columns: 80px 150px 1fr 120px; align-items: center; gap: 1rem; padding: 1rem; border: 1px solid var(--power-border); border-radius: 0.5rem; background: var(--power-bg);">
+                  <div style="font-weight: 700; font-size: 1.1rem; color: var(--power-color);">poWer</div>
+                  <div>
+                    <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Requirement (L)</label>
+                    <input type="number" id="tanker-req-power" class="calc-input-tanker" data-product="poWer" min="0" placeholder="0" style="width: 100%; padding: 0.5rem; border-radius: 0.35rem; background: rgba(0,0,0,0.2); border: 1px solid var(--power-border); color: #fff; font-family: monospace; font-size: 1.1rem;">
+                  </div>
+                  <div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.25rem;">RSP: ₹<input type="number" id="tanker-rsp-power" class="calc-input-tanker-rsp" step="0.01" min="0" style="width: 70px; padding: 0.2rem; border-radius: 0.25rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #fff; font-family: monospace; font-size: 0.85rem;"></div>
+                    <div style="font-size: 0.85rem; color: var(--text-main); margin-top: 0.25rem;">Billing: ₹<span id="tanker-bill-power">0.00</span>/L</div>
+                  </div>
+                  <div style="text-align: right;">
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Amount</div>
+                    <div id="tanker-amt-power" style="font-weight: 700; font-size: 1.2rem; color: var(--power-color); font-family: monospace;">₹ 0.00</div>
+                  </div>
+                </div>
+
+                <!-- Petrol Row -->
+                <div class="product-petrol" style="display: grid; grid-template-columns: 80px 150px 1fr 120px; align-items: center; gap: 1rem; padding: 1rem; border: 1px solid var(--petrol-border); border-radius: 0.5rem; background: var(--petrol-bg);">
+                  <div style="font-weight: 700; font-size: 1.1rem; color: var(--petrol-color);">Petrol</div>
+                  <div>
+                    <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Requirement (L)</label>
+                    <input type="number" id="tanker-req-petrol" class="calc-input-tanker" data-product="Petrol" min="0" placeholder="0" style="width: 100%; padding: 0.5rem; border-radius: 0.35rem; background: rgba(0,0,0,0.2); border: 1px solid var(--petrol-border); color: #fff; font-family: monospace; font-size: 1.1rem;">
+                  </div>
+                  <div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.25rem;">RSP: ₹<input type="number" id="tanker-rsp-petrol" class="calc-input-tanker-rsp" step="0.01" min="0" style="width: 70px; padding: 0.2rem; border-radius: 0.25rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #fff; font-family: monospace; font-size: 0.85rem;"></div>
+                    <div style="font-size: 0.85rem; color: var(--text-main); margin-top: 0.25rem;">Billing: ₹<span id="tanker-bill-petrol">0.00</span>/L</div>
+                  </div>
+                  <div style="text-align: right;">
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Amount</div>
+                    <div id="tanker-amt-petrol" style="font-weight: 700; font-size: 1.2rem; color: var(--petrol-color); font-family: monospace;">₹ 0.00</div>
+                  </div>
+                </div>
+
+                <!-- Diesel Row -->
+                <div class="product-diesel" style="display: grid; grid-template-columns: 80px 150px 1fr 120px; align-items: center; gap: 1rem; padding: 1rem; border: 1px solid var(--diesel-border); border-radius: 0.5rem; background: var(--diesel-bg);">
+                  <div style="font-weight: 700; font-size: 1.1rem; color: var(--diesel-color);">Diesel</div>
+                  <div>
+                    <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Requirement (L)</label>
+                    <input type="number" id="tanker-req-diesel" class="calc-input-tanker" data-product="Diesel" min="0" placeholder="0" style="width: 100%; padding: 0.5rem; border-radius: 0.35rem; background: rgba(0,0,0,0.2); border: 1px solid var(--diesel-border); color: #fff; font-family: monospace; font-size: 1.1rem;">
+                  </div>
+                  <div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.25rem;">RSP: ₹<input type="number" id="tanker-rsp-diesel" class="calc-input-tanker-rsp" step="0.01" min="0" style="width: 70px; padding: 0.2rem; border-radius: 0.25rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #fff; font-family: monospace; font-size: 0.85rem;"></div>
+                    <div style="font-size: 0.85rem; color: var(--text-main); margin-top: 0.25rem;">Billing: ₹<span id="tanker-bill-diesel">0.00</span>/L</div>
+                  </div>
+                  <div style="text-align: right;">
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Amount</div>
+                    <div id="tanker-amt-diesel" style="font-weight: 700; font-size: 1.2rem; color: var(--diesel-color); font-family: monospace;">₹ 0.00</div>
+                  </div>
+                </div>
+
+                <hr style="border: 0; border-top: 1px dashed rgba(255,255,255,0.1); margin: 0.5rem 0;">
+
+                <!-- HPCL Portal Balance -->
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: rgba(0, 45, 98, 0.15); border-radius: 0.5rem; border: 1px solid rgba(0, 45, 98, 0.3);">
+                  <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">HPCL Portal Balance (₹)</div>
+                  <div>
+                    <input type="number" id="tanker-hpcl-balance" class="calc-input-tanker" min="0" placeholder="0" style="width: 150px; padding: 0.5rem; border-radius: 0.35rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #fff; font-family: monospace; font-size: 1.2rem; text-align: right;">
+                  </div>
+                </div>
+
+                <!-- Total RTGS Amount -->
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: rgba(0,0,0,0.2); border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.05);">
+                  <div style="font-weight: 700; font-size: 1.2rem; color: var(--text-main);">Total RTGS Amount</div>
+                  <div id="tanker-grand-total" style="font-weight: 800; font-size: 1.6rem; color: var(--success); font-family: monospace;">₹ 0.00</div>
+                </div>
+              </div>
+            </form>
+          </section>
+        </main>
+      </div>
+
+      <!-- VIEW: Cash Calculator -->
+      <div id="view-cash-calculator" class="view-pane" style="display: none;">
+        <header class="content-header">
+          <div class="header-title-wrapper">
+            <h1>Cash Calculator</h1>
+            <p class="subtitle">Bank deposit denomination counter &amp; bank details</p>
+          </div>
+        </header>
+        <main class="content-body">
+          <section class="card" style="max-width: 900px; width: 100%; margin: auto;">
+            <div class="card-header">
+              <h2>Bank Deposit Calculator</h2>
+              <p>Select bank account &amp; enter note counts. Details auto-saved.</p>
+            </div>
+            <form id="cash-calc-form" class="cash-form" style="margin-top: 1rem;">
+              <!-- Two-column layout: Bank Details LEFT, Calculator RIGHT — equal height -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: stretch;">
+
+                <!-- ══════════════════════════════════════════════ -->
+                <!-- LEFT: Bank Deposit Details (Dropdowns)        -->
+                <!-- ══════════════════════════════════════════════ -->
+                <div style="background: rgba(8,12,22,0.35); border: 1px solid rgba(255,255,255,0.08); border-radius: 0.75rem; padding: 1.1rem; display: flex; flex-direction: column; gap: 0.85rem;">
+                  <h3 style="font-size: 0.9rem; font-weight: 700; text-transform: uppercase; color: var(--accent); letter-spacing: 0.05em; margin-bottom: 0.1rem; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.4rem;">
+                    🏦 Bank Deposit Details
+                  </h3>
+
+                  <!-- Bank Name -->
+                  <div style="display: flex; flex-direction: column; gap: 0.3rem;">
+                    <label style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.04em;">Bank Name</label>
+                    <select id="bank-detail-name"
+                      style="padding: 0.45rem 0.65rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.4rem; color: var(--text-main); font-size: 0.9rem; width: 100%; cursor: pointer; appearance: auto;">
+                      <option value="">— Select Bank —</option>
+                      <option value="State Bank of India">State Bank of India</option>
+                      <option value="Bank of Maharashtra">Bank of Maharashtra</option>
+                      <option value="Punjab National Bank">Punjab National Bank</option>
+                      <option value="Bank of Baroda">Bank of Baroda</option>
+                      <option value="Canara Bank">Canara Bank</option>
+                      <option value="Union Bank of India">Union Bank of India</option>
+                      <option value="HDFC Bank">HDFC Bank</option>
+                      <option value="ICICI Bank">ICICI Bank</option>
+                      <option value="Axis Bank">Axis Bank</option>
+                      <option value="Kotak Mahindra Bank">Kotak Mahindra Bank</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  <!-- Branch -->
+                  <div style="display: flex; flex-direction: column; gap: 0.3rem;">
+                    <label style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.04em;">Branch</label>
+                    <select id="bank-detail-branch"
+                      style="padding: 0.45rem 0.65rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.4rem; color: var(--text-main); font-size: 0.9rem; width: 100%; cursor: pointer; appearance: auto;">
+                      <option value="">— Select Branch —</option>
+                      <option value="Main Branch">Main Branch</option>
+                      <option value="City Branch">City Branch</option>
+                      <option value="Rural Branch">Rural Branch</option>
+                      <option value="Other">Other (Fine Tune Later)</option>
+                    </select>
+                  </div>
+
+                  <!-- Account Number -->
+                  <div style="display: flex; flex-direction: column; gap: 0.3rem;">
+                    <label style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.04em;">Account Number</label>
+                    <select id="bank-detail-account"
+                      style="padding: 0.45rem 0.65rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.4rem; color: var(--text-main); font-size: 0.9rem; width: 100%; cursor: pointer; appearance: auto; font-family: monospace;">
+                      <option value="">— Select Account —</option>
+                      <option value="XXXX-XXXX-0001">XXXX-XXXX-0001 (Current)</option>
+                      <option value="XXXX-XXXX-0002">XXXX-XXXX-0002 (Savings)</option>
+                      <option value="Other">Other (Fine Tune Later)</option>
+                    </select>
+                  </div>
+
+                  <!-- IFSC Code -->
+                  <div style="display: flex; flex-direction: column; gap: 0.3rem;">
+                    <label style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.04em;">IFSC Code</label>
+                    <select id="bank-detail-ifsc"
+                      style="padding: 0.45rem 0.65rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.4rem; color: var(--text-main); font-size: 0.9rem; width: 100%; cursor: pointer; appearance: auto; font-family: monospace;">
+                      <option value="">— Select IFSC —</option>
+                      <option value="SBIN0000001">SBIN0000001</option>
+                      <option value="MAHB0000001">MAHB0000001</option>
+                      <option value="Other">Other (Fine Tune Later)</option>
+                    </select>
+                  </div>
+
+                  <!-- Account Holder Name -->
+                  <div style="display: flex; flex-direction: column; gap: 0.3rem;">
+                    <label style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.04em;">Account Holder Name</label>
+                    <select id="bank-detail-holder"
+                      style="padding: 0.45rem 0.65rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.4rem; color: var(--text-main); font-size: 0.9rem; width: 100%; cursor: pointer; appearance: auto;">
+                      <option value="">— Select Holder —</option>
+                      <option value="Petrol Pump Owner">Petrol Pump Owner</option>
+                      <option value="Business Account">Business Account</option>
+                      <option value="Other">Other (Fine Tune Later)</option>
+                    </select>
+                  </div>
+
+                  <!-- Deposit Date -->
+                  <div style="display: flex; flex-direction: column; gap: 0.3rem;">
+                    <label style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.04em;">Deposit Date</label>
+                    <input type="date" id="bank-detail-date"
+                      style="padding: 0.45rem 0.65rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.4rem; color: var(--text-main); font-size: 0.9rem; width: 100%;">
+                  </div>
+
+                  <p style="font-size: 0.65rem; color: var(--text-muted); margin-top: auto; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.05); line-height: 1.4;">
+                    💾 Selection is remembered in your browser. Fine-tune options later.
+                  </p>
+                </div>
+
+                <!-- ══════════════════════════════════════════════ -->
+                <!-- RIGHT: Denomination Calculator                 -->
+                <!-- ══════════════════════════════════════════════ -->
+                <div style="display: flex; flex-direction: column; gap: 0;">
+
+                  <!-- Denomination table -->
+                  <div style="display: flex; flex-direction: column; gap: 0.5rem; flex: 1;">
+
+                    <!-- Column headers -->
+                    <div style="display: grid; grid-template-columns: 70px 18px 1fr 18px 110px; align-items: center; gap: 0.4rem; padding-bottom: 0.3rem; border-bottom: 1px solid rgba(255,255,255,0.08);">
+                      <div style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Denom.</div>
+                      <div></div>
+                      <div style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); text-align: center;">Count</div>
+                      <div></div>
+                      <div style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); text-align: right;">Amount</div>
+                    </div>
+
+                    <!-- ₹500 -->
+                    <div style="display: grid; grid-template-columns: 70px 18px 1fr 18px 110px; align-items: center; gap: 0.4rem;">
+                      <div style="font-weight: 700; font-size: 1rem; color: var(--accent);">₹ 500</div>
+                      <div style="color: var(--text-muted); font-size: 0.9rem; text-align:center;">×</div>
+                      <input type="number" id="calc-count-500" class="calc-input" data-val="500" min="0" placeholder="0" value="0"
+                        style="text-align: center; font-size: 1rem; padding: 0.35rem 0.4rem; height: 36px;">
+                      <div style="color: var(--text-muted); font-size: 0.9rem; text-align:center;">=</div>
+                      <div id="calc-total-500" style="text-align: right; font-weight: 700; font-family: monospace; font-size: 1rem;">₹ 0</div>
+                    </div>
+
+                    <!-- ₹200 -->
+                    <div style="display: grid; grid-template-columns: 70px 18px 1fr 18px 110px; align-items: center; gap: 0.4rem;">
+                      <div style="font-weight: 700; font-size: 1rem; color: var(--accent);">₹ 200</div>
+                      <div style="color: var(--text-muted); font-size: 0.9rem; text-align:center;">×</div>
+                      <input type="number" id="calc-count-200" class="calc-input" data-val="200" min="0" placeholder="0" value="0"
+                        style="text-align: center; font-size: 1rem; padding: 0.35rem 0.4rem; height: 36px;">
+                      <div style="color: var(--text-muted); font-size: 0.9rem; text-align:center;">=</div>
+                      <div id="calc-total-200" style="text-align: right; font-weight: 700; font-family: monospace; font-size: 1rem;">₹ 0</div>
+                    </div>
+
+                    <!-- ₹100 -->
+                    <div style="display: grid; grid-template-columns: 70px 18px 1fr 18px 110px; align-items: center; gap: 0.4rem;">
+                      <div style="font-weight: 700; font-size: 1rem; color: var(--accent);">₹ 100</div>
+                      <div style="color: var(--text-muted); font-size: 0.9rem; text-align:center;">×</div>
+                      <input type="number" id="calc-count-100" class="calc-input" data-val="100" min="0" placeholder="0" value="0"
+                        style="text-align: center; font-size: 1rem; padding: 0.35rem 0.4rem; height: 36px;">
+                      <div style="color: var(--text-muted); font-size: 0.9rem; text-align:center;">=</div>
+                      <div id="calc-total-100" style="text-align: right; font-weight: 700; font-family: monospace; font-size: 1rem;">₹ 0</div>
+                    </div>
+
+                    <!-- ₹50 -->
+                    <div style="display: grid; grid-template-columns: 70px 18px 1fr 18px 110px; align-items: center; gap: 0.4rem;">
+                      <div style="font-weight: 700; font-size: 1rem; color: var(--accent);">₹ 50</div>
+                      <div style="color: var(--text-muted); font-size: 0.9rem; text-align:center;">×</div>
+                      <input type="number" id="calc-count-50" class="calc-input" data-val="50" min="0" placeholder="0" value="0"
+                        style="text-align: center; font-size: 1rem; padding: 0.35rem 0.4rem; height: 36px;">
+                      <div style="color: var(--text-muted); font-size: 0.9rem; text-align:center;">=</div>
+                      <div id="calc-total-50" style="text-align: right; font-weight: 700; font-family: monospace; font-size: 1rem;">₹ 0</div>
+                    </div>
+
+                    <!-- ₹20 -->
+                    <div style="display: grid; grid-template-columns: 70px 18px 1fr 18px 110px; align-items: center; gap: 0.4rem;">
+                      <div style="font-weight: 700; font-size: 1rem; color: var(--accent);">₹ 20</div>
+                      <div style="color: var(--text-muted); font-size: 0.9rem; text-align:center;">×</div>
+                      <input type="number" id="calc-count-20" class="calc-input" data-val="20" min="0" placeholder="0" value="0"
+                        style="text-align: center; font-size: 1rem; padding: 0.35rem 0.4rem; height: 36px;">
+                      <div style="color: var(--text-muted); font-size: 0.9rem; text-align:center;">=</div>
+                      <div id="calc-total-20" style="text-align: right; font-weight: 700; font-family: monospace; font-size: 1rem;">₹ 0</div>
+                    </div>
+
+                    <!-- ₹10 (disabled — not deposited) -->
+                    <div style="display: grid; grid-template-columns: 70px 18px 1fr 18px 110px; align-items: center; gap: 0.4rem; opacity: 0.4;">
+                      <div style="font-weight: 700; font-size: 1rem; color: var(--text-muted);">₹ 10</div>
+                      <div style="color: var(--text-muted); font-size: 0.9rem; text-align:center;">×</div>
+                      <input type="number" id="calc-count-10" class="calc-input" data-val="10" min="0" placeholder="0" value="0"
+                        style="text-align: center; font-size: 1rem; padding: 0.35rem 0.4rem; height: 36px;" disabled>
+                      <div style="color: var(--text-muted); font-size: 0.9rem; text-align:center;">=</div>
+                      <div id="calc-total-10" style="text-align: right; font-weight: 700; font-family: monospace; font-size: 1rem;">₹ 0</div>
+                    </div>
+
+                    <hr style="border: 0; border-top: 2px solid rgba(255,255,255,0.1); margin: 0.4rem 0;">
+
+                    <!-- Grand Total -->
+                    <div style="display: grid; grid-template-columns: 70px 18px 1fr 18px 110px; align-items: center; gap: 0.4rem;">
+                      <div style="font-weight: 800; font-size: 1.05rem; color: var(--text-main); grid-column: 1 / 4;">Grand Total</div>
+                      <div style="color: var(--text-main); font-weight: 700; font-size: 1rem; text-align:center;">=</div>
+                      <div id="calc-grand-total" style="text-align: right; font-weight: 900; font-family: monospace; font-size: 1.2rem; color: var(--success);">₹ 0</div>
+                    </div>
+                  </div>
+
+                  <!-- Amount in Words -->
+                  <div style="margin-top: 0.85rem; background: rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.06); padding: 0.65rem 0.85rem; border-radius: 0.5rem; text-align: center;">
+                    <p id="calc-words-eng" style="font-size: 0.88rem; font-weight: 500; color: var(--text-main); margin-bottom: 0.25rem;">Zero Rupees Only</p>
+                    <p id="calc-words-mar" style="font-size: 0.92rem; font-weight: 700; color: var(--accent);">शून्य रुपये फक्त</p>
+                  </div>
+
+                  <!-- Reset Button -->
+                  <button type="button" id="btn-cash-calc-reset"
+                    style="width: 100%; margin-top: 0.75rem; padding: 0.55rem; border: 1px solid rgba(239,68,68,0.35); border-radius: 0.5rem; background: rgba(239,68,68,0.08); color: var(--danger); font-size: 0.88rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: background 0.2s;">
+                    🔄 Reset All to Zero
+                  </button>
+                </div>
+
+              </div><!-- end two-column -->
+            </form>
+          </section>
+        </main>
+      </div>
+
+      <div id="view-gst-data" class="view-pane" style="display: none;">
+        <header class="content-header">
+          <div class="header-title-wrapper">
+            <h1>GST R1 & 3B Monthly Report</h1>
+            <p class="subtitle">Monthly sales breakdown for GST filing</p>
+          </div>
+        </header>
+
+        <main class="content-body" style="flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 0.75rem; width: 100%;">
+          <!-- Filter and Actions Card -->
+          <section class="card filter-card" style="margin-bottom: 0.5rem; padding: 0.75rem 1.25rem;">
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem;">
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <label for="gst-month-select" style="margin-bottom: 0; font-weight: 600; font-size: 0.9rem; color: var(--text-muted);">Select Month</label>
+                <select id="gst-month-select" style="padding: 0.4rem 0.85rem; border-radius: 0.5rem; background: rgba(8,12,22,0.8); border: 1px solid rgba(255,255,255,0.1); color: var(--text-main); font-weight: 600; font-size: 0.9rem; cursor: pointer; height: auto;">
+                  <!-- Dynamically populated -->
+                </select>
+              </div>
+              
+              <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                <button type="button" id="btn-gst-download-csv" class="btn btn-secondary" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.85rem; font-size: 0.85rem; min-height: auto;">
+                  <span>📥</span> Download CSV
+                </button>
+                <button type="button" id="btn-gst-print" class="btn btn-secondary" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.85rem; font-size: 0.85rem; min-height: auto;">
+                  <span>🖨️</span> Print Report
+                </button>
+                <button type="button" id="btn-gst-whatsapp" class="btn" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.85rem; font-size: 0.85rem; min-height: auto; background: #25d366; color: #fff; border: none; font-weight: 600;">
+                  <span>💬</span> WhatsApp Report
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <!-- GST Report Table Card -->
+          <section class="card" style="flex: 1; min-height: 0; padding: 0; display: flex; flex-direction: column; overflow: hidden;">
+            <div class="gst-table-wrapper" style="overflow-y: auto; flex: 1;">
+              <table class="gst-table" style="width: 100%; border-collapse: collapse; font-size: 0.75rem; text-align: left;">
+                <thead style="position: sticky; top: 0; z-index: 10; background: #0b0f19;">
+                  <tr style="border-bottom: 2px solid rgba(255,255,255,0.08);">
+                    <th style="padding: 0.75rem 0.6rem; background: #0b0f19;">Date</th>
+                    <th style="padding: 0.75rem 0.35rem; text-align: right; border-left: 1px solid rgba(255,255,255,0.05); color: var(--power-color); font-weight: 700; background: #0b0f19;">poWer Qty (L)</th>
+                    <th style="padding: 0.75rem 0.35rem; text-align: right; color: var(--text-muted); background: #0b0f19;">poWer Rate</th>
+                    <th style="padding: 0.75rem 0.35rem; text-align: right; border-left: 1px solid rgba(255,255,255,0.05); color: var(--success); font-weight: 700; background: #0b0f19;">Petrol Qty (L)</th>
+                    <th style="padding: 0.75rem 0.35rem; text-align: right; color: var(--text-muted); background: #0b0f19;">Petrol Rate</th>
+                    <th style="padding: 0.75rem 0.35rem; text-align: right; border-left: 1px solid rgba(255,255,255,0.05); color: var(--diesel-color); font-weight: 700; background: #0b0f19;">Diesel Qty (L)</th>
+                    <th style="padding: 0.75rem 0.35rem; text-align: right; color: var(--text-muted); background: #0b0f19;">Diesel Rate</th>
+                    <th style="padding: 0.75rem 0.5rem; text-align: right; border-left: 2px solid rgba(255,255,255,0.1); color: var(--accent); font-weight: 700; background: #0b0f19;">Line Total (₹)</th>
+                  </tr>
+                </thead>
+                <tbody id="gst-table-body">
+                  <!-- Dynamically populated daily rows -->
+                </tbody>
+                <tfoot>
+                  <tr id="gst-table-footer" style="font-weight: 700; border-top: 2px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.02);">
+                    <!-- Dynamically populated totals row -->
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </section>
+        </main>
+      </div>
+
+      <!-- VIEW: HPCL Portal Balance Tracker -->
+      <div id="view-hpcl-tracker" class="view-pane" style="display: none;">
+        <header class="content-header">
+          <div class="header-title-wrapper">
+            <h1>HPCL Portal Balance</h1>
+            <p class="subtitle">Ledger & running balance tracker for the HPCL portal account</p>
+          </div>
+        </header>
+
+        <main class="content-body-hpcl" style="display: flex; flex-direction: row; gap: 1.5rem; width: 100%; height: calc(100vh - 120px); min-height: 0; overflow: hidden; padding-right: 0.25rem;">
+          <!-- Left Panel (50%): Summary and Forms -->
+          <div class="hpcl-left-panel" style="flex: 1; display: flex; flex-direction: column; gap: 1.5rem; min-width: 0; height: 100%; overflow-y: auto;">
+            <!-- Summary Row -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; flex-shrink: 0;">
+              <!-- Current Balance -->
+              <div class="card" style="padding: 1rem 1.25rem; border-left: 4px solid var(--accent); background: rgba(6, 182, 212, 0.02); display: flex; flex-direction: column; justify-content: center; min-height: 85px;">
+                <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.02em;">Current Portal Balance</span>
+                <span id="hpcl-current-balance" style="font-size: 1.6rem; font-weight: 800; color: var(--accent); margin-top: 0.25rem;">₹ 0.00</span>
+              </div>
+              <!-- Opening Balance -->
+              <div class="card" style="padding: 1rem 1.25rem; border-left: 4px solid var(--text-muted); background: rgba(255, 255, 255, 0.01); display: flex; flex-direction: row; align-items: center; justify-content: space-between; min-height: 85px; gap: 0.5rem;">
+                <div style="display: flex; flex-direction: column; justify-content: center;">
+                  <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.02em;">Opening Balance</span>
+                  <span id="hpcl-opening-balance" style="font-size: 1.3rem; font-weight: 700; color: var(--text-main); margin-top: 0.25rem;">₹ 0.00</span>
+                </div>
+                <button type="button" id="btn-hpcl-edit-opening" class="btn btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.75rem; min-height: auto; width: auto; margin: 0; font-weight: 600;">Edit ✏️</button>
+              </div>
+            </div>
+            
+            <!-- Second Summary Row (Credits & Debits) -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; flex-shrink: 0;">
+              <!-- Total Credits -->
+              <div class="card" style="padding: 1rem 1.25rem; border-left: 4px solid var(--success); background: rgba(16, 185, 129, 0.02); display: flex; flex-direction: column; justify-content: center; min-height: 85px;">
+                <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.02em;">Total Credits</span>
+                <span id="hpcl-total-credits" style="font-size: 1.4rem; font-weight: 700; color: var(--success); margin-top: 0.25rem;">₹ 0.00</span>
+              </div>
+              <!-- Total Debits -->
+              <div class="card" style="padding: 1rem 1.25rem; border-left: 4px solid var(--danger); background: rgba(239, 68, 68, 0.02); display: flex; flex-direction: column; justify-content: center; min-height: 85px;">
+                <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.02em;">Total Debits</span>
+                <span id="hpcl-total-debits" style="font-size: 1.4rem; font-weight: 700; color: var(--danger); margin-top: 0.25rem;">₹ 0.00</span>
+              </div>
+            </div>
+
+            <!-- Forms Container (Stacked Vertically with good vertical gap) -->
+            <div style="display: flex; flex-direction: column; gap: 1.5rem; flex-shrink: 0;">
+              <!-- Credit Form Card -->
+              <div class="card" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; border: 1px solid rgba(16, 185, 129, 0.15); background: rgba(16, 185, 129, 0.01);">
+                <h3 style="font-family: var(--font-header); font-size: 1rem; font-weight: 700; color: var(--success); margin: 0; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                  <span>📥</span> Record CREDIT (Portal Load / RTGS)
+                </h3>
+                <form id="hpcl-credit-form" style="display: flex; flex-direction: column; gap: 1rem;">
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div>
+                      <label for="hpcl-credit-date" style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.35rem;">Date</label>
+                      <input type="date" id="hpcl-credit-date" required style="width: 100%; padding: 0.6rem 0.75rem; border-radius: 0.35rem; font-size: 0.9rem; height: 40px; font-weight: 600;">
+                    </div>
+                    <div>
+                      <label for="hpcl-credit-amount" style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.35rem;">Amount (₹)</label>
+                      <input type="number" id="hpcl-credit-amount" step="0.01" min="0.01" placeholder="0.00" required style="width: 100%; padding: 0.6rem 0.75rem; border-radius: 0.35rem; font-size: 0.9rem; height: 40px; font-weight: 600; font-family: monospace;">
+                    </div>
+                  </div>
+                  <div>
+                    <label for="hpcl-credit-desc" style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.35rem;">Description / Reference</label>
+                    <input type="text" id="hpcl-credit-desc" placeholder="e.g. RTGS load or portal deposit reference" required style="width: 100%; padding: 0.6rem 0.75rem; border-radius: 0.35rem; font-size: 0.9rem; height: 40px; font-weight: 600;">
+                  </div>
+                  <button type="submit" class="btn" style="background: var(--success); color: #fff; font-weight: 700; width: 100%; height: 42px; font-size: 0.95rem; margin-top: 0.25rem; border: none; border-radius: 0.35rem; cursor: pointer; transition: filter 0.15s ease;">
+                    Add Credit Entry +
+                  </button>
+                </form>
+              </div>
+
+              <!-- Debit Form Card -->
+              <div class="card" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; border: 1px solid rgba(239, 68, 68, 0.15); background: rgba(239, 68, 68, 0.01);">
+                <h3 style="font-family: var(--font-header); font-size: 1rem; font-weight: 700; color: var(--danger); margin: 0; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                  <span>📤</span> Record DEBIT (Tanker Invoice Allotment)
+                </h3>
+                <form id="hpcl-debit-form" style="display: flex; flex-direction: column; gap: 1rem;">
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div>
+                      <label for="hpcl-debit-date" style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.35rem;">Date</label>
+                      <input type="date" id="hpcl-debit-date" required style="width: 100%; padding: 0.6rem 0.75rem; border-radius: 0.35rem; font-size: 0.9rem; height: 40px; font-weight: 600;">
+                    </div>
+                    <div>
+                      <label for="hpcl-debit-amount" style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.35rem;">Amount (₹)</label>
+                      <input type="number" id="hpcl-debit-amount" step="0.01" min="0.01" placeholder="0.00" required style="width: 100%; padding: 0.6rem 0.75rem; border-radius: 0.35rem; font-size: 0.9rem; height: 40px; font-weight: 600; font-family: monospace;">
+                    </div>
+                  </div>
+                  <div>
+                    <label for="hpcl-debit-desc" style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.35rem;">Description / Reference</label>
+                    <input type="text" id="hpcl-debit-desc" placeholder="e.g. Tanker Invoice No" required style="width: 100%; padding: 0.6rem 0.75rem; border-radius: 0.35rem; font-size: 0.9rem; height: 40px; font-weight: 600;">
+                  </div>
+                  <button type="submit" class="btn" style="background: var(--danger); color: #fff; font-weight: 700; width: 100%; height: 42px; font-size: 0.95rem; margin-top: 0.25rem; border: none; border-radius: 0.35rem; cursor: pointer; transition: filter 0.15s ease;">
+                    Add Debit Entry -
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+          <div class="hpcl-right-panel" style="flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100%;">
+            <div class="card" style="padding: 0; overflow: hidden; display: flex; flex-direction: column; height: 100%;">
+              <div style="padding: 0.65rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.01); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+                <h3 style="font-family: var(--font-header); font-size: 0.95rem; font-weight: 700; color: var(--text-main);">
+                  Recent Portal Ledger Statement (Last 15 entries)
+                </h3>
+              </div>
+              
+              <div class="hpcl-table-wrapper" style="overflow-y: auto; flex: 1; min-height: 0;">
+                <table class="hpcl-table" style="width: 100%; border-collapse: collapse; font-size: 0.78rem; text-align: left;">
+                  <thead style="position: sticky; top: 0; z-index: 10; background: #0b0f19;">
+                    <tr style="border-bottom: 2px solid rgba(255,255,255,0.08);">
+                      <th style="padding: 0.5rem 0.75rem; background: #0b0f19;">Date</th>
+                      <th style="padding: 0.5rem 0.5rem; background: #0b0f19;">Description</th>
+                      <th style="padding: 0.5rem 0.5rem; text-align: center; background: #0b0f19;">Type</th>
+                      <th style="padding: 0.5rem 0.5rem; text-align: right; background: #0b0f19;">Amount</th>
+                      <th style="padding: 0.5rem 0.75rem; text-align: right; background: #0b0f19;">Balance</th>
+                      <th style="padding: 0.5rem 0.5rem; text-align: center; background: #0b0f19;">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="hpcl-table-body">
+                    <!-- Dynamically populated rows -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+
+      <!-- Opening Balance Edit Modal Overlay -->
+      <div id="hpcl-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center;">
+        <div class="card" style="max-width: 400px; width: 90%; background: #0f172a; border: 1px solid rgba(255,255,255,0.1); padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; margin: auto; margin-top: 15vh;">
+          <h3 style="font-family: var(--font-header); font-size: 1.2rem; font-weight: 700; color: var(--accent);">
+            Edit Opening Balance
+          </h3>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+            Changing the opening balance will automatically update and shift the running balances for all transactions recorded in the system.
+          </p>
+          <div>
+            <label for="hpcl-new-opening-balance" style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;">New Opening Balance (₹)</label>
+            <input type="number" id="hpcl-new-opening-balance" step="0.01" placeholder="4700.00" required style="width: 100%; padding: 0.5rem; background: rgba(8, 12, 22, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 0.35rem; color: var(--text-main); font-size: 1rem; height: 40px; font-weight: 600;">
+          </div>
+          <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 0.5rem;">
+            <button type="button" id="btn-hpcl-modal-cancel" class="btn btn-secondary" style="min-height: auto; padding: 0.45rem 1rem;">Cancel</button>
+            <button type="button" id="btn-hpcl-modal-save" class="btn" style="min-height: auto; padding: 0.45rem 1rem; background: var(--accent); color: #000; font-weight: 600;">Save & Apply</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- JS Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
