@@ -29,11 +29,12 @@ app.use(async (req, res, next) => {
 async function getActiveDate() {
   const row = await db.get('SELECT MAX(date) AS latest_closed_date FROM cash_reconciliation');
   if (row && row.latest_closed_date) {
-    const latestDate = new Date(row.latest_closed_date + 'T00:00:00');
-    latestDate.setDate(latestDate.getDate() + 1);
-    const year = latestDate.getFullYear();
-    const month = String(latestDate.getMonth() + 1).padStart(2, '0');
-    const day = String(latestDate.getDate()).padStart(2, '0');
+    const [y, m, d] = row.latest_closed_date.split('-');
+    const latestDate = new Date(Date.UTC(y, m - 1, d));
+    latestDate.setUTCDate(latestDate.getUTCDate() + 1);
+    const year = latestDate.getUTCFullYear();
+    const month = String(latestDate.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(latestDate.getUTCDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   }
   return '2026-05-01';
@@ -41,11 +42,12 @@ async function getActiveDate() {
 
 function isLastDayOfMonth(dateStr) {
   if (!dateStr || dateStr.length !== 10) return false;
-  const date = new Date(dateStr + 'T00:00:00');
-  const month = date.getMonth();
+  const [y, m, d] = dateStr.split('-');
+  const date = new Date(Date.UTC(y, m - 1, d));
+  const month = date.getUTCMonth();
   const nextDay = new Date(date);
-  nextDay.setDate(date.getDate() + 1);
-  return nextDay.getMonth() !== month;
+  nextDay.setUTCDate(date.getUTCDate() + 1);
+  return nextDay.getUTCMonth() !== month;
 }
 
 function sendWhatsAppReport(monthStr, csvContent) {
