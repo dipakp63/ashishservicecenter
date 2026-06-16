@@ -2,6 +2,32 @@ document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('readings-form');
   const dateInput = document.getElementById('reading-date');
 
+  let globalDebtorsList = [];
+  async function fetchGlobalDebtorsList() {
+    try {
+      const res = await fetch('/api/debtors');
+      if (res.ok) {
+        globalDebtorsList = await res.json();
+      }
+    } catch (err) {
+      console.error('Failed to fetch global debtors:', err);
+    }
+  }
+
+  function populateRowDebtorSelect(select) {
+    const currentVal = select.value;
+    select.innerHTML = '<option value="">— Select Debtor —</option>';
+    globalDebtorsList.forEach(d => {
+      if (d.is_active === 1) {
+        const opt = document.createElement('option');
+        opt.value = d.id;
+        opt.textContent = d.debtor_name;
+        select.appendChild(opt);
+      }
+    });
+    select.value = currentVal;
+  }
+
   // Dynamic row generation for non-cash payments
   function adjustNonCashRows(targetCount) {
     const container = document.getElementById('other-payments-rows');
@@ -13,23 +39,53 @@ document.addEventListener('DOMContentLoaded', () => {
     if (currentCount < targetCount) {
       for (let i = currentCount; i < targetCount; i++) {
         const row = document.createElement('tr');
-        row.style.borderBottom = '1px solid rgba(255,255,255,0.03)';
+        row.style.borderBottom = '1px solid var(--panel-border)';
         row.innerHTML = `
-          <td style="padding: 0.35rem; text-align: center; color: var(--text-muted); font-weight: 600;">${i + 1}</td>
-          <td style="padding: 0.35rem;">
-            <select class="non-cash-type-input" style="width: 100%; background: rgba(8,12,22,0.6); border: 1px solid rgba(255,255,255,0.08); color: var(--text-main); font-size: 0.75rem; padding: 0.15rem; border-radius: 0.25rem; height: 26px;">
-              <option value="UPI">UPI</option>
-              <option value="Credit">Credit</option>
+          <td style="padding: 0.5rem; text-align: center; color: var(--text-muted); font-weight: 600; font-size: 0.95rem;">${i + 1}</td>
+          <td style="padding: 0.5rem;">
+            <select class="non-cash-type-input" style="width: 100%; padding: 0.4rem; font-size: 0.95rem; height: 38px; border-radius: 0.35rem;">
+              ${i !== 0 ? '<option value="" disabled selected>— Type —</option>' : ''}
+              <option value="UPI" ${i === 0 ? 'selected' : ''}>UPI</option>
+              <option value="Old Credit">Old Credit</option>
+              <option value="Fresh Credit">Fresh Credit</option>
+              <option value="Employee">Employee</option>
+              <option value="MH-19-CY-5682">MH-19-CY-5682</option>
+              <option value="Alto 800">Alto 800</option>
               <option value="Other">Other</option>
             </select>
           </td>
-          <td style="padding: 0.35rem;">
-            <input type="text" class="non-cash-desc-input" placeholder="e.g. UPI Ref / Customer Name" style="width: 100%; background: transparent; border: none; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--text-main); font-size: 0.75rem; padding: 0.15rem; height: 26px;">
+          <td style="padding: 0.5rem; position: relative;">
+            <input type="text" class="non-cash-desc-input" placeholder="e.g. UPI Ref / Customer Name" style="width: 100%; padding: 0.4rem 0.6rem; font-size: 0.95rem; height: 38px; border-radius: 0.35rem;">
+            <select class="non-cash-debtor-select" style="display: none; width: 100%; padding: 0.4rem; font-size: 0.95rem; height: 38px; border-radius: 0.35rem; appearance: auto;">
+              <option value="">— Select Debtor —</option>
+            </select>
           </td>
-          <td style="padding: 0.35rem;">
-            <input type="number" class="non-cash-amount-input" placeholder="0.00" min="0" step="0.01" style="width: 100%; background: transparent; border: none; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--text-main); font-size: 0.75rem; padding: 0.15rem; text-align: right; font-weight: 600; height: 26px;">
+          <td style="padding: 0.5rem;">
+            <input type="number" class="non-cash-amount-input" placeholder="0.00" min="0" step="0.01" style="width: 100%; padding: 0.4rem 0.6rem; text-align: right; font-size: 0.95rem; height: 38px; font-weight: 600; border-radius: 0.35rem;">
           </td>
         `;
+        
+        // Wire type select change to toggle dropdown/text-box
+        const typeSelect = row.querySelector('.non-cash-type-input');
+        const descInput = row.querySelector('.non-cash-desc-input');
+        const debtorSelect = row.querySelector('.non-cash-debtor-select');
+        
+        typeSelect.addEventListener('change', () => {
+          if (typeSelect.value === 'Old Credit') {
+            descInput.style.display = 'none';
+            debtorSelect.style.display = 'block';
+            populateRowDebtorSelect(debtorSelect);
+          } else {
+            descInput.style.display = 'block';
+            debtorSelect.style.display = 'none';
+            if (typeSelect.value === 'Fresh Credit') {
+              descInput.placeholder = "Enter new customer name (mandatory)";
+            } else {
+              descInput.placeholder = "e.g. UPI Ref / Customer Name";
+            }
+          }
+        });
+
         // Wire amount input to recalculate live
         row.querySelector('.non-cash-amount-input').addEventListener('input', updateOtherPaymentsCalculations);
         container.appendChild(row);
@@ -49,32 +105,31 @@ document.addEventListener('DOMContentLoaded', () => {
   // Start with 5 rows by default
   adjustNonCashRows(5);
 
-  // + Add Row button — appends one row at a time
+  // + Add Row button — appends 3 rows at a time
   const btnAddNonCashRow = document.getElementById('btn-add-noncash-row');
   if (btnAddNonCashRow) {
     btnAddNonCashRow.addEventListener('click', () => {
       const container = document.getElementById('other-payments-rows');
       if (!container) return;
       const newIndex = container.querySelectorAll('tr').length;
-      adjustNonCashRows(newIndex + 1);
+      adjustNonCashRows(newIndex + 3);
       updateOtherPaymentsCalculations();
       // Scroll the new row into view and focus the description
       const scrollEl = document.getElementById('other-payments-scroll');
       if (scrollEl) scrollEl.scrollTop = scrollEl.scrollHeight;
       const lastDesc = container.querySelectorAll('.non-cash-desc-input');
-      if (lastDesc.length) lastDesc[lastDesc.length - 1].focus();
+      if (lastDesc.length) lastDesc[lastDesc.length - 3].focus();
     });
   }
 
-  // − Remove Row button — deletes the last row (minimum 5 rows enforced)
+  // − Remove Row button — deletes the last row (no minimum enforced)
   const btnRemoveNonCashRow = document.getElementById('btn-remove-noncash-row');
   if (btnRemoveNonCashRow) {
     btnRemoveNonCashRow.addEventListener('click', () => {
       const container = document.getElementById('other-payments-rows');
       if (!container) return;
       const rows = container.querySelectorAll('tr');
-      if (rows.length <= 5) {
-        showToast('Minimum 5 rows required. Cannot remove further.', 'warning');
+      if (rows.length === 0) {
         return;
       }
       // Remove the last row
@@ -159,11 +214,32 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnGotoCashCalcFromFinish = document.getElementById('btn-goto-cash-calc-from-finish');
   if (btnGotoCashCalcFromFinish) {
     btnGotoCashCalcFromFinish.addEventListener('click', () => {
-      // Set deposit date to today
-      const bankDateEl = document.getElementById('bank-detail-date');
-      if (bankDateEl && !bankDateEl.value) {
-        bankDateEl.value = new Date().toISOString().split('T')[0];
+      if (!window.lastClosedCashData) {
+        showToast('No recent cash data found. Please use the sidebar.', 'warning');
+        return;
       }
+      
+      const bankDateEl = document.getElementById('bank-detail-date');
+      if (bankDateEl) {
+        bankDateEl.value = window.lastClosedDate || new Date().toISOString().split('T')[0];
+      }
+      
+      const set = (calcId, val) => {
+        const el = document.getElementById(calcId);
+        if (el) {
+           el.value = val !== undefined && val !== null ? val : 0;
+           // Dispatch input event to trigger auto-save (localStorage) and update grand totals
+           el.dispatchEvent(new Event('input'));
+        }
+      };
+      
+      set('calc-count-500', window.lastClosedCashData.notes500);
+      set('calc-count-200', window.lastClosedCashData.notes200);
+      set('calc-count-100', window.lastClosedCashData.notes100);
+      set('calc-count-50',  window.lastClosedCashData.notes50);
+      set('calc-count-20',  window.lastClosedCashData.notes20);
+      set('calc-count-10',  window.lastClosedCashData.notes10);
+
       showView('cash-calc');
     });
   }
@@ -193,6 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnBackToDecantationOrTankFromDsr = document.getElementById('btn-back-to-decantation-or-tank-from-dsr');
 
   function showView(viewName) {
+    document.body.setAttribute('data-active-view', viewName);
     const hasDecantation = document.querySelector('input[name="decantation-toggle"]:checked').value === 'yes';
 
     viewDuCalc.style.display = viewName === 'du' ? 'block' : 'none';
@@ -215,6 +292,73 @@ document.addEventListener('DOMContentLoaded', () => {
     if (viewTankerCalculation) viewTankerCalculation.style.display = viewName === 'tanker' ? 'block' : 'none';
     if (viewCashCalculator) viewCashCalculator.style.display = viewName === 'cash-calc' ? 'block' : 'none';
 
+    // Udhari view panes
+    const viewUdhariMaster = document.getElementById('view-udhari-master');
+    const viewUdhariActive = document.getElementById('view-udhari-active');
+    const viewUdhariCreditSale = document.getElementById('view-udhari-credit-sale');
+    const viewUdhariReceivePayment = document.getElementById('view-udhari-receive-payment');
+    const viewUdhariDateReport = document.getElementById('view-udhari-date-report');
+    const viewUdhariLedger = document.getElementById('view-udhari-ledger');
+    const viewUdhariSummary = document.getElementById('view-udhari-summary');
+
+    if (viewUdhariMaster) viewUdhariMaster.style.display = viewName === 'udhari-master' ? 'block' : 'none';
+    if (viewUdhariActive) viewUdhariActive.style.display = viewName === 'udhari-active' ? 'block' : 'none';
+    if (viewUdhariCreditSale) viewUdhariCreditSale.style.display = viewName === 'udhari-credit-sale' ? 'block' : 'none';
+    if (viewUdhariReceivePayment) viewUdhariReceivePayment.style.display = viewName === 'udhari-receive-payment' ? 'block' : 'none';
+    if (viewUdhariDateReport) viewUdhariDateReport.style.display = viewName === 'udhari-date-report' ? 'block' : 'none';
+    if (viewUdhariLedger) viewUdhariLedger.style.display = viewName === 'udhari-ledger' ? 'block' : 'none';
+    if (viewUdhariSummary) viewUdhariSummary.style.display = viewName === 'udhari-summary' ? 'block' : 'none';
+
+    // Auto-load data for udhari views
+    if (viewName === 'udhari-master') {
+      loadDebtorMaster();
+    } else if (viewName === 'udhari-active') {
+      loadActiveOrInactiveDebtors(showingActiveDebtorsTab);
+    } else if (viewName === 'udhari-credit-sale') {
+      initCreditSaleEntry();
+    } else if (viewName === 'udhari-receive-payment') {
+      initReceivePaymentEntry();
+    } else if (viewName === 'udhari-date-report') {
+      loadDateWiseReport();
+    } else if (viewName === 'udhari-ledger') {
+      loadLedgerDebtorSelect();
+    } else if (viewName === 'udhari-summary') {
+      loadDebtorSummary();
+    } else if (viewName === 'other') {
+      fetchGlobalDebtorsList().then(() => {
+        document.querySelectorAll('#other-payments-rows tr').forEach(row => {
+          const typeSelect = row.querySelector('.non-cash-type-input');
+          const debtorSelect = row.querySelector('.non-cash-debtor-select');
+          const descInput = row.querySelector('.non-cash-desc-input');
+          if (typeSelect && typeSelect.value === 'Credit') {
+            if (descInput) descInput.style.display = 'none';
+            if (debtorSelect) {
+              debtorSelect.style.display = 'block';
+              populateRowDebtorSelect(debtorSelect);
+            }
+          }
+        });
+      });
+    }
+
+    // Submenu management
+    const secondarySidebar = document.getElementById('secondary-sidebar');
+    const udhariContainer = document.getElementById('udhari-submenu-container');
+    const otherContainer = document.getElementById('other-submenu-container');
+    const udhariToggle = document.getElementById('nav-udhari-toggle');
+    const otherToggle = document.getElementById('nav-other-toggle');
+
+    if (viewName.startsWith('udhari-') || viewName === 'udhari') {
+      if (udhariToggle) udhariToggle.classList.add('active');
+      if (otherToggle) otherToggle.classList.remove('active');
+    } else if (viewName === 'reminders' || viewName === 'gst') {
+      if (otherToggle) otherToggle.classList.add('active');
+      if (udhariToggle) udhariToggle.classList.remove('active');
+    } else {
+      if (udhariToggle) udhariToggle.classList.remove('active');
+      if (otherToggle) otherToggle.classList.remove('active');
+    }
+
     // Update active nav
     document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => item.classList.remove('active'));
     const navTankerCalc = document.getElementById('nav-tanker-calc');
@@ -222,7 +366,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const navGst = document.getElementById('nav-gst');
     const navHpclTracker = document.getElementById('nav-hpcl-tracker');
     
-    if (viewName === 'tanker' && navTankerCalc) navTankerCalc.classList.add('active');
+    const navUdhariMaster = document.getElementById('nav-udhari-master');
+    const navUdhariActive = document.getElementById('nav-udhari-active');
+    const navUdhariCreditSale = document.getElementById('nav-udhari-credit-sale');
+    const navUdhariReceivePayment = document.getElementById('nav-udhari-receive-payment');
+    const navUdhariDateReport = document.getElementById('nav-udhari-date-report');
+    const navUdhariLedger = document.getElementById('nav-udhari-ledger');
+    const navUdhariSummary = document.getElementById('nav-udhari-summary');
+
+    if (viewName === 'udhari-master' && navUdhariMaster) navUdhariMaster.classList.add('active');
+    else if (viewName === 'udhari-active' && navUdhariActive) navUdhariActive.classList.add('active');
+    else if (viewName === 'udhari-credit-sale' && navUdhariCreditSale) navUdhariCreditSale.classList.add('active');
+    else if (viewName === 'udhari-receive-payment' && navUdhariReceivePayment) navUdhariReceivePayment.classList.add('active');
+    else if (viewName === 'udhari-date-report' && navUdhariDateReport) navUdhariDateReport.classList.add('active');
+    else if (viewName === 'udhari-ledger' && navUdhariLedger) navUdhariLedger.classList.add('active');
+    else if (viewName === 'udhari-summary' && navUdhariSummary) navUdhariSummary.classList.add('active');
+    else if (viewName === 'tanker' && navTankerCalc) navTankerCalc.classList.add('active');
     else if (viewName === 'cash-calc' && navCashCalc) navCashCalc.classList.add('active');
     else if (viewName === 'gst' && navGst) navGst.classList.add('active');
     else if (viewName === 'hpcl' && navHpclTracker) navHpclTracker.classList.add('active');
@@ -292,32 +451,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  const navCashCalc = document.getElementById('nav-cash-calc');
-  if (navCashCalc) {
-    navCashCalc.addEventListener('click', async (e) => {
+  const navCashCalcSide = document.getElementById('nav-cash-calc');
+  if (navCashCalcSide) {
+    navCashCalcSide.addEventListener('click', (e) => {
       e.preventDefault();
-      
-      try {
-        const response = await fetch(`/api/cash/opening?date=${dateInput.value}`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.cash) {
-            document.getElementById('calc-count-500').value = data.cash.count_500 || '';
-            document.getElementById('calc-count-200').value = data.cash.count_200 || '';
-            document.getElementById('calc-count-100').value = data.cash.count_100 || '';
-            document.getElementById('calc-count-50').value = data.cash.count_50 || '';
-            document.getElementById('calc-count-20').value = data.cash.count_20 || '';
-            document.getElementById('calc-count-10').value = 0; // Exclude 10 rupee note
-            document.getElementById('calc-count-coins').value = data.cash.coins || '';
-            
-            const event = new Event('input');
-            document.getElementById('calc-count-500').dispatchEvent(event);
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch cash for calculator', err);
-      }
-      
       showView('cash-calc');
     });
   }
@@ -349,7 +486,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  btnStartNewDay.addEventListener('click', async () => {
+  async function prepareNextDay() {
     await fetchActiveDate();
     dateInput.value = activeDate;
     dateInput.max = activeDate;
@@ -379,10 +516,7 @@ document.addEventListener('DOMContentLoaded', () => {
     await fetchOpeningTankStocks(dateInput.value);
     await fetchOpeningRates(dateInput.value);
     await fetchOpeningCash(dateInput.value);
-
-    // Transition back to step 1
-    showView('du');
-  });
+  }
 
   // Fetch opening readings for selected date
   async function fetchOpeningReadings(selectedDate) {
@@ -1345,7 +1479,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const rows = document.querySelectorAll('#other-payments-rows tr');
     rows.forEach(row => {
       const type = row.querySelector('.non-cash-type-input').value;
-      const description = row.querySelector('.non-cash-desc-input').value;
+      let description = row.querySelector('.non-cash-desc-input').value;
+      if (type === 'Credit') {
+        const debtorSelect = row.querySelector('.non-cash-debtor-select');
+        if (debtorSelect && debtorSelect.value) {
+          const debtorId = parseInt(debtorSelect.value, 10);
+          const found = globalDebtorsList.find(d => d.id === debtorId);
+          description = found ? found.debtor_name : 'Selected Debtor';
+        } else {
+          description = 'Unspecified Debtor';
+        }
+      }
       const amount = parseFloat(row.querySelector('.non-cash-amount-input').value) || 0;
 
       if (amount > 0 || description.trim() !== '') {
@@ -1513,7 +1657,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const nonCashEntries = [];
     document.querySelectorAll('#other-payments-rows tr').forEach(row => {
       const type   = row.querySelector('.non-cash-type-input').value;
-      const desc   = row.querySelector('.non-cash-desc-input').value;
+      let desc   = row.querySelector('.non-cash-desc-input').value;
+      if (type === 'Credit') {
+        const debtorSelect = row.querySelector('.non-cash-debtor-select');
+        if (debtorSelect && debtorSelect.value) {
+          const debtorId = parseInt(debtorSelect.value, 10);
+          const found = globalDebtorsList.find(d => d.id === debtorId);
+          desc = found ? found.debtor_name : 'Selected Debtor';
+        } else {
+          desc = 'Unspecified Debtor';
+        }
+      }
       const amount = parseFloat(row.querySelector('.non-cash-amount-input').value) || 0;
       if (amount > 0 || desc.trim() !== '') { nonCashEntries.push({ type, desc, amount }); totalNonCash += amount; }
     });
@@ -1584,13 +1738,81 @@ document.addEventListener('DOMContentLoaded', () => {
     const totalCashReceived = totalNotesFixed + totalCoins;
     const totalSalesValue   = calculateTotalSalesValue();
 
+    // Cache the just-entered values to pass them to the Cash Calculator without getting cleared by prepareNextDay()
+    window.lastClosedCashData = { notes500, notes200, notes100, notes50, notes20, notes10 };
+    window.lastClosedDate = document.getElementById('reading-date').value;
+
     const nonCashPayments = [];
-    document.querySelectorAll('#other-payments-rows tr').forEach(row => {
+    let hasValidationError = false;
+    const rows = Array.from(document.querySelectorAll('#other-payments-rows tr'));
+    
+    for (let idx = 0; idx < rows.length; idx++) {
+      const row = rows[idx];
       const type   = row.querySelector('.non-cash-type-input').value;
-      const description = row.querySelector('.non-cash-desc-input').value;
+      let description = row.querySelector('.non-cash-desc-input').value;
       const amount = parseFloat(row.querySelector('.non-cash-amount-input').value) || 0;
-      if (amount > 0 || description.trim() !== '') nonCashPayments.push({ type, description, amount });
-    });
+      
+      if (!type) continue;
+      
+      if (type === 'Old Credit' && amount > 0) {
+        const debtorSelect = row.querySelector('.non-cash-debtor-select');
+        if (!debtorSelect || !debtorSelect.value) {
+          hasValidationError = true;
+          showToast(`Row ${idx + 1}: Please select a debtor for the Old Credit transaction.`, 'error');
+        } else {
+          description = `debtor_id:${debtorSelect.value}`;
+        }
+      } else if (type === 'Fresh Credit' && amount > 0) {
+        const customerName = description.trim();
+        if (!customerName) {
+          hasValidationError = true;
+          showToast(`Row ${idx + 1}: Please enter a customer name for Fresh Credit.`, 'error');
+        } else {
+          try {
+            // Check for existing debtor (case-insensitive)
+            let existingDebtor = globalDebtorsList.find(d => d.debtor_name.toLowerCase() === customerName.toLowerCase());
+            let debtorId;
+            
+            if (existingDebtor) {
+              debtorId = existingDebtor.id;
+            } else {
+              // Auto-create new debtor
+              const createResp = await fetch('/api/debtors', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  debtor_name: customerName,
+                  mobile_number: '',
+                  credit_limit: 0,
+                  opening_balance: 0,
+                  opening_balance_date: dateInput.value
+                })
+              });
+              const createData = await createResp.json();
+              if (!createResp.ok) throw new Error(createData.error);
+              debtorId = createData.debtor.id;
+              
+              // Push to global array so next row in this loop doesn't recreate it
+              globalDebtorsList.push({ id: debtorId, debtor_name: customerName, is_active: 1 });
+            }
+            
+            description = `debtor_id:${debtorId}`;
+          } catch (err) {
+            hasValidationError = true;
+            showToast(`Row ${idx + 1}: Failed to create new debtor - ${err.message}`, 'error');
+          }
+        }
+      }
+      
+      if (amount > 0 || description.trim() !== '') {
+        nonCashPayments.push({ type, description, amount });
+      }
+    }
+
+    if (hasValidationError) {
+      if (btnConfirm) { btnConfirm.disabled = false; btnConfirm.innerHTML = '✓ Confirm &amp; Close Day'; }
+      return;
+    }
 
     const totalNonCash = nonCashPayments.reduce((sum, p) => sum + p.amount, 0);
     const shortfall    = totalSalesValue - (totalCashReceived + totalNonCash);
@@ -1620,6 +1842,9 @@ document.addEventListener('DOMContentLoaded', () => {
       isDayClosed = true;
       showFinishSummary(dateInput.value, currentDuReadings, currentTankReadings);
       showView('finish');
+
+      // Automatically prepare next day in background so it's ready when the user leaves the finish page
+      await prepareNextDay();
     } catch (error) {
       console.error('Error saving closing summary:', error);
       showToast(error.message || 'An error occurred while finalizing day closing.', 'error');
@@ -1683,9 +1908,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
         nonCashPayments.forEach((p, idx) => {
           if (idx < targetCount) {
-            if (typeInputs[idx]) typeInputs[idx].value = p.type;
-            if (descInputs[idx]) descInputs[idx].value = p.description;
+            const typeSelect = typeInputs[idx];
+            const descInput = descInputs[idx];
+            const row = typeSelect ? typeSelect.closest('tr') : null;
+            const debtorSelect = row ? row.querySelector('.non-cash-debtor-select') : null;
+
+            if (typeSelect) typeSelect.value = p.type;
             if (amountInputs[idx]) amountInputs[idx].value = parseFloat(p.amount) || '';
+
+            if (p.type === 'Credit' && p.description && p.description.startsWith('debtor_id:')) {
+              const debtorId = p.description.split(':')[1];
+              if (descInput) {
+                descInput.value = p.description;
+                descInput.style.display = 'none';
+              }
+              if (debtorSelect) {
+                debtorSelect.style.display = 'block';
+                populateRowDebtorSelect(debtorSelect);
+                debtorSelect.value = debtorId;
+              }
+            } else {
+              if (descInput) {
+                descInput.value = p.description || '';
+                descInput.style.display = 'block';
+              }
+              if (debtorSelect) {
+                debtorSelect.style.display = 'none';
+              }
+            }
           }
         });
       } else {
@@ -1991,6 +2241,31 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('sales-value-display').textContent = `Rs. ${Math.round(totalSalesValue).toLocaleString()}`;
     document.getElementById('coins-value-display-summary').textContent = `Rs. ${Math.round(totalCoins).toLocaleString()}`;
     document.getElementById('cash-received-display').textContent = `Rs. ${Math.round(totalCashReceived).toLocaleString()}`;
+
+    const shortfall = totalSalesValue - totalCashReceived;
+    const shortfallValEl = document.getElementById('cash-shortfall-display-val');
+    const shortfallLblEl = document.getElementById('cash-shortfall-lbl');
+    const shortfallContainer = document.querySelector('.shortfall-container');
+
+    if (shortfallValEl && shortfallLblEl && shortfallContainer) {
+      shortfallValEl.textContent = `Rs. ${Math.round(Math.abs(shortfall)).toLocaleString()}`;
+      if (shortfall > 0) {
+        shortfallLblEl.textContent = 'Shortfall / Deficit';
+        shortfallValEl.style.color = 'var(--danger)';
+        shortfallContainer.style.background = 'rgba(239, 68, 68, 0.05)';
+        shortfallContainer.style.borderColor = 'rgba(239, 68, 68, 0.15)';
+      } else if (shortfall < 0) {
+        shortfallLblEl.textContent = 'Surplus / Excess';
+        shortfallValEl.style.color = 'var(--success)';
+        shortfallContainer.style.background = 'rgba(16, 185, 129, 0.05)';
+        shortfallContainer.style.borderColor = 'rgba(16, 185, 129, 0.15)';
+      } else {
+        shortfallLblEl.textContent = 'Balanced';
+        shortfallValEl.style.color = 'var(--text-muted)';
+        shortfallContainer.style.background = 'rgba(255, 255, 255, 0.02)';
+        shortfallContainer.style.borderColor = 'rgba(255, 255, 255, 0.05)';
+      }
+    }
   }
 
   // Bind input listeners for live cash calculations
@@ -2249,7 +2524,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const val = parseInt(input.getAttribute('data-val'), 10);
         const count = parseInt(input.value, 10) || 0;
         const total = val === 1 ? count : val * count;
-        grandTotal += total;
+        
+        // Exclude Rs 10 from grand total calculation (as they are not deposited)
+        if (val !== 10) {
+            grandTotal += total;
+        }
         
         if (val !== 1) {
           const totalEl = document.getElementById(`calc-total-${val}`);
@@ -2285,8 +2564,7 @@ document.addEventListener('DOMContentLoaded', () => {
             set('calc-count-100', c.notes_100);
             set('calc-count-50',  c.notes_50);
             set('calc-count-20',  c.notes_20);
-            // ₹10 notes are NOT deposited to the bank — always zero
-            set('calc-count-10', 0);
+            set('calc-count-10',  c.notes_10);
           } else {
             // No data — ensure inputs explicitly show 0
             ['calc-count-500','calc-count-200','calc-count-100','calc-count-50','calc-count-20','calc-count-10'].forEach(id => {
@@ -2325,7 +2603,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Bank Details: Load from localStorage ---
-    const bankFields = ['bank-detail-name','bank-detail-branch','bank-detail-account','bank-detail-ifsc','bank-detail-holder'];
+    const bankFields = ['bank-detail-name','bank-detail-description'];
     bankFields.forEach(id => {
       const el = document.getElementById(id);
       if (el) {
@@ -2336,12 +2614,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
     });
-
-    // Set deposit date to today on first load
-    const bankDateElInit = document.getElementById('bank-detail-date');
-    if (bankDateElInit && !bankDateElInit.value) {
-      bankDateElInit.value = new Date().toISOString().split('T')[0];
-    }
 
     // Run initial calculation to ensure totals match inputs on page load
     updateCashCalculator();
@@ -2959,6 +3231,855 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // ── Debtor Management (Udhari) Module Logic ───────────────────────────────
+
+  // Elements
+  const udhariToggle = document.getElementById('nav-udhari-toggle');
+  const udhariSubmenu = document.getElementById('udhari-submenu');
+  
+  const udhariAddDebtorForm = document.getElementById('udhari-add-debtor-form');
+  const udhariDebtorName = document.getElementById('udhari-debtor-name');
+  const udhariDebtorMobile = document.getElementById('udhari-debtor-mobile');
+  const udhariDebtorAddress = document.getElementById('udhari-debtor-address');
+  const udhariDebtorCount = document.getElementById('udhari-debtor-count');
+  const udhariMasterTableBody = document.getElementById('udhari-master-table-body');
+  
+  const tabActiveDebtors = document.getElementById('tab-active-debtors');
+  const tabInactiveDebtors = document.getElementById('tab-inactive-debtors');
+  const btnExportActiveDebtors = document.getElementById('btn-export-active-debtors');
+  const udhariActiveTableBody = document.getElementById('udhari-active-table-body');
+  
+  const udhariCreditSaleForm = document.getElementById('udhari-credit-sale-form');
+  const udhariCsDate = document.getElementById('udhari-cs-date');
+  const udhariCsDebtor = document.getElementById('udhari-cs-debtor');
+  const udhariCsProduct = document.getElementById('udhari-cs-product');
+  const udhariCsQty = document.getElementById('udhari-cs-qty');
+  const udhariCsRate = document.getElementById('udhari-cs-rate');
+  const udhariCsAmount = document.getElementById('udhari-cs-amount');
+  const udhariCsRemarks = document.getElementById('udhari-cs-remarks');
+  
+  const udhariReceivePaymentForm = document.getElementById('udhari-receive-payment-form');
+  const udhariRpDate = document.getElementById('udhari-rp-date');
+  const udhariRpDebtor = document.getElementById('udhari-rp-debtor');
+  const udhariRpAmount = document.getElementById('udhari-rp-amount');
+  const udhariRpRemarks = document.getElementById('udhari-rp-remarks');
+  
+  const udhariReportDate = document.getElementById('udhari-report-date');
+  const btnExportDateReport = document.getElementById('btn-export-date-report');
+  const udhariDateTotalDebit = document.getElementById('udhari-date-total-debit');
+  const udhariDateTotalCredit = document.getElementById('udhari-date-total-credit');
+  const udhariDateNetChange = document.getElementById('udhari-date-net-change');
+  const udhariDateReportBody = document.getElementById('udhari-date-report-body');
+  
+  const udhariLedgerDebtor = document.getElementById('udhari-ledger-debtor');
+  const btnExportDebtorLedger = document.getElementById('btn-export-debtor-ledger');
+  const udhariLedgerBody = document.getElementById('udhari-ledger-body');
+  
+  const udhariSummaryTotalOutstanding = document.getElementById('udhari-summary-total-outstanding');
+  const btnExportDebtorSummary = document.getElementById('btn-export-debtor-summary');
+  const udhariSummaryBody = document.getElementById('udhari-summary-body');
+
+  // --- Generic Flyout Submenu Overlay Logic ---
+  function toggleSubmenu(panelId, triggerElement) {
+    document.querySelectorAll('.submenu-sidebar').forEach(el => {
+      if (el.id !== panelId) el.classList.remove('open');
+    });
+    
+    const panel = document.getElementById(panelId);
+    if (panel) {
+      if (!panel.classList.contains('open') && triggerElement) {
+        const rect = triggerElement.getBoundingClientRect();
+        const triggerCenterY = rect.top + (rect.height / 2);
+        const panelHeight = panel.offsetHeight;
+        
+        let newTop = triggerCenterY - (panelHeight / 2);
+        
+        // Clamp to viewport bounds
+        if (newTop < 10) newTop = 10;
+        if (newTop + panelHeight > window.innerHeight - 10) {
+          newTop = window.innerHeight - panelHeight - 10;
+        }
+        
+        panel.style.top = `${newTop}px`;
+      }
+      panel.classList.toggle('open');
+    }
+  }
+
+  function closeAllSubmenus() {
+    document.querySelectorAll('.submenu-sidebar').forEach(el => el.classList.remove('open'));
+  }
+
+  // Wire main sidebar toggles
+  if (udhariToggle) {
+    udhariToggle.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleSubmenu('udhari-submenu-panel', udhariToggle);
+    });
+  }
+
+  const otherToggle = document.getElementById('nav-other-toggle');
+  if (otherToggle) {
+    otherToggle.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleSubmenu('other-submenu-panel', otherToggle);
+    });
+  }
+
+  // Close on outside click
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('.submenu-sidebar')) {
+      if (e.target.closest('.nav-item')) {
+        setTimeout(closeAllSubmenus, 50);
+      }
+      return;
+    }
+    if (e.target.closest('#nav-udhari-toggle') || e.target.closest('#nav-other-toggle')) {
+      return;
+    }
+    closeAllSubmenus();
+  });
+
+  // Close on Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeAllSubmenus();
+    }
+  });
+
+  // Wire sidebar sub-nav clicks
+  const udhariNavIds = [
+    'nav-udhari-master',
+    'nav-udhari-active',
+    'nav-udhari-credit-sale',
+    'nav-udhari-receive-payment',
+    'nav-udhari-date-report',
+    'nav-udhari-ledger',
+    'nav-udhari-summary'
+  ];
+
+  udhariNavIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('click', (e) => {
+        e.preventDefault();
+        const viewName = id.replace('nav-', '');
+        showView(viewName);
+      });
+    }
+  });
+
+  // Keep track of active/inactive tab state
+  let showingActiveDebtorsTab = true;
+
+  // Global Outstanding Card Updater
+  async function updateGlobalOutstandingCard() {
+    try {
+      const res = await fetch('/api/debtors/total-outstanding');
+      if (res.ok) {
+        const data = await res.json();
+        const el = document.getElementById('udhari-dashboard-outstanding');
+        const formatted = `₹ ${data.total_outstanding.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        if (el) el.textContent = formatted;
+        
+        // Also update summary total outstanding if element exists
+        if (udhariSummaryTotalOutstanding) {
+          udhariSummaryTotalOutstanding.textContent = formatted;
+        }
+      }
+    } catch (err) {
+      console.error('Error updating total outstanding:', err);
+    }
+  }
+
+  // Helper to load debtors into selects
+  async function populateDebtorDropdowns() {
+    try {
+      const res = await fetch('/api/debtors');
+      if (!res.ok) throw new Error('Failed to fetch debtors');
+      const debtors = await res.json();
+      
+      const selects = [udhariCsDebtor, udhariRpDebtor, udhariLedgerDebtor];
+      selects.forEach(select => {
+        if (!select) return;
+        const currentVal = select.value;
+        select.innerHTML = '<option value="">— Select Debtor —</option>';
+        debtors.forEach(d => {
+          if (d.is_active === 1) {
+            const opt = document.createElement('option');
+            opt.value = d.id;
+            opt.textContent = d.debtor_name;
+            select.appendChild(opt);
+          }
+        });
+        select.value = currentVal;
+      });
+    } catch (err) {
+      console.error('Error populating debtor dropdowns:', err);
+    }
+  }
+
+  // 1. Debtor Master CRUD
+  async function loadDebtorMaster() {
+    try {
+      const res = await fetch('/api/debtors');
+      if (!res.ok) throw new Error('Failed to fetch debtors');
+      const debtors = await res.json();
+      
+      if (udhariDebtorCount) udhariDebtorCount.textContent = debtors.length;
+      if (!udhariMasterTableBody) return;
+      
+      udhariMasterTableBody.innerHTML = '';
+      if (debtors.length === 0) {
+        udhariMasterTableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 3rem; color: var(--text-muted);">No debtors added yet.</td></tr>`;
+        return;
+      }
+      
+      debtors.forEach(d => {
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid rgba(255,255,255,0.03)';
+        
+        const outstandingVal = parseFloat(d.outstanding || 0);
+        const outstandingFormatted = `₹ ${outstandingVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        const outstandingStyle = outstandingVal > 0 ? 'color: var(--danger); font-weight: 700;' : 'color: var(--text-muted);';
+        
+        tr.innerHTML = `
+          <td style="padding: 0.45rem 0.75rem; font-weight: 600; color: var(--text-main);">${d.debtor_name}</td>
+          <td style="padding: 0.45rem 0.75rem;">${d.mobile || '—'}</td>
+          <td style="padding: 0.45rem 0.75rem;">${d.address || '—'}</td>
+          <td style="padding: 0.45rem 0.75rem; text-align: right; ${outstandingStyle}">${outstandingFormatted}</td>
+          <td style="padding: 0.45rem 0.75rem; text-align: center;">
+            <button type="button" class="btn-edit-debtor" data-id="${d.id}" data-name="${d.debtor_name}" data-mobile="${d.mobile || ''}" data-address="${d.address || ''}" style="margin-right: 0.5rem;">
+              Edit ✏️
+            </button>
+            <button type="button" class="btn-delete-debtor" data-id="${d.id}" data-name="${d.debtor_name}">
+              Delete 🗑️
+            </button>
+          </td>
+        `;
+        udhariMasterTableBody.appendChild(tr);
+      });
+      
+      // Wire edit buttons
+      udhariMasterTableBody.querySelectorAll('.btn-edit-debtor').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tr = btn.closest('tr');
+          const id = btn.getAttribute('data-id');
+          const name = btn.getAttribute('data-name');
+          const mobile = btn.getAttribute('data-mobile');
+          const address = btn.getAttribute('data-address');
+          
+          const tdName = tr.children[0];
+          const tdMobile = tr.children[1];
+          const tdAddress = tr.children[2];
+          const tdActions = tr.children[4];
+
+          tdName.innerHTML = `<input type="text" class="edit-name" value="${name.replace(/"/g, '&quot;')}" style="width:100%; padding: 0.2rem;" />`;
+          tdMobile.innerHTML = `<input type="text" class="edit-mobile" value="${mobile.replace(/"/g, '&quot;')}" style="width:100%; padding: 0.2rem;" />`;
+          tdAddress.innerHTML = `<input type="text" class="edit-address" value="${address.replace(/"/g, '&quot;')}" style="width:100%; padding: 0.2rem;" />`;
+          tdActions.innerHTML = `
+            <button type="button" class="btn-save-debtor" style="margin-right: 0.5rem; color: var(--success); font-weight: 600;">Save ✔️</button>
+            <button type="button" class="btn-cancel-debtor" style="color: var(--text-muted);">Cancel ❌</button>
+          `;
+
+          tr.querySelector('.btn-cancel-debtor').addEventListener('click', () => loadDebtorMaster());
+          
+          tr.querySelector('.btn-save-debtor').addEventListener('click', async () => {
+            const newName = tr.querySelector('.edit-name').value;
+            const newMobile = tr.querySelector('.edit-mobile').value;
+            const newAddress = tr.querySelector('.edit-address').value;
+            
+            try {
+              const updateRes = await fetch('/api/debtors/' + id, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ debtor_name: newName, mobile: newMobile, address: newAddress })
+              });
+              if (!updateRes.ok) {
+                const errData = await updateRes.json();
+                throw new Error(errData.error || 'Failed to update debtor');
+              }
+              showToast('Debtor updated successfully.', 'success');
+              loadDebtorMaster();
+              populateDebtorDropdowns();
+              loadActiveOrInactiveDebtors(showingActiveDebtorsTab);
+            } catch (err) {
+              console.error(err);
+              showToast(err.message, 'error');
+            }
+          });
+        });
+      });
+
+      // Wire delete buttons
+      udhariMasterTableBody.querySelectorAll('.btn-delete-debtor').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-id');
+          const name = btn.getAttribute('data-name');
+          if (confirm(`Are you sure you want to delete debtor "${name}"?`)) {
+            try {
+              const delRes = await fetch(`/api/debtors/${id}`, { method: 'DELETE' });
+              if (!delRes.ok) {
+                const errData = await delRes.json();
+                throw new Error(errData.error || 'Failed to delete debtor');
+              }
+              showToast('Debtor deleted successfully.', 'success');
+              loadDebtorMaster();
+              updateGlobalOutstandingCard();
+            } catch (err) {
+              console.error(err);
+              showToast(err.message, 'error');
+            }
+          }
+        });
+      });
+    } catch (err) {
+      console.error('Error loading debtor master:', err);
+      showToast('Error loading debtor master list.', 'error');
+    }
+  }
+
+  if (udhariAddDebtorForm) {
+    udhariAddDebtorForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = udhariDebtorName.value.trim();
+      const mobile = udhariDebtorMobile.value.trim();
+      const address = udhariDebtorAddress.value.trim();
+      
+      if (!name) {
+        showToast('Debtor name is required.', 'warning');
+        return;
+      }
+      
+      try {
+        const res = await fetch('/api/debtors', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ debtor_name: name, mobile, address })
+        });
+        
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || 'Failed to add debtor');
+        }
+        
+        showToast('Debtor added successfully.', 'success');
+        udhariAddDebtorForm.reset();
+        loadDebtorMaster();
+        updateGlobalOutstandingCard();
+      } catch (err) {
+        console.error(err);
+        showToast(err.message, 'error');
+      }
+    });
+  }
+
+  // 2. Active / Inactive Debtors Tab View
+  async function loadActiveOrInactiveDebtors(isActive) {
+    showingActiveDebtorsTab = isActive;
+    if (tabActiveDebtors) tabActiveDebtors.classList.toggle('active', isActive);
+    if (tabInactiveDebtors) tabInactiveDebtors.classList.toggle('active', !isActive);
+    
+    try {
+      const res = await fetch('/api/debtors');
+      if (!res.ok) throw new Error('Failed to fetch debtors');
+      const debtors = await res.json();
+      
+      const filtered = debtors.filter(d => isActive ? parseFloat(d.outstanding || 0) > 0.005 : parseFloat(d.outstanding || 0) <= 0.005);
+      
+      if (!udhariActiveTableBody) return;
+      udhariActiveTableBody.innerHTML = '';
+      
+      if (filtered.length === 0) {
+        udhariActiveTableBody.innerHTML = `<tr><td colspan="3" style="text-align: center; padding: 3rem; color: var(--text-muted);">No ${isActive ? 'active' : 'inactive'} debtors found.</td></tr>`;
+        return;
+      }
+      
+      filtered.forEach(d => {
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid rgba(255,255,255,0.03)';
+        
+        const outstandingVal = parseFloat(d.outstanding || 0);
+        const outstandingFormatted = `₹ ${outstandingVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        const outstandingStyle = outstandingVal > 0 ? 'color: var(--danger); font-weight: 700;' : 'color: var(--text-muted);';
+        
+        tr.innerHTML = `
+          <td style="padding: 0.45rem 0.75rem; font-weight: 600; color: var(--text-main);">${d.debtor_name}</td>
+          <td style="padding: 0.45rem 0.75rem;">${d.mobile || '—'}</td>
+          <td style="padding: 0.45rem 0.75rem; text-align: right; ${outstandingStyle}">${outstandingFormatted}</td>
+        `;
+        udhariActiveTableBody.appendChild(tr);
+      });
+    } catch (err) {
+      console.error(err);
+      showToast('Error loading active/inactive debtors.', 'error');
+    }
+  }
+
+  if (tabActiveDebtors) {
+    tabActiveDebtors.addEventListener('click', () => loadActiveOrInactiveDebtors(true));
+  }
+  if (tabInactiveDebtors) {
+    tabInactiveDebtors.addEventListener('click', () => loadActiveOrInactiveDebtors(false));
+  }
+
+  // 3. Add Credit Sale (DEBIT)
+  async function initCreditSaleEntry() {
+    if (udhariCsDate && !udhariCsDate.value) {
+      udhariCsDate.value = dateInput.value;
+    }
+    await populateDebtorDropdowns();
+    updateCreditSaleRate();
+  }
+
+  function updateCreditSaleRate() {
+    if (!udhariCsProduct || !udhariCsRate) return;
+    const prod = udhariCsProduct.value;
+    
+    if (prod === 'Petrol') {
+      udhariCsRate.value = currentRates.Petrol.toFixed(2);
+    } else if (prod === 'Diesel') {
+      udhariCsRate.value = currentRates.Diesel.toFixed(2);
+    } else if (prod === 'poWer') {
+      udhariCsRate.value = currentRates.poWer.toFixed(2);
+    } else {
+      udhariCsRate.value = '';
+    }
+    updateCreditSaleAmount();
+  }
+
+  function updateCreditSaleAmount() {
+    if (!udhariCsQty || !udhariCsRate || !udhariCsAmount) return;
+    const qty = parseFloat(udhariCsQty.value) || 0;
+    const rate = parseFloat(udhariCsRate.value) || 0;
+    if (qty > 0 && rate > 0) {
+      udhariCsAmount.value = (qty * rate).toFixed(2);
+    }
+  }
+
+  if (udhariCsProduct) udhariCsProduct.addEventListener('change', updateCreditSaleRate);
+  if (udhariCsQty) udhariCsQty.addEventListener('input', updateCreditSaleAmount);
+  if (udhariCsRate) udhariCsRate.addEventListener('input', updateCreditSaleAmount);
+
+  if (udhariCreditSaleForm) {
+    udhariCreditSaleForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const debtorId = udhariCsDebtor.value;
+      const date = udhariCsDate.value;
+      const product = udhariCsProduct.value;
+      const qty = parseFloat(udhariCsQty.value) || 0;
+      const rate = parseFloat(udhariCsRate.value) || 0;
+      const amount = parseFloat(udhariCsAmount.value) || 0;
+      const remarks = udhariCsRemarks.value.trim();
+      
+      if (!debtorId || !date || amount <= 0) {
+        showToast('Debtor, date, and positive amount are required.', 'warning');
+        return;
+      }
+      
+      // Auto-construct description
+      let desc = product;
+      if (qty > 0 && rate > 0) {
+        desc += ` - ${qty.toFixed(2)} L @ ₹ ${rate.toFixed(2)}/L`;
+      }
+      if (remarks) {
+        desc += ` (${remarks})`;
+      }
+      
+      try {
+        const res = await fetch('/api/debtor-transactions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            debtor_id: debtorId,
+            transaction_date: date,
+            transaction_type: 'DEBIT',
+            description: desc,
+            debit_amount: amount,
+            credit_amount: 0
+          })
+        });
+        
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || 'Failed to record credit sale');
+        }
+        
+        showToast('Credit sale recorded successfully.', 'success');
+        udhariCreditSaleForm.reset();
+        initCreditSaleEntry();
+        updateGlobalOutstandingCard();
+        
+        // Redirect to ledger for this debtor
+        if (udhariLedgerDebtor) {
+          udhariLedgerDebtor.value = debtorId;
+          showView('udhari-ledger');
+        }
+      } catch (err) {
+        console.error(err);
+        showToast(err.message, 'error');
+      }
+    });
+  }
+
+  // 4. Receive Payment (CREDIT)
+  async function initReceivePaymentEntry() {
+    if (udhariRpDate && !udhariRpDate.value) {
+      udhariRpDate.value = dateInput.value;
+    }
+    await populateDebtorDropdowns();
+  }
+
+  if (udhariReceivePaymentForm) {
+    udhariReceivePaymentForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const debtorId = udhariRpDebtor.value;
+      const date = udhariRpDate.value;
+      const amount = parseFloat(udhariRpAmount.value) || 0;
+      const remarks = udhariRpRemarks.value.trim();
+      
+      if (!debtorId || !date || amount <= 0) {
+        showToast('Debtor, date, and positive amount are required.', 'warning');
+        return;
+      }
+      
+      const desc = remarks || 'Cash Received';
+      
+      try {
+        const res = await fetch('/api/debtor-transactions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            debtor_id: debtorId,
+            transaction_date: date,
+            transaction_type: 'CREDIT',
+            description: desc,
+            debit_amount: 0,
+            credit_amount: amount
+          })
+        });
+        
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || 'Failed to record payment');
+        }
+        
+        showToast('Payment recorded successfully.', 'success');
+        udhariReceivePaymentForm.reset();
+        initReceivePaymentEntry();
+        updateGlobalOutstandingCard();
+        
+        // Redirect to ledger for this debtor
+        if (udhariLedgerDebtor) {
+          udhariLedgerDebtor.value = debtorId;
+          showView('udhari-ledger');
+        }
+      } catch (err) {
+        console.error(err);
+        showToast(err.message, 'error');
+      }
+    });
+  }
+
+  // 5. Date Wise Report
+  async function loadDateWiseReport() {
+    if (udhariReportDate && !udhariReportDate.value) {
+      udhariReportDate.value = dateInput.value;
+    }
+    const date = udhariReportDate.value;
+    if (!date) return;
+    
+    try {
+      const res = await fetch(`/api/debtor-transactions/date?date=${date}`);
+      if (!res.ok) throw new Error('Failed to fetch date report');
+      const data = await res.json();
+      
+      if (udhariDateTotalDebit) {
+        udhariDateTotalDebit.textContent = `₹ ${data.total_debit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      }
+      if (udhariDateTotalCredit) {
+        udhariDateTotalCredit.textContent = `₹ ${data.total_credit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      }
+      if (udhariDateNetChange) {
+        const netStyle = data.net_change >= 0 ? 'color: var(--danger);' : 'color: var(--success);';
+        udhariDateNetChange.setAttribute('style', netStyle);
+        udhariDateNetChange.textContent = `${data.net_change >= 0 ? '+' : ''} ₹ ${data.net_change.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      }
+      
+      if (!udhariDateReportBody) return;
+      udhariDateReportBody.innerHTML = '';
+      
+      if (data.transactions.length === 0) {
+        udhariDateReportBody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 3rem; color: var(--text-muted);">No credit transactions recorded for this date.</td></tr>`;
+        return;
+      }
+      
+      data.transactions.forEach(tx => {
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid rgba(255,255,255,0.03)';
+        
+        const isDebit = tx.transaction_type === 'DEBIT';
+        const typeBadge = `<span class="type-badge ${isDebit ? 'debit' : 'credit'}">${tx.transaction_type}</span>`;
+        const debitText = tx.debit_amount > 0 ? `₹ ${tx.debit_amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—';
+        const creditText = tx.credit_amount > 0 ? `₹ ${tx.credit_amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—';
+        
+        tr.innerHTML = `
+          <td style="padding: 0.45rem 0.75rem; font-weight: 600; color: var(--text-main);">${tx.debtor_name}</td>
+          <td style="padding: 0.45rem 0.75rem; text-align: center;">${typeBadge}</td>
+          <td style="padding: 0.45rem 0.75rem; text-align: right; color: var(--danger);">${debitText}</td>
+          <td style="padding: 0.45rem 0.75rem; text-align: right; color: var(--success);">${creditText}</td>
+          <td style="padding: 0.45rem 0.75rem;">${tx.description || '—'}</td>
+        `;
+        udhariDateReportBody.appendChild(tr);
+      });
+    } catch (err) {
+      console.error(err);
+      showToast('Error loading date wise report.', 'error');
+    }
+  }
+
+  if (udhariReportDate) {
+    udhariReportDate.addEventListener('change', loadDateWiseReport);
+  }
+
+  // 6. Debtor Ledger
+  async function loadLedgerDebtorSelect() {
+    await populateDebtorDropdowns();
+    loadIndividualLedger();
+  }
+
+  async function loadIndividualLedger() {
+    if (!udhariLedgerDebtor || !udhariLedgerBody) return;
+    const id = udhariLedgerDebtor.value;
+    if (!id) {
+      udhariLedgerBody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 3rem; color: var(--text-muted);">Select a debtor to view their ledger.</td></tr>`;
+      return;
+    }
+    
+    try {
+      const res = await fetch(`/api/debtors/${id}/transactions`);
+      if (!res.ok) throw new Error('Failed to fetch ledger');
+      const data = await res.json();
+      
+      udhariLedgerBody.innerHTML = '';
+      if (data.transactions.length === 0) {
+        udhariLedgerBody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 3rem; color: var(--text-muted);">No transactions recorded for this debtor yet.</td></tr>`;
+        return;
+      }
+      
+      data.transactions.forEach(tx => {
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid rgba(255,255,255,0.03)';
+        
+        const debitText = tx.debit_amount > 0 ? `₹ ${tx.debit_amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—';
+        const creditText = tx.credit_amount > 0 ? `₹ ${tx.credit_amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—';
+        const balVal = parseFloat(tx.running_balance || 0);
+        const balStyle = balVal > 0 ? 'color: var(--danger); font-weight: 700;' : 'color: var(--text-muted);';
+        
+        tr.innerHTML = `
+          <td style="padding: 0.45rem 0.75rem; font-weight: 600;">${formatDate(tx.transaction_date)}</td>
+          <td style="padding: 0.45rem 0.75rem;">${tx.description || '—'}</td>
+          <td style="padding: 0.45rem 0.75rem; text-align: right; color: var(--danger);">${debitText}</td>
+          <td style="padding: 0.45rem 0.75rem; text-align: right; color: var(--success);">${creditText}</td>
+          <td style="padding: 0.45rem 0.75rem; text-align: right; ${balStyle}">₹ ${balVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+        `;
+        udhariLedgerBody.appendChild(tr);
+      });
+    } catch (err) {
+      console.error(err);
+      showToast('Error loading individual ledger.', 'error');
+    }
+  }
+
+  if (udhariLedgerDebtor) {
+    udhariLedgerDebtor.addEventListener('change', loadIndividualLedger);
+  }
+
+  // 7. Debtor Summary
+  async function loadDebtorSummary() {
+    try {
+      const res = await fetch('/api/debtors/summary');
+      if (!res.ok) throw new Error('Failed to fetch summary');
+      const summary = await res.json();
+      
+      if (!udhariSummaryBody) return;
+      udhariSummaryBody.innerHTML = '';
+      
+      if (summary.length === 0) {
+        udhariSummaryBody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 3rem; color: var(--text-muted);">No debtors found.</td></tr>`;
+        return;
+      }
+      
+      let totalOut = 0;
+      summary.forEach(s => {
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid rgba(255,255,255,0.03)';
+        
+        const debitVal = parseFloat(s.total_debit || 0);
+        const creditVal = parseFloat(s.total_credit || 0);
+        const outVal = parseFloat(s.outstanding || 0);
+        totalOut += outVal;
+        
+        const outStyle = outVal > 0 ? 'color: var(--danger); font-weight: 700;' : 'color: var(--text-muted);';
+        
+        tr.innerHTML = `
+          <td style="padding: 0.45rem 0.75rem; font-weight: 600; color: var(--text-main);">${s.debtor_name}</td>
+          <td style="padding: 0.45rem 0.75rem; text-align: right;">₹ ${debitVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td style="padding: 0.45rem 0.75rem; text-align: right;">₹ ${creditVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td style="padding: 0.45rem 0.75rem; text-align: right; ${outStyle}">₹ ${outVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+        `;
+        udhariSummaryBody.appendChild(tr);
+      });
+      
+      if (udhariSummaryTotalOutstanding) {
+        udhariSummaryTotalOutstanding.textContent = `₹ ${totalOut.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Error loading debtor summary.', 'error');
+    }
+  }
+
+  // 8. CSV Exports
+  function downloadCSV(csvContent, filename) {
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.setAttribute('href', URL.createObjectURL(blob));
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  // A. Export Active/Inactive Debtors
+  if (btnExportActiveDebtors) {
+    btnExportActiveDebtors.addEventListener('click', async () => {
+      try {
+        const res = await fetch('/api/debtors');
+        if (!res.ok) throw new Error('Failed to fetch debtors');
+        const debtors = await res.json();
+        
+        const isActive = showingActiveDebtorsTab;
+        const filtered = debtors.filter(d => isActive ? parseFloat(d.outstanding || 0) > 0.005 : parseFloat(d.outstanding || 0) <= 0.005);
+        
+        let csv = `${isActive ? 'Active' : 'Inactive'} Debtors List (${new Date().toLocaleDateString()})\n\n`;
+        csv += 'Debtor Name,Mobile,Outstanding Balance (₹)\n';
+        
+        let total = 0;
+        filtered.forEach(d => {
+          const bal = parseFloat(d.outstanding || 0);
+          total += bal;
+          csv += `"${d.debtor_name}","${d.mobile || ''}",${bal.toFixed(2)}\n`;
+        });
+        csv += `TOTAL,,${total.toFixed(2)}\n`;
+        
+        downloadCSV(csv, `${isActive ? 'Active' : 'Inactive'}_Debtors_${new Date().toISOString().split('T')[0]}.csv`);
+      } catch (err) {
+        console.error(err);
+        showToast('CSV export failed.', 'error');
+      }
+    });
+  }
+
+  // B. Export Date Wise Report
+  if (btnExportDateReport) {
+    btnExportDateReport.addEventListener('click', async () => {
+      const date = udhariReportDate.value;
+      if (!date) {
+        showToast('Please select a date first.', 'warning');
+        return;
+      }
+      try {
+        const res = await fetch(`/api/debtor-transactions/date?date=${date}`);
+        if (!res.ok) throw new Error('Failed to fetch date report');
+        const data = await res.json();
+        
+        let csv = `Date Wise Udhari Report for ${formatDate(date)}\n\n`;
+        csv += 'Debtor,Type,Debit (₹),Credit (₹),Remarks\n';
+        
+        data.transactions.forEach(tx => {
+          csv += `"${tx.debtor_name}","${tx.transaction_type}",${(tx.debit_amount || 0).toFixed(2)},${(tx.credit_amount || 0).toFixed(2)},"${tx.description || ''}"\n`;
+        });
+        csv += `TOTAL,Deibts/Credits,${data.total_debit.toFixed(2)},${data.total_credit.toFixed(2)}\n`;
+        csv += `NET CHANGE,,${data.net_change.toFixed(2)}\n`;
+        
+        downloadCSV(csv, `Udhari_Date_Report_${date}.csv`);
+      } catch (err) {
+        console.error(err);
+        showToast('CSV export failed.', 'error');
+      }
+    });
+  }
+
+  // C. Export Debtor Ledger
+  if (btnExportDebtorLedger) {
+    btnExportDebtorLedger.addEventListener('click', async () => {
+      const id = udhariLedgerDebtor.value;
+      if (!id) {
+        showToast('Please select a debtor first.', 'warning');
+        return;
+      }
+      try {
+        const res = await fetch(`/api/debtors/${id}/transactions`);
+        if (!res.ok) throw new Error('Failed to fetch ledger');
+        const data = await res.json();
+        
+        let csv = `Debtor Ledger: ${data.debtor_name}\n\n`;
+        csv += 'Date,Particulars,Debit (₹),Credit (₹),Running Balance (₹)\n';
+        
+        data.transactions.forEach(tx => {
+          csv += `"${formatDate(tx.transaction_date)}","${tx.description || ''}",${(tx.debit_amount || 0).toFixed(2)},${(tx.credit_amount || 0).toFixed(2)},${tx.running_balance.toFixed(2)}\n`;
+        });
+        
+        downloadCSV(csv, `Debtor_Ledger_${data.debtor_name.replace(/\s+/g, '_')}.csv`);
+      } catch (err) {
+        console.error(err);
+        showToast('CSV export failed.', 'error');
+      }
+    });
+  }
+
+  // D. Export Debtor Summary
+  if (btnExportDebtorSummary) {
+    btnExportDebtorSummary.addEventListener('click', async () => {
+      try {
+        const res = await fetch('/api/debtors/summary');
+        if (!res.ok) throw new Error('Failed to fetch summary');
+        const summary = await res.json();
+        
+        let csv = `Debtor Summary Report (Generated on ${new Date().toLocaleDateString()})\n\n`;
+        csv += 'Debtor,Total Debit (₹),Total Credit (₹),Outstanding Balance (₹)\n';
+        
+        let totalDebit = 0;
+        let totalCredit = 0;
+        let totalOut = 0;
+        
+        summary.forEach(s => {
+          const deb = parseFloat(s.total_debit || 0);
+          const cred = parseFloat(s.total_credit || 0);
+          const out = parseFloat(s.outstanding || 0);
+          
+          totalDebit += deb;
+          totalCredit += cred;
+          totalOut += out;
+          
+          csv += `"${s.debtor_name}",${deb.toFixed(2)},${cred.toFixed(2)},${out.toFixed(2)}\n`;
+        });
+        
+        csv += `TOTAL,${totalDebit.toFixed(2)},${totalCredit.toFixed(2)},${totalOut.toFixed(2)}\n`;
+        
+        downloadCSV(csv, `Debtor_Summary_${new Date().toISOString().split('T')[0]}.csv`);
+      } catch (err) {
+        console.error(err);
+        showToast('CSV export failed.', 'error');
+      }
+    });
+  }
+
   // Initial load
   initializeDefaultDate();
+  updateGlobalOutstandingCard();
+  fetchGlobalDebtorsList();
 });

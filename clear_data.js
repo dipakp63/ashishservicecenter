@@ -36,6 +36,16 @@ const db = new sqlite3.Database(dbPath, (err) => {
       else console.log('Table "non_cash_payments" cleared.');
     });
 
+    db.run('DELETE FROM debtor_transactions', (err) => {
+      if (err) console.error('Error clearing debtor_transactions:', err.message);
+      else console.log('Table "debtor_transactions" cleared.');
+    });
+
+    db.run('DELETE FROM debtors', (err) => {
+      if (err) console.error('Error clearing debtors:', err.message);
+      else console.log('Table "debtors" cleared.');
+    });
+
     db.run('DELETE FROM hpcl_transactions', (err) => {
       if (err) console.error('Error clearing hpcl_transactions:', err.message);
       else console.log('Table "hpcl_transactions" cleared.');

@@ -641,6 +641,10 @@ app.post('/api/cash', async (req, res) => {
         sql: `DELETE FROM non_cash_payments WHERE date = ?`,
         args: [date],
       },
+      {
+        sql: `DELETE FROM debtor_transactions WHERE transaction_date = ? AND description LIKE 'Credit Sale (Day Closing)%'`,
+        args: [date],
+      },
     ];
 
     // Add non-cash payment inserts
@@ -655,6 +659,18 @@ app.post('/api/cash', async (req, res) => {
           sql: `INSERT INTO non_cash_payments (date, entry_index, type, description, amount) VALUES (?, ?, ?, ?, ?)`,
           args: [date, idx, type, description, amount],
         });
+
+        // Automatically create a DEBIT transaction in the debtor ledger if this is a Credit type payment
+        if ((type === 'Credit' || type === 'Old Credit' || type === 'Fresh Credit') && amount > 0 && description.startsWith('debtor_id:')) {
+          const debtorId = parseInt(description.split(':')[1], 10);
+          if (!isNaN(debtorId)) {
+            statements.push({
+              sql: `INSERT INTO debtor_transactions (debtor_id, transaction_date, transaction_type, description, debit_amount, credit_amount)
+                    VALUES (?, ?, 'DEBIT', 'Credit Sale (Day Closing)', ?, 0)`,
+              args: [debtorId, date, amount],
+            });
+          }
+        }
       }
     });
 
@@ -897,6 +913,291 @@ app.post('/api/hpcl/opening-balance', async (req, res) => {
   } catch (err) {
     console.error('[HPCL] Error updating opening balance:', err.message);
     res.status(500).json({ error: 'Database error saving opening balance.' });
+  }
+});
+
+// ── Debtor Management (Udhari) API ──────────────────────────────────────────
+
+// GET /api/debtors/total-outstanding — Dashboard card: total outstanding across all debtors
+app.get('/api/debtors/total-outstanding', async (req, res) => {
+  try {
+    const row = await db.get(`
+      SELECT COALESCE(SUM(debit_amount) - SUM(credit_amount), 0) AS total_outstanding
+      FROM debtor_transactions
+    `);
+    res.json({ total_outstanding: parseFloat((row && row.total_outstanding) || 0) });
+  } catch (err) {
+    console.error('[Udhari] Error fetching total outstanding:', err.message);
+    res.status(500).json({ error: 'Database error fetching total outstanding.' });
+  }
+});
+
+// GET /api/debtors/summary — All debtors with total debit, credit, outstanding sorted by highest
+app.get('/api/debtors/summary', async (req, res) => {
+  try {
+    const rows = await db.all(`
+      SELECT 
+        d.id,
+        d.debtor_name,
+        d.mobile,
+        COALESCE(SUM(dt.debit_amount), 0) AS total_debit,
+        COALESCE(SUM(dt.credit_amount), 0) AS total_credit,
+        COALESCE(SUM(dt.debit_amount), 0) - COALESCE(SUM(dt.credit_amount), 0) AS outstanding
+      FROM debtors d
+      LEFT JOIN debtor_transactions dt ON d.id = dt.debtor_id
+      GROUP BY d.id
+      ORDER BY outstanding DESC
+    `);
+    res.json(rows);
+  } catch (err) {
+    console.error('[Udhari] Error fetching debtor summary:', err.message);
+    res.status(500).json({ error: 'Database error fetching debtor summary.' });
+  }
+});
+
+// GET /api/debtors — List all debtors with outstanding balance
+app.get('/api/debtors', async (req, res) => {
+  try {
+    const rows = await db.all(`
+      SELECT 
+        d.id,
+        d.debtor_name,
+        d.mobile,
+        d.address,
+        d.is_active,
+        d.created_at,
+        COALESCE(SUM(dt.debit_amount), 0) - COALESCE(SUM(dt.credit_amount), 0) AS outstanding
+      FROM debtors d
+      LEFT JOIN debtor_transactions dt ON d.id = dt.debtor_id
+      GROUP BY d.id
+      ORDER BY d.debtor_name ASC
+    `);
+    res.json(rows);
+  } catch (err) {
+    console.error('[Udhari] Error fetching debtors:', err.message);
+    res.status(500).json({ error: 'Database error fetching debtors.' });
+  }
+});
+
+// POST /api/debtors — Add a new debtor
+app.post('/api/debtors', async (req, res) => {
+  try {
+    const { debtor_name, mobile, address } = req.body;
+
+    if (!debtor_name || debtor_name.trim() === '') {
+      return res.status(400).json({ error: 'Debtor name cannot be blank.' });
+    }
+
+    const trimmedName = debtor_name.trim();
+
+    // Check for duplicate
+    const existing = await db.get(
+      `SELECT id FROM debtors WHERE LOWER(debtor_name) = LOWER(?)`,
+      [trimmedName]
+    );
+    if (existing) {
+      return res.status(400).json({ error: 'A debtor with this name already exists.' });
+    }
+
+    const result = await db.run(
+      `INSERT INTO debtors (debtor_name, mobile, address) VALUES (?, ?, ?)`,
+      [trimmedName, (mobile || '').trim(), (address || '').trim()]
+    );
+
+    res.json({
+      success: true,
+      message: 'Debtor added successfully.',
+      debtor: { id: result.lastInsertRowid, debtor_name: trimmedName, mobile: (mobile || '').trim(), address: (address || '').trim() },
+    });
+  } catch (err) {
+    console.error('[Udhari] Error adding debtor:', err.message);
+    if (err.message && err.message.includes('UNIQUE')) {
+      return res.status(400).json({ error: 'A debtor with this name already exists.' });
+    }
+    res.status(500).json({ error: 'Database error adding debtor.' });
+  }
+});
+
+// PUT /api/debtors/:id — Update debtor details
+app.put('/api/debtors/:id', async (req, res) => {
+  try {
+    const debtorId = req.params.id;
+    const { debtor_name, mobile, address } = req.body;
+    
+    if (!debtor_name || debtor_name.trim() === '') {
+      return res.status(400).json({ error: 'Debtor name is required.' });
+    }
+    
+    await db.run(
+      `UPDATE debtors SET debtor_name = ?, mobile = ?, address = ? WHERE id = ?`,
+      [debtor_name.trim(), (mobile || '').trim(), (address || '').trim(), debtorId]
+    );
+    
+    res.json({ success: true, message: 'Debtor updated successfully.' });
+  } catch (err) {
+    console.error('[Udhari] Error updating debtor:', err.message);
+    if (err.message && err.message.includes('UNIQUE')) {
+      return res.status(400).json({ error: 'A debtor with this name already exists.' });
+    }
+    res.status(500).json({ error: 'Database error updating debtor.' });
+  }
+});
+
+// DELETE /api/debtors/:id — Delete debtor only if outstanding = 0
+app.delete('/api/debtors/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check outstanding balance
+    const balanceRow = await db.get(`
+      SELECT COALESCE(SUM(debit_amount), 0) - COALESCE(SUM(credit_amount), 0) AS outstanding
+      FROM debtor_transactions
+      WHERE debtor_id = ?
+    `, [id]);
+
+    const outstanding = parseFloat((balanceRow && balanceRow.outstanding) || 0);
+    if (Math.abs(outstanding) > 0.005) {
+      return res.status(400).json({
+        error: 'Cannot delete debtor because outstanding balance exists.',
+        outstanding: outstanding,
+      });
+    }
+
+    // Delete transactions first (should be zero-sum), then debtor
+    await db.run(`DELETE FROM debtor_transactions WHERE debtor_id = ?`, [id]);
+    const result = await db.run(`DELETE FROM debtors WHERE id = ?`, [id]);
+
+    if (result.rowsAffected === 0) {
+      return res.status(404).json({ error: 'Debtor not found.' });
+    }
+
+    res.json({ success: true, message: 'Debtor deleted successfully.' });
+  } catch (err) {
+    console.error('[Udhari] Error deleting debtor:', err.message);
+    res.status(500).json({ error: 'Database error deleting debtor.' });
+  }
+});
+
+// POST /api/debtor-transactions — Add a credit sale (DEBIT) or cash received (CREDIT)
+app.post('/api/debtor-transactions', async (req, res) => {
+  try {
+    const { debtor_id, transaction_date, transaction_type, description, debit_amount, credit_amount } = req.body;
+
+    if (!debtor_id || !transaction_date || !transaction_type) {
+      return res.status(400).json({ error: 'Debtor, date, and transaction type are required.' });
+    }
+
+    if (transaction_type !== 'DEBIT' && transaction_type !== 'CREDIT') {
+      return res.status(400).json({ error: 'Transaction type must be DEBIT or CREDIT.' });
+    }
+
+    const debit = parseFloat(debit_amount) || 0;
+    const credit = parseFloat(credit_amount) || 0;
+
+    if (transaction_type === 'DEBIT' && debit <= 0) {
+      return res.status(400).json({ error: 'Debit amount must be a positive number.' });
+    }
+
+    if (transaction_type === 'CREDIT' && credit <= 0) {
+      return res.status(400).json({ error: 'Credit amount must be a positive number.' });
+    }
+
+    // Verify debtor exists
+    const debtor = await db.get(`SELECT id FROM debtors WHERE id = ?`, [debtor_id]);
+    if (!debtor) {
+      return res.status(404).json({ error: 'Debtor not found.' });
+    }
+
+    await db.run(
+      `INSERT INTO debtor_transactions (debtor_id, transaction_date, transaction_type, description, debit_amount, credit_amount)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [debtor_id, transaction_date, transaction_type, description || '', debit, credit]
+    );
+
+    res.json({ success: true, message: `${transaction_type === 'DEBIT' ? 'Credit sale' : 'Payment'} recorded successfully.` });
+  } catch (err) {
+    console.error('[Udhari] Error adding transaction:', err.message);
+    res.status(500).json({ error: 'Database error saving transaction.' });
+  }
+});
+
+// GET /api/debtors/:id/transactions — Full ledger for a debtor with running balance
+app.get('/api/debtors/:id/transactions', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const debtor = await db.get(`SELECT id, debtor_name FROM debtors WHERE id = ?`, [id]);
+    if (!debtor) {
+      return res.status(404).json({ error: 'Debtor not found.' });
+    }
+
+    const rows = await db.all(`
+      SELECT id, transaction_date, transaction_type, description, debit_amount, credit_amount
+      FROM debtor_transactions
+      WHERE debtor_id = ?
+      ORDER BY transaction_date ASC, id ASC
+    `, [id]);
+
+    // Calculate running balance
+    let runningBalance = 0;
+    const transactions = rows.map(row => {
+      runningBalance += (row.debit_amount || 0) - (row.credit_amount || 0);
+      return {
+        ...row,
+        running_balance: parseFloat(runningBalance.toFixed(2)),
+      };
+    });
+
+    res.json({
+      debtor_name: debtor.debtor_name,
+      transactions: transactions,
+    });
+  } catch (err) {
+    console.error('[Udhari] Error fetching debtor ledger:', err.message);
+    res.status(500).json({ error: 'Database error fetching ledger.' });
+  }
+});
+
+// GET /api/debtor-transactions/date — Date-wise report
+app.get('/api/debtor-transactions/date', async (req, res) => {
+  try {
+    const { date } = req.query;
+    if (!date) {
+      return res.status(400).json({ error: 'Date query parameter is required.' });
+    }
+
+    const rows = await db.all(`
+      SELECT 
+        dt.id,
+        d.debtor_name,
+        dt.transaction_type,
+        dt.description,
+        dt.debit_amount,
+        dt.credit_amount
+      FROM debtor_transactions dt
+      JOIN debtors d ON dt.debtor_id = d.id
+      WHERE dt.transaction_date = ?
+      ORDER BY dt.id ASC
+    `, [date]);
+
+    // Calculate totals
+    let totalDebit = 0;
+    let totalCredit = 0;
+    rows.forEach(r => {
+      totalDebit += r.debit_amount || 0;
+      totalCredit += r.credit_amount || 0;
+    });
+
+    res.json({
+      date: date,
+      transactions: rows,
+      total_debit: parseFloat(totalDebit.toFixed(2)),
+      total_credit: parseFloat(totalCredit.toFixed(2)),
+      net_change: parseFloat((totalDebit - totalCredit).toFixed(2)),
+    });
+  } catch (err) {
+    console.error('[Udhari] Error fetching date-wise report:', err.message);
+    res.status(500).json({ error: 'Database error fetching date-wise report.' });
   }
 });
 

@@ -1,8 +1,29 @@
 const http = require('http');
 
+const getActiveDate = () => {
+  return new Promise((resolve, reject) => {
+    http.get('http://localhost:3000/api/active-date', (res) => {
+      let data = '';
+      res.on('data', (chunk) => data += chunk);
+      res.on('end', () => {
+        resolve(JSON.parse(data).activeDate);
+      });
+    }).on('error', reject);
+  });
+};
+
 const runTest = async () => {
+  let date;
+  try {
+    date = await getActiveDate();
+    console.log('Using active date:', date);
+  } catch (err) {
+    console.error('Failed to fetch active date from server, using fallback:', err.message);
+    date = '2026-05-01';
+  }
+
   const testPayload = (tanks) => JSON.stringify({
-    date: '2026-05-01',
+    date: date,
     tanks: tanks
   });
 
@@ -21,10 +42,17 @@ const runTest = async () => {
         let data = '';
         res.on('data', (chunk) => data += chunk);
         res.on('end', () => {
-          resolve({
-            statusCode: res.statusCode,
-            body: JSON.parse(data)
-          });
+          try {
+            resolve({
+              statusCode: res.statusCode,
+              body: JSON.parse(data)
+            });
+          } catch (e) {
+            resolve({
+              statusCode: res.statusCode,
+              body: data
+            });
+          }
         });
       });
 

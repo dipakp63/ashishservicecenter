@@ -1,8 +1,8 @@
 :root {
-  --bg-gradient: linear-gradient(135deg, #090d16 0%, #111025 100%);
-  --sidebar-bg: #0b0f19;
-  --card-bg: rgba(20, 28, 47, 0.75);
-  --card-border: rgba(255, 255, 255, 0.05);
+  --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  --sidebar-bg: #0f172a;
+  --card-bg: rgba(30, 41, 59, 0.75);
+  --card-border: rgba(255, 255, 255, 0.06);
   --text-main: #f1f5f9;
   --text-muted: #64748b;
   --accent: #06b6d4;
@@ -15,6 +15,17 @@
   --font-header: 'Outfit', sans-serif;
   --font-body: 'Inter', sans-serif;
   
+  /* Panel backgrounds and borders for default dark mode */
+  --panel-bg: rgba(8, 12, 22, 0.4);
+  --panel-border: rgba(255, 255, 255, 0.05);
+  --panel-row-bg: rgba(8, 12, 22, 0.2);
+  --panel-btn-bg: rgba(8, 12, 22, 0.35);
+  --panel-header-bg: rgba(0, 0, 0, 0.25);
+  --panel-sub-card-bg: rgba(8, 12, 22, 0.4);
+  --panel-sub-card-border: rgba(255, 255, 255, 0.02);
+  --warning-banner-bg: rgba(245, 158, 11, 0.08);
+  --warning-banner-border: rgba(245, 158, 11, 0.3);
+
   /* Product Color Schemes */
   --petrol-color: #10b981;
   --petrol-bg: rgba(16, 185, 129, 0.06);
@@ -61,6 +72,64 @@ body {
   padding: 1rem;
   flex-shrink: 0;
   height: 100%;
+}
+
+/* Generic Flyout Submenu Overlay */
+.submenu-sidebar {
+  position: fixed;
+  left: 220px; /* Width of the main sidebar */
+  top: 0;
+  height: max-content;
+  min-height: 100px;
+  max-height: 100vh;
+  overflow-y: auto;
+  width: 210px;
+  background-color: var(--accent);
+  border-right: 1px solid rgba(0,0,0,0.1);
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+  border-bottom-right-radius: 12px;
+  border-top-right-radius: 12px;
+  box-shadow: 6px 6px 20px rgba(0,0,0,0.35);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+  transform: translateX(-100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  visibility: hidden;
+}
+
+.submenu-sidebar.open {
+  transform: translateX(0);
+  visibility: visible;
+}
+
+body.theme-hpcl .submenu-sidebar {
+  background-color: #ffc72c; /* Match HPCL Yellow highlight */
+}
+
+.submenu-sidebar .nav-item {
+  color: #0f172a; /* Dark text for contrast against accent background */
+}
+
+.submenu-sidebar .nav-item:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+  color: #000;
+}
+
+.submenu-sidebar .nav-item.active {
+  background-color: rgba(0, 0, 0, 0.15); /* Dark translucent for active state inside */
+  color: #000;
+  box-shadow: none;
+}
+
+.submenu-sidebar h3 {
+  color: rgba(0, 0, 0, 0.6); /* Darker heading text for contrast */
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 1rem;
+  padding-left: 0.75rem;
 }
 
 .sidebar-brand {
@@ -732,9 +801,9 @@ input[type="number"] {
   display: grid;
   grid-template-columns: 50px 70px 1.2fr 1.2fr 1.1fr 1.1fr 1.2fr;
   align-items: center;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.72rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  padding: 0.4rem 0.5rem;
+  font-size: 0.85rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .summary-table-row:last-child {
@@ -890,8 +959,8 @@ input[type="number"] {
   display: grid;
   grid-template-columns: 50px 120px 0.9fr 1.1fr 1fr 0.9fr 1.1fr;
   align-items: center;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.72rem;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.85rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.03);
 }
 
@@ -1097,6 +1166,99 @@ input[type="number"] {
   }
 }
 
+/* Day Closing Reconciliation Panels & Sub-cards styling */
+.cash-summary-panel,
+.other-payments-summary-panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+}
+
+.other-payments-log-panel {
+  background: var(--panel-row-bg);
+  border: 1px solid var(--panel-border);
+}
+
+.other-payments-scroll-wrapper {
+  border: 1px solid var(--panel-border);
+}
+
+.panel-table-header {
+  border-bottom: 1px solid var(--panel-border);
+  background: var(--panel-header-bg);
+}
+
+.panel-table-btn {
+  background: var(--panel-btn-bg);
+  border: 1px dashed var(--panel-border);
+}
+
+.panel-table-btn.btn-add {
+  color: var(--accent);
+}
+
+.panel-table-btn.btn-remove {
+  color: var(--danger);
+}
+
+.panel-table-btn:hover {
+  background: var(--panel-header-bg);
+}
+
+.shortfall-container {
+  background: var(--panel-sub-card-bg);
+  border: 1px solid var(--panel-sub-card-border);
+}
+
+.preview-mini-card {
+  background: var(--panel-sub-card-bg);
+  border: 1px solid var(--panel-sub-card-border);
+}
+
+.preview-warning-banner {
+  background: var(--warning-banner-bg);
+  border: 1px solid var(--warning-banner-border);
+}
+
+/* Dynamic Non-Cash dynamic inputs styling */
+.non-cash-type-input,
+.non-cash-debtor-select {
+  width: 100%;
+  background: var(--panel-sub-card-bg);
+  border: 1px solid var(--panel-sub-card-border);
+  color: var(--text-main);
+  font-size: 0.75rem;
+  padding: 0.15rem;
+  border-radius: 0.25rem;
+  height: 26px;
+  outline: none;
+}
+
+.non-cash-desc-input,
+.non-cash-amount-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--panel-sub-card-border);
+  color: var(--text-main);
+  font-size: 0.75rem;
+  padding: 0.15rem;
+  height: 26px;
+  outline: none;
+}
+
+body.theme-hpcl .non-cash-type-input,
+body.theme-hpcl .non-cash-debtor-select {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+body.theme-hpcl .non-cash-desc-input,
+body.theme-hpcl .non-cash-amount-input {
+  border-bottom-color: #cbd5e1;
+  color: #0f172a;
+}
+
 /* Theme Switcher in Sidebar */
 .theme-switcher-sidebar {
   margin-top: auto;
@@ -1154,10 +1316,10 @@ input[type="number"] {
    HPCL LIGHT CORPORATE THEME OVERRIDES
    ================================================== */
 body.theme-hpcl {
-  --bg-gradient: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
-  --sidebar-bg: #002d62; /* HPCL Deep Navy Blue */
-  --card-bg: #ffffff; /* Clean white cards */
-  --card-border: rgba(0, 45, 98, 0.08); /* Soft blue borders */
+  --bg-gradient: linear-gradient(135deg, #f0f7ff 0%, #e0effe 100%);
+  --sidebar-bg: #0f2d59; /* Softened HPCL Navy */
+  --card-bg: #ffffff; /* Clean white background */
+  --card-border: rgba(0, 75, 135, 0.08); /* Soft blue borders */
   --text-main: #1e293b; /* Dark slate text */
   --text-muted: #64748b;
   --accent: #004b87; /* HPCL Royal Blue */
@@ -1167,6 +1329,17 @@ body.theme-hpcl {
   --success-glow: rgba(16, 185, 129, 0.12);
   --danger: #ef4444;
   --warning: #ffc72c; /* HPCL Golden Yellow */
+
+  /* Light theme panel overrides (Zero Gray) */
+  --panel-bg: rgba(0, 75, 135, 0.025);
+  --panel-border: rgba(0, 75, 135, 0.12);
+  --panel-row-bg: rgba(255, 255, 255, 0.8);
+  --panel-btn-bg: rgba(0, 75, 135, 0.04);
+  --panel-header-bg: rgba(0, 75, 135, 0.05);
+  --panel-sub-card-bg: #ffffff;
+  --panel-sub-card-border: rgba(0, 75, 135, 0.08);
+  --warning-banner-bg: rgba(255, 199, 44, 0.08);
+  --warning-banner-border: rgba(255, 199, 44, 0.4);
 }
 
 /* Sidebar Specific overrides */
@@ -1206,14 +1379,14 @@ body.theme-hpcl .card {
 
 /* Inputs overrides */
 body.theme-hpcl input {
-  background: #f8fafc;
-  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  border: 1px solid #93c5fd;
   color: #0f172a;
 }
 body.theme-hpcl input:disabled {
-  background: #f1f5f9;
+  background: #f8fafc;
   color: #94a3b8;
-  border-color: #e2e8f0;
+  border-color: #cbd5e1;
 }
 body.theme-hpcl input:focus {
   border-color: #004b87;
@@ -1232,11 +1405,11 @@ body.theme-hpcl .btn-primary:hover {
 body.theme-hpcl .btn-secondary {
   background: #ffffff;
   color: #004b87;
-  border: 1px solid #cbd5e1;
+  border: 1px solid #93c5fd;
 }
 body.theme-hpcl .btn-secondary:hover {
-  background: #f8fafc;
-  border-color: #94a3b8;
+  background: #f0f7ff;
+  border-color: #3b82f6;
 }
 
 /* Grid & Table overrides */
@@ -1253,12 +1426,12 @@ body.theme-hpcl .nozzle-form-row:hover {
   background: rgba(0, 45, 98, 0.015);
 }
 body.theme-hpcl .note-row {
-  background: #f8fafc;
-  border-color: #e2e8f0;
+  background: #ffffff;
+  border-color: #e0effe;
 }
 body.theme-hpcl .cash-summary-panel {
-  background: #f8fafc;
-  border-color: rgba(0, 45, 98, 0.08);
+  background: var(--panel-bg);
+  border-color: var(--panel-border);
 }
 body.theme-hpcl .decantation-inputs-container {
   background: rgba(0, 45, 98, 0.015);
@@ -1266,14 +1439,14 @@ body.theme-hpcl .decantation-inputs-container {
 }
 body.theme-hpcl .table-container {
   background: #ffffff;
-  border-color: #e2e8f0;
+  border-color: #e0effe;
 }
 body.theme-hpcl .readings-table th {
-  background: #f8fafc;
-  border-bottom-color: #cbd5e1;
+  background: #f0f7ff;
+  border-bottom-color: #93c5fd;
 }
 body.theme-hpcl .readings-table tbody tr {
-  border-bottom-color: #f1f5f9;
+  border-bottom-color: #f0f7ff;
 }
 body.theme-hpcl .readings-table tbody tr:hover {
   background-color: rgba(0, 45, 98, 0.015);
@@ -1547,4 +1720,521 @@ body.theme-hpcl #hpcl-modal input {
   color: #0f172a !important;
 }
 
+/* ── Udhari (Debtor Management) Module Styles ─────────────────────────────── */
+
+/* Udhari Color Scheme */
+:root {
+  --udhari-color: #f59e0b;
+  --udhari-bg: rgba(245, 158, 11, 0.06);
+  --udhari-border: rgba(245, 158, 11, 0.15);
+  --udhari-glow: rgba(245, 158, 11, 0.12);
+}
+
+/* Sidebar Submenu */
+.nav-submenu {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-submenu.expanded {
+  max-height: 500px;
+}
+
+.nav-submenu .nav-item {
+  padding: 0.45rem 0.65rem 0.45rem 2.4rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  position: relative;
+}
+
+.nav-submenu .nav-item::before {
+  content: '';
+  position: absolute;
+  left: 1.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  opacity: 0.4;
+  transition: all 0.15s ease;
+}
+
+.nav-submenu .nav-item:hover::before {
+  background: var(--udhari-color);
+  opacity: 1;
+}
+
+.nav-submenu .nav-item.active {
+  color: #0f172a;
+  background: var(--udhari-color);
+  font-weight: 600;
+  box-shadow: 0 4px 10px var(--udhari-glow);
+}
+
+.nav-submenu .nav-item.active::before {
+  background: #0f172a;
+  opacity: 0.5;
+}
+
+.nav-parent-toggle {
+  cursor: pointer;
+  user-select: none;
+}
+
+.nav-parent-toggle .nav-toggle-icon {
+  margin-left: auto;
+  font-size: 0.6rem;
+  transition: transform 0.25s ease;
+  display: inline-block;
+}
+
+.nav-parent-toggle.open .nav-toggle-icon {
+  transform: rotate(90deg);
+}
+
+.nav-parent-toggle.open {
+  color: var(--udhari-color);
+  background-color: rgba(245, 158, 11, 0.05);
+}
+
+/* Udhari Table Styles */
+.udhari-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  text-align: left;
+}
+
+.udhari-table th {
+  padding: 0.55rem 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.08);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #0b0f19;
+}
+
+.udhari-table td {
+  padding: 0.45rem 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.udhari-table tbody tr {
+  transition: background 0.12s ease;
+}
+
+.udhari-table tbody tr:hover {
+  background: rgba(245, 158, 11, 0.04);
+}
+
+/* Tab Switcher */
+.udhari-tabs {
+  display: flex;
+  gap: 0;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.udhari-tab-btn {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  background: rgba(8, 12, 22, 0.6);
+  border: none;
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.udhari-tab-btn:not(:last-child) {
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.udhari-tab-btn.active {
+  background: var(--udhari-color);
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.udhari-tab-btn:hover:not(.active) {
+  background: rgba(245, 158, 11, 0.08);
+  color: var(--udhari-color);
+}
+
+/* Udhari Form Card */
+.udhari-form-card {
+  border: 1px solid var(--udhari-border);
+  background: var(--udhari-bg);
+}
+
+.udhari-form-card h3 {
+  color: var(--udhari-color);
+}
+
+/* Udhari Dashboard Card */
+.udhari-outstanding-card {
+  padding: 0.75rem 1rem;
+  border-left: 4px solid var(--udhari-color);
+  background: var(--udhari-bg);
+  border-radius: 0.75rem;
+  border: 1px solid var(--udhari-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.udhari-outstanding-card .label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.udhari-outstanding-card .value {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--udhari-color);
+}
+
+/* Type Badges */
+.type-badge {
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.25rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  display: inline-block;
+}
+
+.type-badge.debit {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.type-badge.credit {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+/* Delete button in debtor table */
+.btn-delete-debtor {
+  padding: 0.15rem 0.4rem;
+  font-size: 0.65rem;
+  min-height: auto;
+  width: auto;
+  color: var(--danger);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: transparent;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.15s ease;
+  line-height: 1;
+  font-family: var(--font-body);
+}
+
+.btn-delete-debtor:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+/* Udhari content body layout */
+.content-body-udhari {
+  display: flex;
+  flex-direction: row;
+  gap: 1.5rem;
+  width: 100%;
+  height: calc(100vh - 120px);
+  min-height: 0;
+  overflow: hidden;
+  padding-right: 0.25rem;
+}
+
+/* Udhari summary totals bar */
+.udhari-totals-bar {
+  display: flex;
+  gap: 1rem;
+  padding: 0.6rem 0.75rem;
+  background: rgba(8, 12, 22, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 0.5rem;
+  flex-shrink: 0;
+}
+
+.udhari-totals-bar .total-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.udhari-totals-bar .total-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+}
+
+.udhari-totals-bar .total-value {
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: monospace;
+}
+
+/* HPCL theme overrides for udhari */
+body.theme-hpcl .udhari-table th {
+  background: #f8fafc;
+  color: #64748b;
+  border-bottom-color: #cbd5e1;
+}
+
+body.theme-hpcl .udhari-table td {
+  border-bottom-color: #f1f5f9;
+  color: #0f172a;
+}
+
+body.theme-hpcl .udhari-tab-btn {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+body.theme-hpcl .udhari-tab-btn.active {
+  background: var(--udhari-color);
+  color: #0f172a;
+}
+
+/* ==================================================
+   PAGE-SPECIFIC COLOR PALETTES & GLOWS
+   ================================================== */
+
+/* Radial background glow effects for default dark mode */
+body[data-active-view="du"] {
+  --bg-gradient: radial-gradient(circle at top right, rgba(16, 185, 129, 0.06) 0%, #0f172a 60%), linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  --accent: #10b981;
+  --accent-glow: rgba(16, 185, 129, 0.15);
+}
+body[data-active-view="testing"] {
+  --bg-gradient: radial-gradient(circle at top right, rgba(245, 158, 11, 0.06) 0%, #0f172a 60%), linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  --accent: #f59e0b;
+  --accent-glow: rgba(245, 158, 11, 0.15);
+}
+body[data-active-view="rates"] {
+  --bg-gradient: radial-gradient(circle at top right, rgba(234, 179, 8, 0.06) 0%, #0f172a 60%), linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  --accent: #eab308;
+  --accent-glow: rgba(234, 179, 8, 0.15);
+}
+body[data-active-view="tank"] {
+  --bg-gradient: radial-gradient(circle at top right, rgba(6, 182, 212, 0.06) 0%, #0f172a 60%), linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  --accent: #06b6d4;
+  --accent-glow: rgba(6, 182, 212, 0.15);
+}
+body[data-active-view="decantation"] {
+  --bg-gradient: radial-gradient(circle at top right, rgba(139, 92, 246, 0.06) 0%, #0f172a 60%), linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  --accent: #8b5cf6;
+  --accent-glow: rgba(139, 92, 246, 0.15);
+}
+body[data-active-view="dsr"] {
+  --bg-gradient: radial-gradient(circle at top right, rgba(59, 130, 246, 0.06) 0%, #0f172a 60%), linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  --accent: #3b82f6;
+  --accent-glow: rgba(59, 130, 246, 0.15);
+}
+body[data-active-view="cash"] {
+  --bg-gradient: radial-gradient(circle at top right, rgba(5, 150, 105, 0.06) 0%, #0f172a 60%), linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  --accent: #059669;
+  --accent-glow: rgba(5, 150, 105, 0.15);
+}
+body[data-active-view="other"] {
+  --bg-gradient: radial-gradient(circle at top right, rgba(249, 115, 22, 0.06) 0%, #0f172a 60%), linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  --accent: #f97316;
+  --accent-glow: rgba(249, 115, 22, 0.15);
+}
+body[data-active-view="preview"] {
+  --bg-gradient: radial-gradient(circle at top right, rgba(14, 165, 233, 0.06) 0%, #0f172a 60%), linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  --accent: #0ea5e9;
+  --accent-glow: rgba(14, 165, 233, 0.15);
+}
+body[data-active-view="finish"] {
+  --bg-gradient: radial-gradient(circle at top right, rgba(6, 182, 212, 0.06) 0%, #0f172a 60%), linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  --accent: #06b6d4;
+  --accent-glow: rgba(6, 182, 212, 0.15);
+}
+body[data-active-view="gst"] {
+  --bg-gradient: radial-gradient(circle at top right, rgba(236, 72, 153, 0.06) 0%, #0f172a 60%), linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  --accent: #ec4899;
+  --accent-glow: rgba(236, 72, 153, 0.15);
+}
+body[data-active-view="hpcl"] {
+  --bg-gradient: radial-gradient(circle at top right, rgba(37, 99, 235, 0.06) 0%, #0f172a 60%), linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  --accent: #2563eb;
+  --accent-glow: rgba(37, 99, 235, 0.15);
+}
+body[data-active-view="tanker"] {
+  --bg-gradient: radial-gradient(circle at top right, rgba(99, 102, 241, 0.06) 0%, #0f172a 60%), linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  --accent: #6366f1;
+  --accent-glow: rgba(99, 102, 241, 0.15);
+}
+body[data-active-view="cash-calc"] {
+  --bg-gradient: radial-gradient(circle at top right, rgba(16, 185, 129, 0.06) 0%, #0f172a 60%), linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  --accent: #10b981;
+  --accent-glow: rgba(16, 185, 129, 0.15);
+}
+body[data-active-view^="udhari-"] {
+  --bg-gradient: radial-gradient(circle at top right, rgba(245, 158, 11, 0.06) 0%, #0f172a 60%), linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  --accent: var(--udhari-color);
+  --accent-glow: var(--udhari-glow);
+}
+
+/* Radial background glow effects for light mode (theme-hpcl) */
+body.theme-hpcl[data-active-view="du"] {
+  --bg-gradient: radial-gradient(circle at top right, rgba(16, 185, 129, 0.12) 0%, #f0f7ff 65%), linear-gradient(135deg, #f0f7ff 0%, #e0effe 100%);
+  --accent: #059669;
+}
+body.theme-hpcl[data-active-view="testing"] {
+  --bg-gradient: radial-gradient(circle at top right, rgba(245, 158, 11, 0.12) 0%, #f0f7ff 65%), linear-gradient(135deg, #f0f7ff 0%, #e0effe 100%);
+  --accent: #d97706;
+}
+body.theme-hpcl[data-active-view="rates"] {
+  --bg-gradient: radial-gradient(circle at top right, rgba(234, 179, 8, 0.12) 0%, #f0f7ff 65%), linear-gradient(135deg, #f0f7ff 0%, #e0effe 100%);
+  --accent: #ca8a04;
+}
+body.theme-hpcl[data-active-view="tank"] {
+  --bg-gradient: radial-gradient(circle at top right, rgba(6, 182, 212, 0.12) 0%, #f0f7ff 65%), linear-gradient(135deg, #f0f7ff 0%, #e0effe 100%);
+  --accent: #0891b2;
+}
+body.theme-hpcl[data-active-view="decantation"] {
+  --bg-gradient: radial-gradient(circle at top right, rgba(139, 92, 246, 0.12) 0%, #f0f7ff 65%), linear-gradient(135deg, #f0f7ff 0%, #e0effe 100%);
+  --accent: #7c3aed;
+}
+body.theme-hpcl[data-active-view="dsr"] {
+  --bg-gradient: radial-gradient(circle at top right, rgba(59, 130, 246, 0.12) 0%, #f0f7ff 65%), linear-gradient(135deg, #f0f7ff 0%, #e0effe 100%);
+  --accent: #2563eb;
+}
+body.theme-hpcl[data-active-view="cash"] {
+  --bg-gradient: radial-gradient(circle at top right, rgba(5, 150, 105, 0.12) 0%, #f0f7ff 65%), linear-gradient(135deg, #f0f7ff 0%, #e0effe 100%);
+  --accent: #047857;
+}
+body.theme-hpcl[data-active-view="other"] {
+  --bg-gradient: radial-gradient(circle at top right, rgba(249, 115, 22, 0.12) 0%, #f0f7ff 65%), linear-gradient(135deg, #f0f7ff 0%, #e0effe 100%);
+  --accent: #ea580c;
+}
+body.theme-hpcl[data-active-view="preview"] {
+  --bg-gradient: radial-gradient(circle at top right, rgba(14, 165, 233, 0.12) 0%, #f0f7ff 65%), linear-gradient(135deg, #f0f7ff 0%, #e0effe 100%);
+  --accent: #0284c7;
+}
+body.theme-hpcl[data-active-view="finish"] {
+  --bg-gradient: radial-gradient(circle at top right, rgba(6, 182, 212, 0.12) 0%, #f0f7ff 65%), linear-gradient(135deg, #f0f7ff 0%, #e0effe 100%);
+  --accent: #0891b2;
+}
+body.theme-hpcl[data-active-view="gst"] {
+  --bg-gradient: radial-gradient(circle at top right, rgba(236, 72, 153, 0.12) 0%, #f0f7ff 65%), linear-gradient(135deg, #f0f7ff 0%, #e0effe 100%);
+  --accent: #db2777;
+}
+body.theme-hpcl[data-active-view="hpcl"] {
+  --bg-gradient: radial-gradient(circle at top right, rgba(37, 99, 235, 0.12) 0%, #f0f7ff 65%), linear-gradient(135deg, #f0f7ff 0%, #e0effe 100%);
+  --accent: #1d4ed8;
+}
+body.theme-hpcl[data-active-view="tanker"] {
+  --bg-gradient: radial-gradient(circle at top right, rgba(99, 102, 241, 0.12) 0%, #f0f7ff 65%), linear-gradient(135deg, #f0f7ff 0%, #e0effe 100%);
+  --accent: #4f46e5;
+}
+body.theme-hpcl[data-active-view="cash-calc"] {
+  --bg-gradient: radial-gradient(circle at top right, rgba(16, 185, 129, 0.12) 0%, #f0f7ff 65%), linear-gradient(135deg, #f0f7ff 0%, #e0effe 100%);
+  --accent: #059669;
+}
+body.theme-hpcl[data-active-view^="udhari-"] {
+  --bg-gradient: radial-gradient(circle at top right, rgba(245, 158, 11, 0.12) 0%, #f0f7ff 65%), linear-gradient(135deg, #f0f7ff 0%, #e0effe 100%);
+  --accent: #d97706;
+}
+
+/* ==================================================
+   DAY CLOSING WIZARD CARD & BUTTON STANDARDIZATION
+   ================================================== */
+
+/* Force all Day Closing wizard cards to have identical dimensions and layouts */
+#view-du-calculations .card,
+#view-nozzle-testing .card,
+#view-rate-confirmation .card,
+#view-tank-stock .card,
+#view-decantation .card,
+#view-dsr-data .card,
+#view-cash-reconciliation .card,
+#view-other-payments .card,
+#view-finish .card {
+  max-width: 960px !important;
+  width: 100% !important;
+  height: calc(100vh - 140px) !important;
+  min-height: 540px !important;
+  margin: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  box-sizing: border-box !important;
+}
+
+#view-preview .card {
+  max-width: 100% !important;
+  width: 100% !important;
+  height: calc(100vh - 140px) !important;
+  min-height: 540px !important;
+  margin: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  box-sizing: border-box !important;
+}
+
+/* Force Day Closing forms to stretch and fill the cards */
+#view-du-calculations form,
+#view-nozzle-testing form,
+#view-rate-confirmation form,
+#view-tank-stock form,
+#view-decantation form,
+#view-cash-reconciliation form,
+#view-other-payments form {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  height: 100% !important;
+}
+
+/* Push actions row to the absolute bottom of the card */
+.form-actions-row {
+  margin-top: auto !important;
+  padding-top: 0.75rem !important;
+}
+
+/* Ensure inner scroll containers fill screen cleanly and scroll vertically if viewport height is small */
+.nozzle-form-table,
+.nozzle-testing-table,
+.tank-form-table,
+.dsr-table-wrapper,
+.cash-reconciliation-grid {
+  overflow-y: auto !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  padding-right: 0.25rem !important;
+}
+
+.other-payments-scroll-wrapper {
+  flex: 1 !important;
+  max-height: none !important;
+  min-height: 0 !important;
+}
 

@@ -221,6 +221,29 @@ async function initDatabase() {
     {
       sql: `INSERT OR IGNORE INTO hpcl_config (key, value) VALUES ('hpcl_opening_balance', '4700')`,
     },
+    {
+      sql: `CREATE TABLE IF NOT EXISTS debtors (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        debtor_name TEXT UNIQUE NOT NULL,
+        mobile TEXT,
+        address TEXT,
+        is_active INTEGER DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`,
+    },
+    {
+      sql: `CREATE TABLE IF NOT EXISTS debtor_transactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        debtor_id INTEGER NOT NULL,
+        transaction_date DATE NOT NULL,
+        transaction_type TEXT NOT NULL,
+        description TEXT,
+        debit_amount REAL DEFAULT 0,
+        credit_amount REAL DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (debtor_id) REFERENCES debtors(id)
+      )`,
+    },
   ];
 
   // Run each CREATE TABLE individually (batch may not work well with DDL on all backends)
