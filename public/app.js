@@ -283,6 +283,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (viewPreview) viewPreview.style.display = viewName === 'preview' ? 'block' : 'none';
     viewFinish.style.display = viewName === 'finish' ? 'block' : 'none';
     if (viewGstData) viewGstData.style.display = viewName === 'gst' ? 'block' : 'none';
+    if (viewEmployeeManagement) viewEmployeeManagement.style.display = viewName === 'employee-management' ? 'block' : 'none';
     
     const viewHpclTracker = document.getElementById('view-hpcl-tracker');
     if (viewHpclTracker) viewHpclTracker.style.display = viewName === 'hpcl' ? 'block' : 'none';
@@ -351,7 +352,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (viewName.startsWith('udhari-') || viewName === 'udhari') {
       if (udhariToggle) udhariToggle.classList.add('active');
       if (otherToggle) otherToggle.classList.remove('active');
-    } else if (viewName === 'reminders' || viewName === 'gst') {
+    } else if (viewName === 'reminders' || viewName === 'gst' || viewName === 'employee-management') {
       if (otherToggle) otherToggle.classList.add('active');
       if (udhariToggle) udhariToggle.classList.remove('active');
     } else {
@@ -364,6 +365,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const navTankerCalc = document.getElementById('nav-tanker-calc');
     const navCashCalc = document.getElementById('nav-cash-calc');
     const navGst = document.getElementById('nav-gst');
+    const navEmployeeManagement = document.getElementById('nav-employee-management');
     const navHpclTracker = document.getElementById('nav-hpcl-tracker');
     
     const navUdhariMaster = document.getElementById('nav-udhari-master');
@@ -384,8 +386,9 @@ document.addEventListener('DOMContentLoaded', () => {
     else if (viewName === 'tanker' && navTankerCalc) navTankerCalc.classList.add('active');
     else if (viewName === 'cash-calc' && navCashCalc) navCashCalc.classList.add('active');
     else if (viewName === 'gst' && navGst) navGst.classList.add('active');
+    else if (viewName === 'employee-management' && navEmployeeManagement) navEmployeeManagement.classList.add('active');
     else if (viewName === 'hpcl' && navHpclTracker) navHpclTracker.classList.add('active');
-    else if (navDayClosing) navDayClosing.classList.add('active');
+    else if (navDayClosing && !['udhari', 'other'].some(pre => viewName.startsWith(pre))) navDayClosing.classList.add('active');
 
     // Update steps title texts dynamically
     if (hasDecantation) {
@@ -715,6 +718,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       
       updateTankVisuals();
+      updateHelperNoteVisibility();
+      updateDecantationGatingState();
       enforceFreezeState();
     } catch (error) {
       console.error('Error fetching opening tank stocks:', error);
@@ -758,6 +763,72 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Core detection: returns true if any tank's closing stock exceeds its opening by more than 500 L
+  function detectDecantationRequired() {
+    for (let id = 1; id <= 3; id++) {
+      const openingEl = document.getElementById(`tank-${id}-opening`);
+      const closingEl = document.getElementById(`tank-${id}-closing`);
+      if (openingEl && closingEl && closingEl.value !== '') {
+        const openingVal = parseFloat(openingEl.value) || 0;
+        const closingVal = parseFloat(closingEl.value) || 0;
+        if (closingVal - openingVal > 500) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  // Update helper note visibility (shows when decantation is detected)
+  function updateHelperNoteVisibility() {
+    const required = detectDecantationRequired();
+    const helperNote = document.getElementById('decantation-helper-note');
+    if (helperNote) {
+      helperNote.style.display = required ? 'inline-block' : 'none';
+    }
+  }
+
+  // Update the Next Step button label/style based on whether decantation is required or user-selected.
+  // The button is NEVER disabled — it always navigates forward. Only its label and destination change.
+  function updateDecantationGatingState() {
+    const required = detectDecantationRequired();
+    const yesRadio = document.querySelector('input[name="decantation-toggle"][value="yes"]');
+    const noRadio  = document.querySelector('input[name="decantation-toggle"][value="no"]');
+    const nextBtn  = document.getElementById('btn-tank-next');
+
+    if (required) {
+      // FORCE Yes and lock both radios — decantation physically happened
+      if (yesRadio) { yesRadio.checked = true;  yesRadio.disabled = true; }
+      if (noRadio)  { noRadio.checked  = false; noRadio.disabled  = true; }
+    } else {
+      // No forced decantation — unlock radios so user can freely choose
+      if (yesRadio) yesRadio.disabled = false;
+      if (noRadio)  noRadio.disabled  = false;
+    }
+
+    // Button label reflects destination
+    const isYes = yesRadio?.checked;
+    if (nextBtn) {
+      nextBtn.disabled = false;
+      nextBtn.style.opacity = '';
+      nextBtn.style.cursor = '';
+      if (isYes) {
+        nextBtn.innerHTML = '🚚 Next Step: Record Tanker Entry ➔';
+        nextBtn.style.background = 'linear-gradient(135deg, #f43f5e, #e11d48)';
+      } else {
+        nextBtn.innerHTML = 'Next Step: DSR Reconciliation ➔';
+        nextBtn.style.background = '';
+      }
+    }
+  }
+
+  // Trigger auto-select: called live as closing stock values are typed
+  function triggerDecantationAutoSelect() {
+    // updateDecantationGatingState already handles all the logic
+    updateDecantationGatingState();
+    updateHelperNoteVisibility();
+  }
+
   // Visual Tank Animation & Status Update Function
   function updateTankVisuals() {
     const capacities = { 1: 9000, 2: 16000, 3: 35000 };
@@ -794,8 +865,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const openingEl = document.getElementById(`tank-${id}-opening`);
       const closingEl = document.getElementById(`tank-${id}-closing`);
       if (openingEl && closingEl) {
-        openingEl.addEventListener('input', updateTankVisuals);
-        closingEl.addEventListener('input', updateTankVisuals);
+        openingEl.addEventListener('input', () => {
+          updateTankVisuals();
+          updateHelperNoteVisibility();
+        });
+        closingEl.addEventListener('input', () => {
+          updateTankVisuals();
+          updateHelperNoteVisibility();
+          triggerDecantationAutoSelect();
+        });
       }
     }
   }, 100);
@@ -971,15 +1049,10 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchOpeningCash(dateInput.value);
   });
 
-  // Decantation radio buttons toggle listener
+  // Decantation radio buttons toggle listener — update button label/destination on every change
   document.querySelectorAll('input[name="decantation-toggle"]').forEach(radio => {
-    radio.addEventListener('change', (e) => {
-      const nextBtn = document.getElementById('btn-tank-next');
-      if (e.target.value === 'yes') {
-        if (nextBtn) nextBtn.innerHTML = 'Next Step: Decantation Details ➔';
-      } else {
-        if (nextBtn) nextBtn.innerHTML = 'Next Step: DSR Reconciliation ➔';
-      }
+    radio.addEventListener('change', () => {
+      updateDecantationGatingState();
     });
   });
 
@@ -1302,7 +1375,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Form submit handler for Step 3: Tank Stock Form
+  // Form submit handler for Step 4: Tank Stock Form
+  // The Next Step button label tells the user where they are going:
+  //   — Yes selected: "🚚 Next Step: Record Tanker Entry ➔" → saves tank stock → goes to decantation page
+  //   — No selected:  "Next Step: DSR Reconciliation ➔"  → saves tank stock → goes to DSR directly
   tankForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -1315,10 +1391,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const hasDecantation = document.querySelector('input[name="decantation-toggle"]:checked').value === 'yes';
     if (hasDecantation) {
-      // Save current tank stock data and transition to step 4 (decantation details)
+      // Route through decantation page (user selected or auto-detected)
       await saveTankStockData('decantation');
     } else {
-      // Clear decantation values
+      // No decantation — clear any leftover values and go directly to DSR
       currentDecantation.Petrol = 0;
       currentDecantation.Diesel = 0;
       currentDecantation.poWer = 0;
@@ -1327,17 +1403,18 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('load-diesel').value = '0';
       document.getElementById('load-power').value = '0';
 
-      // Save tank stock data and transition directly to DSR reconciliation page
       await saveTankStockData('dsr');
     }
   });
 
-  // Event handlers for Step 4 Decantation Details page
+  // Event handlers for Decantation Details page
   const decantationForm = document.getElementById('decantation-form');
   const btnBackToTank = document.getElementById('btn-back-to-tank');
 
   if (btnBackToTank) {
     btnBackToTank.addEventListener('click', () => {
+      // Clear the forced-flow flag when user manually goes back
+      sessionStorage.removeItem('decantation_from_day_closing');
       showView('tank');
     });
   }
@@ -1374,7 +1451,13 @@ document.addEventListener('DOMContentLoaded', () => {
       currentDecantation.Diesel = dieselVal;
       currentDecantation.poWer = powerVal;
 
-      // Save everything and transition to DSR reconciliation page
+      // Check if we arrived here from the forced Day Closing flow
+      const fromDayClosing = sessionStorage.getItem('decantation_from_day_closing') === 'yes';
+      // Clear the flag before advancing
+      sessionStorage.removeItem('decantation_from_day_closing');
+
+      // Save tank stocks + decantation and always go to DSR
+      // (whether triggered from the forced flow or navigated manually within Day Closing)
       await saveTankStockData('dsr');
     });
   }
@@ -1429,9 +1512,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('summary-pct-power').textContent = `${powerPct.toFixed(2)}% Sale`;
 
     // Populate confirmed daily rates on summary cards
-    document.getElementById('summary-rate-petrol').textContent = `Rs. ${parseFloat(currentRates.Petrol || 0).toFixed(2)}/L`;
-    document.getElementById('summary-rate-diesel').textContent = `Rs. ${parseFloat(currentRates.Diesel || 0).toFixed(2)}/L`;
-    document.getElementById('summary-rate-power').textContent = `Rs. ${parseFloat(currentRates.poWer || 0).toFixed(2)}/L`;
+    document.getElementById('summary-rate-petrol').textContent = `₹ ${parseFloat(currentRates.Petrol || 0).toFixed(2)}/L`;
+    document.getElementById('summary-rate-diesel').textContent = `₹ ${parseFloat(currentRates.Diesel || 0).toFixed(2)}/L`;
+    document.getElementById('summary-rate-power').textContent = `₹ ${parseFloat(currentRates.poWer || 0).toFixed(2)}/L`;
 
     // 2. Render Tank Stocks
     const tankTableBody = document.getElementById('summary-tank-body');
@@ -1455,7 +1538,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 3. Render Cash Reconciliation & Settlement Summary
     const totalSalesValue = calculateTotalSalesValue();
-    document.getElementById('summary-calc-sales').textContent = `Rs. ${Math.round(totalSalesValue).toLocaleString()}`;
+    document.getElementById('summary-calc-sales').textContent = `₹ ${Number(totalSalesValue).toLocaleString("en-IN", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 
     const notes500 = parseInt(document.getElementById('notes-500').value, 10) || 0;
     const notes200 = parseInt(document.getElementById('notes-200').value, 10) || 0;
@@ -1500,29 +1583,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const shortfall = totalSalesValue - (totalCashReceived + totalNonCash);
 
-    document.getElementById('summary-cash-received').textContent = `Rs. ${Math.round(totalCashReceived).toLocaleString()}`;
-    document.getElementById('summary-other-received').textContent = `Rs. ${Math.round(totalNonCash).toLocaleString()}`;
+    document.getElementById('summary-cash-received').textContent = `₹ ${Number(totalCashReceived).toLocaleString("en-IN", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    document.getElementById('summary-other-received').textContent = `₹ ${Number(totalNonCash).toLocaleString("en-IN", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
     
     const summaryShortfallEl = document.getElementById('summary-cash-shortfall');
     const summaryShortfallCard = document.getElementById('summary-shortfall-card');
     const summaryShortfallLabel = document.getElementById('summary-shortfall-lbl');
     
     if (shortfall > 0) {
-      summaryShortfallEl.textContent = `Rs. ${Math.round(shortfall).toLocaleString()}`;
+      summaryShortfallEl.textContent = `₹ ${Number(shortfall).toLocaleString("en-IN", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
       summaryShortfallEl.style.color = 'var(--danger)';
       summaryShortfallLabel.textContent = 'SHORTFALL / DEFICIT';
       summaryShortfallLabel.style.color = 'var(--danger)';
       summaryShortfallCard.style.background = 'rgba(239, 68, 68, 0.05)';
       summaryShortfallCard.style.borderColor = 'rgba(239, 68, 68, 0.12)';
     } else if (shortfall < 0) {
-      summaryShortfallEl.textContent = `Rs. ${Math.round(Math.abs(shortfall)).toLocaleString()}`;
+      summaryShortfallEl.textContent = `₹ ${Number(Math.abs(shortfall)).toLocaleString("en-IN", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
       summaryShortfallEl.style.color = 'var(--success)';
       summaryShortfallLabel.textContent = 'SURPLUS / EXCESS';
       summaryShortfallLabel.style.color = 'var(--success)';
       summaryShortfallCard.style.background = 'rgba(16, 185, 129, 0.05)';
       summaryShortfallCard.style.borderColor = 'rgba(16, 185, 129, 0.12)';
     } else {
-      summaryShortfallEl.textContent = `Rs. 0`;
+      summaryShortfallEl.textContent = `₹ 0.00`;
       summaryShortfallEl.style.color = 'var(--text-muted)';
       summaryShortfallLabel.textContent = 'BALANCED';
       summaryShortfallLabel.style.color = 'var(--text-muted)';
@@ -1537,7 +1620,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (notes50 > 0) denomArr.push(`50 × ${notes50}`);
     if (notes20 > 0) denomArr.push(`20 × ${notes20}`);
     if (notes10 > 0) denomArr.push(`10 × ${notes10}`);
-    if (coins > 0) denomArr.push(`Coins: Rs. ${Math.round(coins)}`);
+    if (coins > 0) denomArr.push(`Coins: ₹ ${Math.round(coins)}`);
 
     const denomEl = document.getElementById('summary-denominations');
     if (denomArr.length > 0) {
@@ -1548,7 +1631,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const nonCashListEl = document.getElementById('summary-other-payments-list');
     if (nonCashEntries.length > 0) {
-      const entryStrings = nonCashEntries.map(e => `[${e.type}] ${e.description}: Rs. ${e.amount.toLocaleString()}`);
+      const entryStrings = nonCashEntries.map(e => `[${e.type}] ${e.description}: ₹ ${Number(e.amount).toLocaleString("en-IN", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`);
       nonCashListEl.innerHTML = `<strong>Non-Cash Settlement Logs:</strong> ` + entryStrings.join(' | ');
     } else {
       nonCashListEl.innerHTML = `<strong>Non-Cash Settlement Logs:</strong> None recorded`;
@@ -1610,9 +1693,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (el('preview-pct-petrol'))   el('preview-pct-petrol').textContent   = `${petrolPct.toFixed(2)}% Sale`;
     if (el('preview-pct-diesel'))   el('preview-pct-diesel').textContent   = `${dieselPct.toFixed(2)}% Sale`;
     if (el('preview-pct-power'))    el('preview-pct-power').textContent    = `${powerPct.toFixed(2)}% Sale`;
-    if (el('preview-rate-petrol'))  el('preview-rate-petrol').textContent  = `Rs. ${parseFloat(currentRates.Petrol  || 0).toFixed(2)}/L`;
-    if (el('preview-rate-diesel'))  el('preview-rate-diesel').textContent  = `Rs. ${parseFloat(currentRates.Diesel  || 0).toFixed(2)}/L`;
-    if (el('preview-rate-power'))   el('preview-rate-power').textContent   = `Rs. ${parseFloat(currentRates.poWer   || 0).toFixed(2)}/L`;
+    if (el('preview-rate-petrol'))  el('preview-rate-petrol').textContent  = `₹ ${parseFloat(currentRates.Petrol  || 0).toFixed(2)}/L`;
+    if (el('preview-rate-diesel'))  el('preview-rate-diesel').textContent  = `₹ ${parseFloat(currentRates.Diesel  || 0).toFixed(2)}/L`;
+    if (el('preview-rate-power'))   el('preview-rate-power').textContent   = `₹ ${parseFloat(currentRates.poWer   || 0).toFixed(2)}/L`;
 
     // Tank stocks
     const tankBody = document.getElementById('preview-tank-body');
@@ -1637,7 +1720,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Cash & Settlement
     const totalSalesValue = calculateTotalSalesValue();
-    if (el('preview-calc-sales')) el('preview-calc-sales').textContent = `Rs. ${Math.round(totalSalesValue).toLocaleString()}`;
+    if (el('preview-calc-sales')) el('preview-calc-sales').textContent = `₹ ${Number(totalSalesValue).toLocaleString("en-IN", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 
     const notes500 = parseInt(document.getElementById('notes-500').value, 10) || 0;
     const notes200 = parseInt(document.getElementById('notes-200').value, 10) || 0;
@@ -1673,23 +1756,23 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const shortfall = totalSalesValue - (totalCashReceived + totalNonCash);
-    if (el('preview-cash-received'))  el('preview-cash-received').textContent  = `Rs. ${Math.round(totalCashReceived).toLocaleString()}`;
-    if (el('preview-other-received')) el('preview-other-received').textContent = `Rs. ${Math.round(totalNonCash).toLocaleString()}`;
+    if (el('preview-cash-received'))  el('preview-cash-received').textContent  = `₹ ${Number(totalCashReceived).toLocaleString("en-IN", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    if (el('preview-other-received')) el('preview-other-received').textContent = `₹ ${Number(totalNonCash).toLocaleString("en-IN", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 
     const sfEl    = el('preview-cash-shortfall');
     const sfCard  = el('preview-shortfall-card');
     const sfLabel = el('preview-shortfall-lbl');
     if (sfEl && sfCard && sfLabel) {
       if (shortfall > 0) {
-        sfEl.textContent = `Rs. ${Math.round(shortfall).toLocaleString()}`; sfEl.style.color = 'var(--danger)';
+        sfEl.textContent = `₹ ${Number(shortfall).toLocaleString("en-IN", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`; sfEl.style.color = 'var(--danger)';
         sfLabel.textContent = 'SHORTFALL / DEFICIT'; sfLabel.style.color = 'var(--danger)';
         sfCard.style.background = 'rgba(239,68,68,0.05)'; sfCard.style.borderColor = 'rgba(239,68,68,0.12)';
       } else if (shortfall < 0) {
-        sfEl.textContent = `Rs. ${Math.round(Math.abs(shortfall)).toLocaleString()}`; sfEl.style.color = 'var(--success)';
+        sfEl.textContent = `₹ ${Number(Math.abs(shortfall)).toLocaleString("en-IN", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`; sfEl.style.color = 'var(--success)';
         sfLabel.textContent = 'SURPLUS / EXCESS'; sfLabel.style.color = 'var(--success)';
         sfCard.style.background = 'rgba(16,185,129,0.05)'; sfCard.style.borderColor = 'rgba(16,185,129,0.12)';
       } else {
-        sfEl.textContent = 'Rs. 0'; sfEl.style.color = 'var(--text-muted)';
+        sfEl.textContent = '₹ 0.00'; sfEl.style.color = 'var(--text-muted)';
         sfLabel.textContent = 'BALANCED'; sfLabel.style.color = 'var(--text-muted)';
         sfCard.style.background = 'rgba(255,255,255,0.01)'; sfCard.style.borderColor = 'rgba(255,255,255,0.04)';
       }
@@ -1702,14 +1785,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (notes50 >0) denomArr.push(`50 × ${notes50}`);
     if (notes20 >0) denomArr.push(`20 × ${notes20}`);
     if (notes10 >0) denomArr.push(`10 × ${notes10}`);
-    if (coins   >0) denomArr.push(`Coins: Rs. ${Math.round(coins)}`);
+    if (coins   >0) denomArr.push(`Coins: ₹ ${Math.round(coins)}`);
     const denomEl = el('preview-denominations');
     if (denomEl) denomEl.innerHTML = `<strong>Denominations:</strong> ` + (denomArr.length ? denomArr.join(' | ') : 'None entered');
 
     const ncListEl = el('preview-other-payments-list');
     if (ncListEl) {
       if (nonCashEntries.length > 0) {
-        ncListEl.innerHTML = `<strong>Non-Cash Settlement Logs:</strong> ` + nonCashEntries.map(e => `[${e.type}] ${e.desc}: Rs. ${e.amount.toLocaleString()}`).join(' | ');
+        ncListEl.innerHTML = `<strong>Non-Cash Settlement Logs:</strong> ` + nonCashEntries.map(e => `[${e.type}] ${e.desc}: ₹ ${Number(e.amount).toLocaleString("en-IN", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`).join(' | ');
       } else {
         ncListEl.innerHTML = `<strong>Non-Cash Settlement Logs:</strong> None recorded`;
       }
@@ -1888,14 +1971,23 @@ document.addEventListener('DOMContentLoaded', () => {
         // Populate non-cash payments if saved
         const nonCashPayments = data.nonCashPayments || [];
         
-        // Dynamically adjust rows to match either current input value or saved records count (whichever is larger)
+        // Dynamically adjust rows:
+        // — For frozen/past days: show exactly as many rows as saved records (no empty padding).
+        // — For the active/current day: use the user's preferred row count setting.
         const rowCountInput = document.getElementById('non-cash-row-count');
-        let targetCount = 20;
-        if (rowCountInput) {
-          const currentSetVal = parseInt(rowCountInput.value, 10) || 20;
+        const isFrozenDay = (selectedDate !== activeDate);
+        let targetCount;
+
+        if (isFrozenDay) {
+          // Past day: only show rows that actually have data (minimum 1 to avoid empty table)
+          targetCount = Math.max(1, nonCashPayments.length);
+        } else {
+          // Active day: respect the user-set row count preference (default 5)
+          const currentSetVal = rowCountInput ? (parseInt(rowCountInput.value, 10) || 5) : 5;
           targetCount = Math.min(100, Math.max(5, Math.max(currentSetVal, nonCashPayments.length)));
-          rowCountInput.value = targetCount;
         }
+
+        if (rowCountInput) rowCountInput.value = targetCount;
         adjustNonCashRows(targetCount);
 
         const descInputs = document.querySelectorAll('.non-cash-desc-input');
@@ -2110,16 +2202,22 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       // Variation cell text, class, and inline color styling
-      let varText = variation.toFixed(2);
+      const roundedGrossNozzleSales = Math.round(grossNozzleSales);
+      const roundedTotalTesting = Math.round(totalTesting);
+      const roundedActualSale = Math.round(actualSale);
+      const roundedTankWiseSale = Math.round(tankWiseSale);
+      const roundedVariation = Math.round(variation);
+
+      let varText = '0';
       let varColor = 'var(--text-muted)';
-      if (variation > 0.01) {
-        varText = `${variation.toFixed(2)}`; // Positive -> Shortfall -> Red
+      if (roundedVariation > 0) {
+        // Tank sold MORE than nozzle → shortfall → Red → display as NEGATIVE
+        varText = `-${roundedVariation}`;
         varColor = 'var(--danger)';
-      } else if (variation < -0.01) {
-        varText = `${variation.toFixed(2)}`; // Negative -> Excess -> Green
+      } else if (roundedVariation < 0) {
+        // Tank sold LESS than nozzle → surplus → Green → display as POSITIVE
+        varText = `+${Math.abs(roundedVariation)}`;
         varColor = 'var(--success)';
-      } else {
-        varText = '0.00';
       }
 
       const row = document.createElement('div');
@@ -2132,10 +2230,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
       row.innerHTML = `
         <div style="font-weight: 600; color: var(--${prod.class}-color);">${prod.tankName} (${prod.name})</div>
-        <div class="text-right" style="color: var(--text-main);">${grossNozzleSales.toFixed(2)}</div>
-        <div class="text-right" style="color: var(--warning);">${totalTesting.toFixed(2)}</div>
-        <div class="text-right" style="color: var(--accent); font-weight: 600;">${actualSale.toFixed(2)}</div>
-        <div class="text-right" style="color: var(--text-main);">${tankWiseSale.toFixed(2)}</div>
+        <div class="text-right" style="color: var(--text-main);">${roundedGrossNozzleSales}</div>
+        <div class="text-right" style="color: var(--warning);">${roundedTotalTesting}</div>
+        <div class="text-right" style="color: var(--accent); font-weight: 600;">${roundedActualSale}</div>
+        <div class="text-right" style="color: var(--text-main);">${roundedTankWiseSale}</div>
         <div class="text-right bold" style="font-size: 1.05rem; color: ${varColor};">${varText} L</div>
       `;
 
@@ -2144,18 +2242,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const insightsEl = document.getElementById('dsr-insights');
     if (insightsEl) {
-      if (overallLoss > 0.1 && overallGain > 0.1) {
-        insightsEl.innerHTML = `⚠️ <strong>DSR Stock Reconciliation Alert:</strong> There is a net physical shortfall of <strong>${overallLoss.toFixed(2)} L</strong> and a net surplus of <strong>${overallGain.toFixed(2)} L</strong> detected across products. Please check DIP readings if this is unexpected.`;
+      const roundedOverallLoss = Math.round(overallLoss);
+      const roundedOverallGain = Math.round(overallGain);
+
+      if (roundedOverallLoss > 0 && roundedOverallGain > 0) {
+        insightsEl.innerHTML = `⚠️ <strong>DSR Stock Reconciliation Alert:</strong> There is a net physical shortfall of <strong>${roundedOverallLoss} L</strong> and a net surplus of <strong>${roundedOverallGain} L</strong> detected across products. Please check DIP readings if this is unexpected.`;
         insightsEl.style.borderColor = 'rgba(245, 158, 11, 0.2)';
         insightsEl.style.background = 'rgba(245, 158, 11, 0.03)';
         insightsEl.style.color = 'var(--warning)';
-      } else if (overallLoss > 0.1) {
-        insightsEl.innerHTML = `⚠️ <strong>DSR Stock Reconciliation Alert:</strong> A physical stock shortfall of <strong>${overallLoss.toFixed(2)} L</strong> was detected. This represents evaporation loss or transit/measurement variance.`;
+      } else if (roundedOverallLoss > 0) {
+        insightsEl.innerHTML = `⚠️ <strong>DSR Stock Reconciliation Alert:</strong> A physical stock shortfall of <strong>${roundedOverallLoss} L</strong> was detected. This represents evaporation loss or transit/measurement variance.`;
         insightsEl.style.borderColor = 'rgba(239, 68, 68, 0.2)';
         insightsEl.style.background = 'rgba(239, 68, 68, 0.03)';
         insightsEl.style.color = 'var(--danger)';
-      } else if (overallGain > 0.1) {
-        insightsEl.innerHTML = `✅ <strong>DSR Stock Reconciliation:</strong> A physical stock surplus of <strong>${overallGain.toFixed(2)} L</strong> was recorded. Stock levels are healthy.`;
+      } else if (roundedOverallGain > 0) {
+        insightsEl.innerHTML = `✅ <strong>DSR Stock Reconciliation:</strong> A physical stock surplus of <strong>${roundedOverallGain} L</strong> was recorded. Stock levels are healthy.`;
         insightsEl.style.borderColor = 'rgba(16, 185, 129, 0.2)';
         insightsEl.style.background = 'rgba(16, 185, 129, 0.03)';
         insightsEl.style.color = 'var(--success)';
@@ -2238,9 +2339,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const totalCashReceived = totalNotes + totalCoins;
     const totalSalesValue = calculateTotalSalesValue();
 
-    document.getElementById('sales-value-display').textContent = `Rs. ${Math.round(totalSalesValue).toLocaleString()}`;
-    document.getElementById('coins-value-display-summary').textContent = `Rs. ${Math.round(totalCoins).toLocaleString()}`;
-    document.getElementById('cash-received-display').textContent = `Rs. ${Math.round(totalCashReceived).toLocaleString()}`;
+    document.getElementById('sales-value-display').textContent = `₹ ${Number(totalSalesValue).toLocaleString("en-IN", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    document.getElementById('coins-value-display-summary').textContent = `₹ ${Number(totalCoins).toLocaleString("en-IN", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    document.getElementById('cash-received-display').textContent = `₹ ${Number(totalCashReceived).toLocaleString("en-IN", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 
     const shortfall = totalSalesValue - totalCashReceived;
     const shortfallValEl = document.getElementById('cash-shortfall-display-val');
@@ -2248,7 +2349,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const shortfallContainer = document.querySelector('.shortfall-container');
 
     if (shortfallValEl && shortfallLblEl && shortfallContainer) {
-      shortfallValEl.textContent = `Rs. ${Math.round(Math.abs(shortfall)).toLocaleString()}`;
+      shortfallValEl.textContent = `₹ ${Number(Math.abs(shortfall)).toLocaleString("en-IN", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
       if (shortfall > 0) {
         shortfallLblEl.textContent = 'Shortfall / Deficit';
         shortfallValEl.style.color = 'var(--danger)';
@@ -2327,16 +2428,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const shortfall = totalSalesValue - totalSettled;
 
     // Update displays
-    document.getElementById('other-sales-display').textContent = `Rs. ${Math.round(totalSalesValue).toLocaleString()}`;
-    document.getElementById('other-cash-display').textContent = `Rs. ${Math.round(totalCashReceived).toLocaleString()}`;
-    document.getElementById('other-noncash-display').textContent = `Rs. ${Math.round(totalNonCash).toLocaleString()}`;
-    document.getElementById('other-total-settled-display').textContent = `Rs. ${Math.round(totalSettled).toLocaleString()}`;
+    document.getElementById('other-sales-display').textContent = `₹ ${Number(totalSalesValue).toLocaleString("en-IN", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    document.getElementById('other-cash-display').textContent = `₹ ${Number(totalCashReceived).toLocaleString("en-IN", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    document.getElementById('other-noncash-display').textContent = `₹ ${Number(totalNonCash).toLocaleString("en-IN", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    document.getElementById('other-total-settled-display').textContent = `₹ ${Number(totalSettled).toLocaleString("en-IN", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 
     const shortfallValEl = document.getElementById('net-shortfall-display-val');
     const shortfallLblEl = document.getElementById('net-shortfall-lbl');
     const shortfallContainer = document.querySelector('.net-shortfall-container');
 
-    shortfallValEl.textContent = `Rs. ${Math.round(Math.abs(shortfall)).toLocaleString()}`;
+    shortfallValEl.textContent = `₹ ${Number(Math.abs(shortfall)).toLocaleString("en-IN", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 
     if (shortfall > 0) {
       shortfallLblEl.textContent = 'Shortfall / Deficit';
@@ -3328,6 +3429,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  const navExit = document.getElementById('nav-exit');
+  if (navExit) {
+    navExit.addEventListener('click', (e) => {
+      e.preventDefault();
+      try {
+        window.close();
+        setTimeout(() => {
+          showToast('You can now close this tab', 'success');
+        }, 100);
+      } catch (err) {
+        showToast('You can now close this tab', 'success');
+      }
+    });
+  }
+
   // Close on outside click
   document.addEventListener('click', (e) => {
     if (e.target.closest('.submenu-sidebar')) {
@@ -4083,3 +4199,199 @@ document.addEventListener('DOMContentLoaded', () => {
   updateGlobalOutstandingCard();
   fetchGlobalDebtorsList();
 });
+
+
+// ── EMPLOYEE MANAGEMENT ────────────────────────────────────────────────────────
+
+const navEmployeeManagement = document.getElementById('nav-employee-management');
+const viewEmployeeManagement = document.getElementById('view-employee-management');
+
+// Modals
+const modalAddEmployee = document.getElementById('modal-add-employee');
+const modalEmployeeTxn = document.getElementById('modal-employee-txn');
+const modalEmployeeLedger = document.getElementById('modal-employee-ledger');
+
+// Forms
+const formAddEmployee = document.getElementById('form-add-employee');
+const formEmployeeTxn = document.getElementById('form-employee-txn');
+
+// Navigation
+if (navEmployeeManagement) {
+  navEmployeeManagement.addEventListener('click', (e) => {
+    e.preventDefault();
+    showView('employee-management');
+    fetchEmployees();
+  });
+}
+
+// Add Employee Button
+const btnAddEmployee = document.getElementById('btn-add-employee');
+if (btnAddEmployee) {
+  btnAddEmployee.addEventListener('click', () => {
+    document.getElementById('new-emp-name').value = '';
+    document.getElementById('new-emp-mobile').value = '';
+    modalAddEmployee.style.display = 'flex';
+  });
+}
+
+// Add Employee Submit
+if (formAddEmployee) {
+  formAddEmployee.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('new-emp-name').value.trim();
+    const mobile = document.getElementById('new-emp-mobile').value.trim();
+    if (!name) return;
+    
+    try {
+      const res = await fetch('/api/employees', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, mobile })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to add employee');
+      
+      showToast('Employee added successfully', 'success');
+      modalAddEmployee.style.display = 'none';
+      fetchEmployees();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  });
+}
+
+// Fetch Employees List
+async function fetchEmployees() {
+  const tbody = document.getElementById('employee-list-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">Loading...</td></tr>';
+  try {
+    const res = await fetch('/api/employees');
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to load employees');
+    
+    tbody.innerHTML = '';
+    if (data.employees.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">No employees found.</td></tr>';
+      return;
+    }
+    
+    data.employees.forEach(emp => {
+      const bal = Number(emp.outstanding_advance || 0);
+      const balStr = bal === 0 ? '₹ 0.00' : '₹ ' + bal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${emp.name}</td>
+        <td>${emp.mobile || '-'}</td>
+        <td style="text-align: right; color: var(--danger); font-weight: 700;">${balStr}</td>
+        <td style="text-align: center;">
+          <button class="btn btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; margin-right: 0.2rem;" onclick="openEmployeeTxn(${emp.id}, '${emp.name}')">Add Txn</button>
+          <button class="btn btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; margin-right: 0.2rem;" onclick="openEmployeeLedger(${emp.id}, '${emp.name}')">Ledger</button>
+          <button class="btn btn-danger" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; background: var(--danger); color: #fff; border: none;" onclick="deleteEmployee(${emp.id}, ${bal})">Delete</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } catch (err) {
+    showToast(err.message, 'error');
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--danger);">${err.message}</td></tr>`;
+  }
+}
+
+// Delete Employee
+window.deleteEmployee = async function(id, balance) {
+  if (Math.abs(balance) > 0.01) {
+    showToast('Cannot delete employee with outstanding advance balance. Settle the balance first.', 'error');
+    return;
+  }
+  if (!confirm('Are you sure you want to delete this employee?')) return;
+  try {
+    const res = await fetch(`/api/employees/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to delete');
+    showToast('Employee deleted.', 'success');
+    fetchEmployees();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+};
+
+// Open Transaction Modal
+window.openEmployeeTxn = function(id, name) {
+  document.getElementById('txn-emp-id').value = id;
+  document.getElementById('txn-emp-name').textContent = name;
+  document.getElementById('txn-emp-date').value = document.getElementById('global-date').value;
+  document.getElementById('txn-emp-amount').value = '';
+  document.getElementById('txn-emp-desc').value = '';
+  modalEmployeeTxn.style.display = 'flex';
+};
+
+// Add Transaction Submit
+if (formEmployeeTxn) {
+  formEmployeeTxn.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('txn-emp-id').value;
+    const date = document.getElementById('txn-emp-date').value;
+    const type = document.getElementById('txn-emp-type').value;
+    const amount = document.getElementById('txn-emp-amount').value;
+    const desc = document.getElementById('txn-emp-desc').value;
+    
+    try {
+      const res = await fetch(`/api/employees/${id}/transactions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date, type, amount, description: desc })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to add transaction');
+      
+      showToast('Transaction added.', 'success');
+      modalEmployeeTxn.style.display = 'none';
+      fetchEmployees();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  });
+}
+
+// Open Ledger Modal
+window.openEmployeeLedger = async function(id, name) {
+  document.getElementById('ledger-emp-name').textContent = name;
+  const tbody = document.getElementById('employee-ledger-tbody');
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Loading...</td></tr>';
+  modalEmployeeLedger.style.display = 'flex';
+  
+  try {
+    const res = await fetch(`/api/employees/${id}/transactions`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch ledger');
+    
+    tbody.innerHTML = '';
+    if (data.transactions.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No transactions found.</td></tr>';
+      return;
+    }
+    
+    data.transactions.forEach(tx => {
+      const given = tx.advance_given > 0 ? '₹ ' + Number(tx.advance_given).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-';
+      const settled = tx.amount_settled > 0 ? '₹ ' + Number(tx.amount_settled).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-';
+      const balStr = '₹ ' + Number(tx.running_balance).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${formatDate(tx.transaction_date)}</td>
+        <td>${tx.transaction_type} ${tx.description ? '<br><small style="color:var(--text-muted)">' + tx.description + '</small>' : ''}</td>
+        <td style="text-align: right; color: var(--danger);">${given}</td>
+        <td style="text-align: right; color: var(--success);">${settled}</td>
+        <td style="text-align: right; font-weight: 700;">${balStr}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } catch (err) {
+    showToast(err.message, 'error');
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--danger);">${err.message}</td></tr>`;
+  }
+};
+
+// ── END EMPLOYEE MANAGEMENT ──────────────────────────────────────────────────

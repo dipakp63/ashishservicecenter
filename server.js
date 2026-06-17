@@ -654,7 +654,8 @@ app.post('/api/cash', async (req, res) => {
       const description = p.description || '';
       const type = p.type || 'UPI';
 
-      if (amount > 0 || description.trim() !== '') {
+      // Only save rows that have a non-zero amount — skip blank/zero rows entirely
+      if (amount > 0) {
         statements.push({
           sql: `INSERT INTO non_cash_payments (date, entry_index, type, description, amount) VALUES (?, ?, ?, ?, ?)`,
           args: [date, idx, type, description, amount],
@@ -1198,6 +1199,121 @@ app.get('/api/debtor-transactions/date', async (req, res) => {
   } catch (err) {
     console.error('[Udhari] Error fetching date-wise report:', err.message);
     res.status(500).json({ error: 'Database error fetching date-wise report.' });
+  }
+});
+
+// ── Employee Management API ─────────────────────────────────────────────────
+
+app.get('/api/employees', async (req, res) => {
+  try {
+    const rows = await db.all(`
+      SELECT 
+        e.id, 
+        e.name, 
+        e.mobile, 
+        e.is_active,
+        (SELECT COALESCE(SUM(advance_given), 0) - COALESCE(SUM(amount_settled), 0) 
+         FROM employee_transactions 
+         WHERE employee_id = e.id) AS outstanding_advance
+      FROM employees e
+      ORDER BY e.name ASC
+    `);
+    res.json({ employees: rows });
+  } catch (err) {
+    console.error('Error fetching employees:', err.message);
+    res.status(500).json({ error: 'Database error fetching employees.' });
+  }
+});
+
+app.post('/api/employees', async (req, res) => {
+  try {
+    const { name, mobile } = req.body;
+    if (!name || name.trim() === '') {
+      return res.status(400).json({ error: 'Employee name is required.' });
+    }
+    const trimmedName = name.trim();
+    const existing = await db.get(`SELECT id FROM employees WHERE name = ?`, [trimmedName]);
+    if (existing) {
+      return res.status(400).json({ error: 'An employee with this name already exists.' });
+    }
+    const result = await db.run(
+      `INSERT INTO employees (name, mobile) VALUES (?, ?)`,
+      [trimmedName, (mobile || '').trim()]
+    );
+    res.json({ success: true, message: 'Employee added successfully.', employee: { id: result.lastInsertRowid, name: trimmedName } });
+  } catch (err) {
+    console.error('Error adding employee:', err.message);
+    res.status(500).json({ error: 'Database error adding employee.' });
+  }
+});
+
+app.delete('/api/employees/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const balanceRow = await db.get(`
+      SELECT COALESCE(SUM(advance_given), 0) - COALESCE(SUM(amount_settled), 0) AS outstanding
+      FROM employee_transactions
+      WHERE employee_id = ?
+    `, [id]);
+    const balance = parseFloat((balanceRow && balanceRow.outstanding) || 0);
+    if (Math.abs(balance) > 0.005) {
+      return res.status(400).json({ error: 'Cannot delete employee with outstanding advance balance.' });
+    }
+    await db.run(`DELETE FROM employee_transactions WHERE employee_id = ?`, [id]);
+    const result = await db.run(`DELETE FROM employees WHERE id = ?`, [id]);
+    if (result.rowsAffected === 0) {
+      return res.status(404).json({ error: 'Employee not found.' });
+    }
+    res.json({ success: true, message: 'Employee deleted successfully.' });
+  } catch (err) {
+    console.error('Error deleting employee:', err.message);
+    res.status(500).json({ error: 'Database error deleting employee.' });
+  }
+});
+
+app.get('/api/employees/:id/transactions', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const rows = await db.all(`
+      SELECT id, transaction_date, transaction_type, description, advance_given, amount_settled
+      FROM employee_transactions
+      WHERE employee_id = ?
+      ORDER BY transaction_date ASC, id ASC
+    `, [id]);
+    let runningBalance = 0;
+    const transactions = rows.map(row => {
+      runningBalance += (row.advance_given || 0) - (row.amount_settled || 0);
+      return { ...row, running_balance: parseFloat(runningBalance.toFixed(2)) };
+    });
+    res.json({ transactions });
+  } catch (err) {
+    console.error('Error fetching employee transactions:', err.message);
+    res.status(500).json({ error: 'Database error fetching employee transactions.' });
+  }
+});
+
+app.post('/api/employees/:id/transactions', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { date, type, amount, description } = req.body;
+    if (!id || !date || !type || amount === undefined) {
+      return res.status(400).json({ error: 'Employee, date, transaction type, and amount are required.' });
+    }
+    const val = parseFloat(amount) || 0;
+    if (val <= 0) return res.status(400).json({ error: 'Amount must be positive.' });
+    
+    const advance_given = type === 'advance' ? val : 0;
+    const amount_settled = type === 'settlement' ? val : 0;
+    
+    await db.run(
+      `INSERT INTO employee_transactions (employee_id, transaction_date, transaction_type, description, advance_given, amount_settled)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [id, date, type, description || '', advance_given, amount_settled]
+    );
+    res.json({ success: true, message: 'Transaction recorded successfully.' });
+  } catch (err) {
+    console.error('Error adding employee transaction:', err.message);
+    res.status(500).json({ error: 'Database error adding employee transaction.' });
   }
 });
 

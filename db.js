@@ -244,6 +244,28 @@ async function initDatabase() {
         FOREIGN KEY (debtor_id) REFERENCES debtors(id)
       )`,
     },
+    {
+      sql: `CREATE TABLE IF NOT EXISTS employees (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT UNIQUE NOT NULL,
+        mobile TEXT,
+        is_active INTEGER DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`,
+    },
+    {
+      sql: `CREATE TABLE IF NOT EXISTS employee_transactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        employee_id INTEGER NOT NULL,
+        transaction_date DATE NOT NULL,
+        transaction_type TEXT NOT NULL,
+        description TEXT,
+        advance_given REAL DEFAULT 0,
+        amount_settled REAL DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (employee_id) REFERENCES employees(id)
+      )`,
+    },
   ];
 
   // Run each CREATE TABLE individually (batch may not work well with DDL on all backends)
