@@ -37,7 +37,7 @@ async function getActiveDate() {
     const day = String(latestDate.getUTCDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   }
-  return '2026-05-01';
+  return '2026-06-01';
 }
 
 function isLastDayOfMonth(dateStr) {
@@ -645,6 +645,14 @@ app.post('/api/cash', async (req, res) => {
         sql: `DELETE FROM debtor_transactions WHERE transaction_date = ? AND description LIKE 'Credit Sale (Day Closing)%'`,
         args: [date],
       },
+      {
+        sql: `DELETE FROM employee_transactions WHERE transaction_date = ? AND description LIKE 'Employee Payment (Day Closing)%'`,
+        args: [date],
+      },
+      {
+        sql: `DELETE FROM tt_transactions WHERE date = ? AND source = 'AUTO'`,
+        args: [date],
+      },
     ];
 
     // Add non-cash payment inserts
@@ -671,6 +679,27 @@ app.post('/api/cash', async (req, res) => {
               args: [debtorId, date, amount],
             });
           }
+        }
+
+        // Automatically create an Advance Given transaction in the employee ledger if this is an Employee type payment
+        if (type === 'Employee' && amount > 0 && description.startsWith('employee_id:')) {
+          const employeeId = parseInt(description.split(':')[1], 10);
+          if (!isNaN(employeeId)) {
+            statements.push({
+              sql: `INSERT INTO employee_transactions (employee_id, transaction_date, transaction_type, description, advance_given, amount_settled)
+                    VALUES (?, ?, 'Advance Given', 'Employee Payment (Day Closing)', ?, 0)`,
+              args: [employeeId, date, amount],
+            });
+          }
+        }
+
+        // Automatically create a DEBIT transaction in the TT ledger if this is a MH-19-CY-5682 type payment
+        if (type === 'MH-19-CY-5682' && amount > 0) {
+          statements.push({
+            sql: `INSERT INTO tt_transactions (date, type, source, amount, description)
+                  VALUES (?, 'DEBIT', 'AUTO', ?, 'Day Closing Debit')`,
+            args: [date, amount],
+          });
         }
       }
     });
@@ -842,6 +871,11 @@ app.post('/api/hpcl/transaction', async (req, res) => {
       return res.status(400).json({ error: 'Date, description, type, and amount are required.' });
     }
 
+    const activeDate = await getActiveDate();
+    if (date < activeDate) {
+      return res.status(403).json({ error: 'This date has been finalized and frozen. Data cannot be modified.' });
+    }
+
     if (type !== 'CREDIT' && type !== 'DEBIT') {
       return res.status(400).json({ error: 'Transaction type must be CREDIT or DEBIT.' });
     }
@@ -872,6 +906,15 @@ app.post('/api/hpcl/transaction', async (req, res) => {
 app.delete('/api/hpcl/transaction/:id', async (req, res) => {
   try {
     const { id } = req.params;
+
+    const transaction = await db.get(`SELECT date FROM hpcl_transactions WHERE id = ?`, [id]);
+    if (transaction) {
+      const activeDate = await getActiveDate();
+      if (transaction.date < activeDate) {
+        return res.status(403).json({ error: 'Cannot delete transaction from a finalized and locked date.' });
+      }
+    }
+
     const result = await db.run(`DELETE FROM hpcl_transactions WHERE id = ?`, [id]);
 
     if (result.rowsAffected === 0) {
@@ -898,6 +941,11 @@ app.post('/api/hpcl/opening-balance', async (req, res) => {
     const parsedVal = parseFloat(opening_balance);
     if (isNaN(parsedVal)) {
       return res.status(400).json({ error: 'opening_balance must be a valid number.' });
+    }
+
+    const latestClosed = await db.get('SELECT MAX(date) AS latest_closed_date FROM cash_reconciliation');
+    if (latestClosed && latestClosed.latest_closed_date) {
+      return res.status(403).json({ error: 'Cannot modify opening balance once a day closing has been finalized.' });
     }
 
     await db.run(
@@ -1064,6 +1112,16 @@ app.delete('/api/debtors/:id', async (req, res) => {
       });
     }
 
+    const activeDate = await getActiveDate();
+    const lockedTx = await db.get(`
+      SELECT id FROM debtor_transactions 
+      WHERE debtor_id = ? AND transaction_date < ?
+      LIMIT 1
+    `, [id, activeDate]);
+    if (lockedTx) {
+      return res.status(403).json({ error: 'Cannot delete debtor with transaction history in finalized/locked dates.' });
+    }
+
     // Delete transactions first (should be zero-sum), then debtor
     await db.run(`DELETE FROM debtor_transactions WHERE debtor_id = ?`, [id]);
     const result = await db.run(`DELETE FROM debtors WHERE id = ?`, [id]);
@@ -1086,6 +1144,11 @@ app.post('/api/debtor-transactions', async (req, res) => {
 
     if (!debtor_id || !transaction_date || !transaction_type) {
       return res.status(400).json({ error: 'Debtor, date, and transaction type are required.' });
+    }
+
+    const activeDate = await getActiveDate();
+    if (transaction_date < activeDate) {
+      return res.status(403).json({ error: 'This date has been finalized and frozen. Debtor transactions cannot be added.' });
     }
 
     if (transaction_type !== 'DEBIT' && transaction_type !== 'CREDIT') {
@@ -1180,7 +1243,6 @@ app.get('/api/debtor-transactions/date', async (req, res) => {
       WHERE dt.transaction_date = ?
       ORDER BY dt.id ASC
     `, [date]);
-
     // Calculate totals
     let totalDebit = 0;
     let totalCredit = 0;
@@ -1204,27 +1266,40 @@ app.get('/api/debtor-transactions/date', async (req, res) => {
 
 // ── Employee Management API ─────────────────────────────────────────────────
 
+// GET /api/employees — list all employees with month-wise given/settled/balance
+// ?month=YYYY-MM  defaults to current month
 app.get('/api/employees', async (req, res) => {
   try {
+    const now = new Date();
+    const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const month = (req.query.month && /^\d{4}-\d{2}$/.test(req.query.month))
+      ? req.query.month : defaultMonth;
+
+    const startOfMonth = `${month}-01`;
     const rows = await db.all(`
       SELECT 
         e.id, 
         e.name, 
         e.mobile, 
         e.is_active,
-        (SELECT COALESCE(SUM(advance_given), 0) - COALESCE(SUM(amount_settled), 0) 
-         FROM employee_transactions 
-         WHERE employee_id = e.id) AS outstanding_advance
+        COALESCE((SELECT COALESCE(SUM(advance_given), 0) - COALESCE(SUM(amount_settled), 0) FROM employee_transactions
+          WHERE employee_id = e.id AND transaction_date < ?), 0) AS opening_balance,
+        COALESCE((SELECT SUM(advance_given) FROM employee_transactions
+          WHERE employee_id = e.id AND strftime('%Y-%m', transaction_date) = ?), 0) AS month_given,
+        COALESCE((SELECT SUM(amount_settled) FROM employee_transactions
+          WHERE employee_id = e.id AND strftime('%Y-%m', transaction_date) = ?), 0) AS month_settled
       FROM employees e
       ORDER BY e.name ASC
-    `);
-    res.json({ employees: rows });
+    `, [startOfMonth, month, month]);
+
+    res.json({ employees: rows, month });
   } catch (err) {
     console.error('Error fetching employees:', err.message);
     res.status(500).json({ error: 'Database error fetching employees.' });
   }
 });
 
+// POST /api/employees — Add new employee
 app.post('/api/employees', async (req, res) => {
   try {
     const { name, mobile } = req.body;
@@ -1247,23 +1322,59 @@ app.post('/api/employees', async (req, res) => {
   }
 });
 
+// PUT /api/employees/:id — Edit employee name and mobile
+app.put('/api/employees/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, mobile } = req.body;
+    if (!name || name.trim() === '') {
+      return res.status(400).json({ error: 'Employee name is required.' });
+    }
+    const trimmedName = name.trim();
+    const existing = await db.get(`SELECT id FROM employees WHERE name = ? AND id != ?`, [trimmedName, id]);
+    if (existing) {
+      return res.status(400).json({ error: 'Another employee with this name already exists.' });
+    }
+    const result = await db.run(
+      `UPDATE employees SET name = ?, mobile = ? WHERE id = ?`,
+      [trimmedName, (mobile || '').trim(), id]
+    );
+    if (result.rowsAffected === 0) {
+      return res.status(404).json({ error: 'Employee not found.' });
+    }
+    res.json({ success: true, message: 'Employee updated successfully.' });
+  } catch (err) {
+    console.error('Error updating employee:', err.message);
+    res.status(500).json({ error: 'Database error updating employee.' });
+  }
+});
+
+// DELETE /api/employees/:id
 app.delete('/api/employees/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const balanceRow = await db.get(`
       SELECT COALESCE(SUM(advance_given), 0) - COALESCE(SUM(amount_settled), 0) AS outstanding
-      FROM employee_transactions
-      WHERE employee_id = ?
+      FROM employee_transactions WHERE employee_id = ?
     `, [id]);
     const balance = parseFloat((balanceRow && balanceRow.outstanding) || 0);
     if (Math.abs(balance) > 0.005) {
       return res.status(400).json({ error: 'Cannot delete employee with outstanding advance balance.' });
     }
+
+    const activeDate = await getActiveDate();
+    const lockedTx = await db.get(`
+      SELECT id FROM employee_transactions 
+      WHERE employee_id = ? AND transaction_date < ?
+      LIMIT 1
+    `, [id, activeDate]);
+    if (lockedTx) {
+      return res.status(403).json({ error: 'Cannot delete employee with transaction history in finalized/locked dates.' });
+    }
+
     await db.run(`DELETE FROM employee_transactions WHERE employee_id = ?`, [id]);
     const result = await db.run(`DELETE FROM employees WHERE id = ?`, [id]);
-    if (result.rowsAffected === 0) {
-      return res.status(404).json({ error: 'Employee not found.' });
-    }
+    if (result.rowsAffected === 0) return res.status(404).json({ error: 'Employee not found.' });
     res.json({ success: true, message: 'Employee deleted successfully.' });
   } catch (err) {
     console.error('Error deleting employee:', err.message);
@@ -1271,27 +1382,47 @@ app.delete('/api/employees/:id', async (req, res) => {
   }
 });
 
+// GET /api/employees/:id/transactions — month-filtered ledger with running balance
+// ?month=YYYY-MM  filters to that month only; running balance resets to 0 at month start
 app.get('/api/employees/:id/transactions', async (req, res) => {
   try {
     const { id } = req.params;
+    const now = new Date();
+    const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const month = (req.query.month && /^\d{4}-\d{2}$/.test(req.query.month))
+      ? req.query.month : defaultMonth;
+
+    const startOfMonth = `${month}-01`;
+    
+    // Fetch opening balance prior to the selected month
+    const openingRow = await db.get(`
+      SELECT COALESCE(SUM(advance_given), 0) - COALESCE(SUM(amount_settled), 0) AS opening_balance
+      FROM employee_transactions
+      WHERE employee_id = ? AND transaction_date < ?
+    `, [id, startOfMonth]);
+    const openingBalance = openingRow ? parseFloat(openingRow.opening_balance || 0) : 0;
+
     const rows = await db.all(`
       SELECT id, transaction_date, transaction_type, description, advance_given, amount_settled
-      FROM employee_transactions
-      WHERE employee_id = ?
+      FROM employee_transactions WHERE employee_id = ?
+        AND strftime('%Y-%m', transaction_date) = ?
       ORDER BY transaction_date ASC, id ASC
-    `, [id]);
-    let runningBalance = 0;
+    `, [id, month]);
+
+    // Running balance starts from opening balance (carried forward)
+    let runningBalance = openingBalance;
     const transactions = rows.map(row => {
       runningBalance += (row.advance_given || 0) - (row.amount_settled || 0);
       return { ...row, running_balance: parseFloat(runningBalance.toFixed(2)) };
     });
-    res.json({ transactions });
+    res.json({ transactions, month, openingBalance });
   } catch (err) {
     console.error('Error fetching employee transactions:', err.message);
     res.status(500).json({ error: 'Database error fetching employee transactions.' });
   }
 });
 
+// POST /api/employees/:id/transactions — Add advance or settlement
 app.post('/api/employees/:id/transactions', async (req, res) => {
   try {
     const { id } = req.params;
@@ -1299,12 +1430,20 @@ app.post('/api/employees/:id/transactions', async (req, res) => {
     if (!id || !date || !type || amount === undefined) {
       return res.status(400).json({ error: 'Employee, date, transaction type, and amount are required.' });
     }
+
+    const activeDate = await getActiveDate();
+    if (date < activeDate) {
+      return res.status(403).json({ error: 'This date has been finalized and frozen. Employee transactions cannot be added.' });
+    }
+
     const val = parseFloat(amount) || 0;
     if (val <= 0) return res.status(400).json({ error: 'Amount must be positive.' });
-    
-    const advance_given = type === 'advance' ? val : 0;
-    const amount_settled = type === 'settlement' ? val : 0;
-    
+
+    // type: 'Advance Given' → advance_given, anything else → amount_settled
+    const isAdvance = type === 'Advance Given';
+    const advance_given = isAdvance ? val : 0;
+    const amount_settled = !isAdvance ? val : 0;
+
     await db.run(
       `INSERT INTO employee_transactions (employee_id, transaction_date, transaction_type, description, advance_given, amount_settled)
        VALUES (?, ?, ?, ?, ?, ?)`,
@@ -1314,6 +1453,230 @@ app.post('/api/employees/:id/transactions', async (req, res) => {
   } catch (err) {
     console.error('Error adding employee transaction:', err.message);
     res.status(500).json({ error: 'Database error adding employee transaction.' });
+  }
+});
+
+// PUT /api/employees/transactions/:txnId — Edit an employee transaction
+app.put('/api/employees/transactions/:txnId', async (req, res) => {
+  try {
+    const { txnId } = req.params;
+    const { date, type, amount, description } = req.body;
+    if (!txnId || !date || !type || amount === undefined) {
+      return res.status(400).json({ error: 'Transaction ID, date, type, and amount are required.' });
+    }
+
+    const tx = await db.get(`SELECT transaction_date FROM employee_transactions WHERE id = ?`, [txnId]);
+    if (!tx) {
+      return res.status(404).json({ error: 'Transaction not found.' });
+    }
+    const activeDate = await getActiveDate();
+    if (tx.transaction_date < activeDate || date < activeDate) {
+      return res.status(403).json({ error: 'Cannot update transactions belonging to a locked/frozen date.' });
+    }
+
+    const val = parseFloat(amount) || 0;
+    if (val <= 0) return res.status(400).json({ error: 'Amount must be positive.' });
+
+    // type: 'Advance Given' → advance_given, anything else → amount_settled
+    const isAdvance = type === 'Advance Given';
+    const advance_given = isAdvance ? val : 0;
+    const amount_settled = !isAdvance ? val : 0;
+
+    await db.run(
+      `UPDATE employee_transactions
+       SET transaction_date = ?, transaction_type = ?, description = ?, advance_given = ?, amount_settled = ?
+       WHERE id = ?`,
+      [date, type, description || '', advance_given, amount_settled, txnId]
+    );
+    res.json({ success: true, message: 'Transaction updated successfully.' });
+  } catch (err) {
+    console.error('Error updating employee transaction:', err.message);
+    res.status(500).json({ error: 'Database error updating employee transaction.' });
+  }
+});
+
+// DELETE /api/employees/transactions/:txnId — Delete an employee transaction
+app.delete('/api/employees/transactions/:txnId', async (req, res) => {
+  try {
+    const { txnId } = req.params;
+    if (!txnId) {
+      return res.status(400).json({ error: 'Transaction ID is required.' });
+    }
+
+    const tx = await db.get(`SELECT transaction_date FROM employee_transactions WHERE id = ?`, [txnId]);
+    if (tx) {
+      const activeDate = await getActiveDate();
+      if (tx.transaction_date < activeDate) {
+        return res.status(403).json({ error: 'Cannot delete transaction from a finalized and locked date.' });
+      }
+    }
+
+    await db.run(`DELETE FROM employee_transactions WHERE id = ?`, [txnId]);
+    res.json({ success: true, message: 'Transaction deleted successfully.' });
+  } catch (err) {
+    console.error('Error deleting employee transaction:', err.message);
+    res.status(500).json({ error: 'Database error deleting employee transaction.' });
+  }
+});
+
+// ── TT (MH-19-CY-5682) Ledger Endpoints ─────────────────────────────────────
+
+// GET /api/tt/transactions — Get statement entries and opening balance for a specific month
+app.get('/api/tt/transactions', async (req, res) => {
+  try {
+    const { month } = req.query; // format 'YYYY-MM'
+    if (!month || !/^\d{4}-\d{2}$/.test(month)) {
+      return res.status(400).json({ error: 'Month parameter in YYYY-MM format is required.' });
+    }
+
+    const rows = await db.all('SELECT * FROM tt_transactions ORDER BY date ASC, id ASC');
+    
+    let running = 0;
+    let firstIndexInMonth = -1;
+    
+    const processed = rows.map((r, idx) => {
+      const amt = parseFloat(r.amount);
+      if (r.type === 'CREDIT') {
+        running += amt;
+      } else if (r.type === 'DEBIT') {
+        running -= amt;
+      }
+      
+      const isTargetMonth = r.date.startsWith(month);
+      if (isTargetMonth && firstIndexInMonth === -1) {
+        firstIndexInMonth = idx;
+      }
+      
+      return {
+        ...r,
+        running_balance: running
+      };
+    });
+    
+    const monthTransactions = processed.filter(r => r.date.startsWith(month));
+    
+    let openingBalance = 0;
+    if (firstIndexInMonth > 0) {
+      openingBalance = processed[firstIndexInMonth - 1].running_balance;
+    } else if (firstIndexInMonth === -1 && processed.length > 0) {
+      let lastTxBefore = null;
+      for (let i = processed.length - 1; i >= 0; i--) {
+        if (processed[i].date < `${month}-01`) {
+          lastTxBefore = processed[i];
+          break;
+        }
+      }
+      if (lastTxBefore) {
+        openingBalance = lastTxBefore.running_balance;
+      }
+    }
+    
+    res.json({
+      transactions: monthTransactions,
+      openingBalance: openingBalance
+    });
+  } catch (err) {
+    console.error('Error fetching TT transactions:', err.message);
+    res.status(500).json({ error: 'Database error fetching transactions.' });
+  }
+});
+
+// POST /api/tt/transactions/manual — Add a manual debit or credit entry
+app.post('/api/tt/transactions/manual', async (req, res) => {
+  try {
+    const { date, type, amount, notes } = req.body;
+    if (!date || !type || amount === undefined || isNaN(parseFloat(amount))) {
+      return res.status(400).json({ error: 'Date, type (DEBIT/CREDIT), and valid amount are required.' });
+    }
+
+    const activeDate = await getActiveDate();
+    if (date < activeDate) {
+      return res.status(403).json({ error: 'This date has been finalized and frozen. TT transactions cannot be added.' });
+    }
+
+    if (type !== 'DEBIT' && type !== 'CREDIT') {
+      return res.status(400).json({ error: 'Type must be DEBIT or CREDIT.' });
+    }
+    const amt = parseFloat(amount);
+    if (amt <= 0) {
+      return res.status(400).json({ error: 'Amount must be positive.' });
+    }
+    const description = type === 'DEBIT' ? 'Manual Debit' : 'Manual Credit';
+    await db.run(
+      `INSERT INTO tt_transactions (date, type, source, amount, description, notes)
+       VALUES (?, ?, 'MANUAL', ?, ?, ?)`,
+      [date, type, amt, description, notes || '']
+    );
+    res.json({ success: true, message: 'Manual entry saved successfully.' });
+  } catch (err) {
+    console.error('Error saving manual TT transaction:', err.message);
+    res.status(500).json({ error: 'Database error saving manual entry.' });
+  }
+});
+
+// POST /api/tt/transactions/settlement — Record monthly settlement (CREDIT) and compute profit
+app.post('/api/tt/transactions/settlement', async (req, res) => {
+  try {
+    const { settlement_month, date, amount, overwrite } = req.body;
+    if (!settlement_month || !/^\d{4}-\d{2}$/.test(settlement_month) || !date || amount === undefined || isNaN(parseFloat(amount))) {
+      return res.status(400).json({ error: 'Settlement month (YYYY-MM), date, and valid amount are required.' });
+    }
+    const amt = parseFloat(amount);
+    if (amt <= 0) {
+      return res.status(400).json({ error: 'Amount must be positive.' });
+    }
+
+    const activeDate = await getActiveDate();
+    if (date < activeDate) {
+      return res.status(403).json({ error: 'This date has been finalized and frozen. TT transactions cannot be added.' });
+    }
+
+    // Check for existing settlement
+    const existing = await db.get(
+      `SELECT * FROM tt_transactions WHERE source = 'SETTLEMENT' AND settlement_month = ?`,
+      [settlement_month]
+    );
+
+    if (existing) {
+      if (existing.date < activeDate) {
+        return res.status(403).json({ error: 'Cannot modify a settlement belonging to a locked/frozen date.' });
+      }
+      if (!overwrite) {
+        return res.status(409).json({
+          error: 'already_exists',
+          message: `A settlement of ₹${Math.round(existing.amount)} is already recorded for ${settlement_month}.`,
+          existingAmount: existing.amount
+        });
+      }
+    }
+
+    // Auto-calculate profit = amount - total debits for the calendar month
+    const debitRow = await db.get(
+      `SELECT SUM(amount) AS total_debits FROM tt_transactions WHERE type = 'DEBIT' AND date LIKE ?`,
+      [`${settlement_month}-%`]
+    );
+    const totalDebits = parseFloat((debitRow && debitRow.total_debits) || '0');
+    const profit = amt - totalDebits;
+
+    if (existing && overwrite) {
+      await db.run(
+        `UPDATE tt_transactions
+         SET date = ?, amount = ?, profit = ?, description = ?
+         WHERE id = ?`,
+        [date, amt, profit, 'Settlement Received', existing.id]
+      );
+    } else {
+      await db.run(
+        `INSERT INTO tt_transactions (date, type, source, amount, profit, description, settlement_month)
+         VALUES (?, 'CREDIT', 'SETTLEMENT', ?, ?, ?, ?)`,
+        [date, amt, profit, 'Settlement Received', settlement_month]
+      );
+    }
+
+    res.json({ success: true, message: 'Settlement recorded successfully.' });
+  } catch (err) {
+    console.error('Error saving settlement:', err.message);
+    res.status(500).json({ error: 'Database error saving settlement.' });
   }
 });
 

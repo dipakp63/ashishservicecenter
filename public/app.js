@@ -2,6 +2,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('readings-form');
   const dateInput = document.getElementById('reading-date');
 
+  // Global active date and closed state
+  let activeDate = '2026-06-01';
+  let isDayClosed = false;
+
   let globalDebtorsList = [];
   async function fetchGlobalDebtorsList() {
     try {
@@ -88,6 +92,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Wire amount input to recalculate live
         row.querySelector('.non-cash-amount-input').addEventListener('input', updateOtherPaymentsCalculations);
+        
+        if (isDayClosed) {
+          row.querySelectorAll('input, select').forEach(el => el.disabled = true);
+        }
+        
         container.appendChild(row);
       }
     } else if (currentCount > targetCount) {
@@ -142,8 +151,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Set default starting date to 2026-05-01 for hard testing setup
-  dateInput.value = '2026-05-01';
+  // Set default starting date to 2026-06-01 for hard testing setup
+  dateInput.value = '2026-06-01';
 
   // Theme Switching Logic
   const themeBtns = document.querySelectorAll('.theme-btn');
@@ -173,9 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Global active date and closed state
-  let activeDate = '2026-05-01';
-  let isDayClosed = false;
+
 
   async function fetchActiveDate() {
     try {
@@ -238,7 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
       set('calc-count-100', window.lastClosedCashData.notes100);
       set('calc-count-50',  window.lastClosedCashData.notes50);
       set('calc-count-20',  window.lastClosedCashData.notes20);
-      set('calc-count-10',  window.lastClosedCashData.notes10);
+      set('calc-count-10',  0);
 
       showView('cash-calc');
     });
@@ -283,10 +290,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (viewPreview) viewPreview.style.display = viewName === 'preview' ? 'block' : 'none';
     viewFinish.style.display = viewName === 'finish' ? 'block' : 'none';
     if (viewGstData) viewGstData.style.display = viewName === 'gst' ? 'block' : 'none';
+    const viewEmployeeManagement = document.getElementById('view-employee-management');
     if (viewEmployeeManagement) viewEmployeeManagement.style.display = viewName === 'employee-management' ? 'block' : 'none';
     
     const viewHpclTracker = document.getElementById('view-hpcl-tracker');
     if (viewHpclTracker) viewHpclTracker.style.display = viewName === 'hpcl' ? 'block' : 'none';
+
+    const viewTtLedger = document.getElementById('view-tt-ledger');
+    if (viewTtLedger) viewTtLedger.style.display = viewName === 'tt-ledger' ? 'block' : 'none';
     
     const viewTankerCalculation = document.getElementById('view-tanker-calculation');
     const viewCashCalculator = document.getElementById('view-cash-calculator');
@@ -325,6 +336,8 @@ document.addEventListener('DOMContentLoaded', () => {
       loadLedgerDebtorSelect();
     } else if (viewName === 'udhari-summary') {
       loadDebtorSummary();
+    } else if (viewName === 'tt-ledger') {
+      loadTtLedger();
     } else if (viewName === 'other') {
       fetchGlobalDebtorsList().then(() => {
         document.querySelectorAll('#other-payments-rows tr').forEach(row => {
@@ -367,6 +380,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const navGst = document.getElementById('nav-gst');
     const navEmployeeManagement = document.getElementById('nav-employee-management');
     const navHpclTracker = document.getElementById('nav-hpcl-tracker');
+    const navTtLedger = document.getElementById('nav-tt-ledger');
     
     const navUdhariMaster = document.getElementById('nav-udhari-master');
     const navUdhariActive = document.getElementById('nav-udhari-active');
@@ -388,7 +402,8 @@ document.addEventListener('DOMContentLoaded', () => {
     else if (viewName === 'gst' && navGst) navGst.classList.add('active');
     else if (viewName === 'employee-management' && navEmployeeManagement) navEmployeeManagement.classList.add('active');
     else if (viewName === 'hpcl' && navHpclTracker) navHpclTracker.classList.add('active');
-    else if (navDayClosing && !['udhari', 'other'].some(pre => viewName.startsWith(pre))) navDayClosing.classList.add('active');
+    else if (viewName === 'tt-ledger' && navTtLedger) navTtLedger.classList.add('active');
+    else if (navDayClosing && !['udhari', 'other', 'tt-ledger'].some(pre => viewName.startsWith(pre))) navDayClosing.classList.add('active');
 
     // Update steps title texts dynamically
     if (hasDecantation) {
@@ -2082,7 +2097,11 @@ document.addEventListener('DOMContentLoaded', () => {
       // Explicitly enable all buttons to allow navigation through frozen days
       const buttons = f.querySelectorAll('button');
       buttons.forEach(btn => {
-        btn.disabled = false;
+        if (isDayClosed && btn.classList.contains('panel-table-btn')) {
+          btn.disabled = true;
+        } else {
+          btn.disabled = false;
+        }
       });
     });
 
@@ -2537,14 +2556,14 @@ document.addEventListener('DOMContentLoaded', () => {
   async function initializeDefaultDate() {
     await fetchActiveDate();
     
-    // Enforce minimum date as May 1, 2026
-    if (activeDate < '2026-05-01') {
-      activeDate = '2026-05-01';
+    // Enforce minimum date as June 1, 2026
+    if (activeDate < '2026-06-01') {
+      activeDate = '2026-06-01';
     }
     
     dateInput.value = activeDate;
     dateInput.max = activeDate;
-    dateInput.min = '2026-05-01';
+    dateInput.min = '2026-06-01';
 
     const formattedDisplay = document.getElementById('formatted-date-display');
     if (formattedDisplay) {
@@ -2665,7 +2684,7 @@ document.addEventListener('DOMContentLoaded', () => {
             set('calc-count-100', c.notes_100);
             set('calc-count-50',  c.notes_50);
             set('calc-count-20',  c.notes_20);
-            set('calc-count-10',  c.notes_10);
+            set('calc-count-10',  0);
           } else {
             // No data — ensure inputs explicitly show 0
             ['calc-count-500','calc-count-200','calc-count-100','calc-count-50','calc-count-20','calc-count-10'].forEach(id => {
@@ -2715,6 +2734,33 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
     });
+
+    const bankDetailNameSelect = document.getElementById('bank-detail-name');
+    const bankDetailReadonlyInput = document.getElementById('bank-detail-readonly');
+
+    const bankAccounts = {
+      "Central Bank CC": "3213073487",
+      "Central Bank Current": "3645185168",
+      "Central Bank Extortion": "3465617138",
+      "Central Bank Rent": "3125126590",
+      "Central Bank-Dipak Patil (3297760743)": "3297760743",
+      "Central Bank-Dipak Patil (3311034209)": "3311034209",
+      "ICICI Bank CC": "010205050800",
+      "ICICI Bank Current": "177705014013"
+    };
+
+    function updateBankAccountNo() {
+      if (bankDetailNameSelect && bankDetailReadonlyInput) {
+        const selectedBank = bankDetailNameSelect.value;
+        bankDetailReadonlyInput.value = bankAccounts[selectedBank] || '';
+      }
+    }
+
+    if (bankDetailNameSelect) {
+      bankDetailNameSelect.addEventListener('change', updateBankAccountNo);
+      bankDetailNameSelect.addEventListener('input', updateBankAccountNo);
+      updateBankAccountNo();
+    }
 
     // Run initial calculation to ensure totals match inputs on page load
     updateCashCalculator();
@@ -3192,7 +3238,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <td style="padding: 0.4rem 0.5rem; text-align: right;">${amountText}</td>
           <td style="padding: 0.4rem 0.75rem; text-align: right; font-weight: 700;">₹ ${tx.running_balance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
           <td style="padding: 0.4rem 0.5rem; text-align: center;">
-            <button class="btn btn-secondary btn-delete-hpcl" data-id="${tx.id}" style="padding: 0.15rem 0.4rem; font-size: 0.65rem; min-height: auto; width: auto; color: var(--danger); border-color: rgba(239, 68, 68, 0.2); margin: 0; line-height: 1;">
+            <button class="btn btn-secondary btn-delete-hpcl" data-id="${tx.id}" data-date="${tx.date}" style="padding: 0.15rem 0.4rem; font-size: 0.65rem; min-height: auto; width: auto; color: var(--danger); border-color: rgba(239, 68, 68, 0.2); margin: 0; line-height: 1;">
               Void 🗑️
             </button>
           </td>
@@ -3204,6 +3250,11 @@ document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('.btn-delete-hpcl').forEach(btn => {
         btn.addEventListener('click', async (e) => {
           const id = btn.getAttribute('data-id');
+          const txDate = btn.getAttribute('data-date');
+          if (isDayClosed || (txDate && txDate < activeDate)) {
+            showToast('Cannot delete transaction from a locked/frozen date.', 'error');
+            return;
+          }
           try {
             const res = await fetch(`/api/hpcl/transaction/${id}`, { method: 'DELETE' });
             if (!res.ok) throw new Error('Failed to delete transaction');
@@ -3229,6 +3280,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const date = document.getElementById('hpcl-credit-date').value;
       const description = document.getElementById('hpcl-credit-desc').value;
       const amount = parseFloat(document.getElementById('hpcl-credit-amount').value);
+      
+      if (isDayClosed || date < activeDate) {
+        showToast('This date is locked/frozen. Credit transactions cannot be added.', 'error');
+        return;
+      }
       
       try {
         const response = await fetch('/api/hpcl/transaction', {
@@ -3258,6 +3314,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const date = document.getElementById('hpcl-debit-date').value;
       const description = document.getElementById('hpcl-debit-desc').value;
       const amount = parseFloat(document.getElementById('hpcl-debit-amount').value);
+      
+      if (isDayClosed || date < activeDate) {
+        showToast('This date is locked/frozen. Debit transactions cannot be added.', 'error');
+        return;
+      }
       
       try {
         const response = await fetch('/api/hpcl/transaction', {
@@ -3795,6 +3856,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       
+      if (isDayClosed || date < activeDate) {
+        showToast('This date is locked/frozen. Credit sales cannot be added.', 'error');
+        return;
+      }
+      
       // Auto-construct description
       let desc = product;
       if (qty > 0 && rate > 0) {
@@ -3858,6 +3924,11 @@ document.addEventListener('DOMContentLoaded', () => {
       
       if (!debtorId || !date || amount <= 0) {
         showToast('Debtor, date, and positive amount are required.', 'warning');
+        return;
+      }
+      
+      if (isDayClosed || date < activeDate) {
+        showToast('This date is locked/frozen. Payments cannot be added.', 'error');
         return;
       }
       
@@ -4198,200 +4269,689 @@ document.addEventListener('DOMContentLoaded', () => {
   initializeDefaultDate();
   updateGlobalOutstandingCard();
   fetchGlobalDebtorsList();
-});
 
+  // ── EMPLOYEE MANAGEMENT ──────────────────────────────────────────────────────
 
-// ── EMPLOYEE MANAGEMENT ────────────────────────────────────────────────────────
+  const navEmployeeManagement = document.getElementById('nav-employee-management');
+  const viewEmployeeManagement = document.getElementById('view-employee-management');
 
-const navEmployeeManagement = document.getElementById('nav-employee-management');
-const viewEmployeeManagement = document.getElementById('view-employee-management');
+  // Modals
+  const modalAddEmployee = document.getElementById('modal-add-employee');
+  const modalEditEmployee = document.getElementById('modal-edit-employee');
+  const modalEmployeeTxn = document.getElementById('modal-employee-txn');
+  const modalEmployeeLedger = document.getElementById('modal-employee-ledger');
+  const modalEmployeeEditTxn = document.getElementById('modal-employee-edit-txn');
 
-// Modals
-const modalAddEmployee = document.getElementById('modal-add-employee');
-const modalEmployeeTxn = document.getElementById('modal-employee-txn');
-const modalEmployeeLedger = document.getElementById('modal-employee-ledger');
+  // Forms
+  const formAddEmployee = document.getElementById('form-add-employee');
+  const formEditEmployee = document.getElementById('form-edit-employee');
+  const formEmployeeTxn = document.getElementById('form-employee-txn');
+  const formEmployeeEditTxn = document.getElementById('form-employee-edit-txn');
 
-// Forms
-const formAddEmployee = document.getElementById('form-add-employee');
-const formEmployeeTxn = document.getElementById('form-employee-txn');
+  // Month state — each month is a fresh ledger; default to current month
+  const _empNow = new Date();
+  const _empCurrMonth = `${_empNow.getFullYear()}-${String(_empNow.getMonth() + 1).padStart(2, '0')}`;
+  const _empPrevD = new Date(_empNow.getFullYear(), _empNow.getMonth() - 1, 1);
+  const _empPrevMonth = `${_empPrevD.getFullYear()}-${String(_empPrevD.getMonth() + 1).padStart(2, '0')}`;
+  let empActiveMonth = _empCurrMonth;
 
-// Navigation
-if (navEmployeeManagement) {
-  navEmployeeManagement.addEventListener('click', (e) => {
-    e.preventDefault();
-    showView('employee-management');
-    fetchEmployees();
-  });
-}
+  function empMonthLabel(ym) {
+    if (!ym) return '';
+    const [y, m] = ym.split('-');
+    return new Date(parseInt(y), parseInt(m) - 1, 1)
+      .toLocaleString('default', { month: 'long', year: 'numeric' });
+  }
 
-// Add Employee Button
-const btnAddEmployee = document.getElementById('btn-add-employee');
-if (btnAddEmployee) {
-  btnAddEmployee.addEventListener('click', () => {
-    document.getElementById('new-emp-name').value = '';
-    document.getElementById('new-emp-mobile').value = '';
-    modalAddEmployee.style.display = 'flex';
-  });
-}
-
-// Add Employee Submit
-if (formAddEmployee) {
-  formAddEmployee.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const name = document.getElementById('new-emp-name').value.trim();
-    const mobile = document.getElementById('new-emp-mobile').value.trim();
-    if (!name) return;
-    
-    try {
-      const res = await fetch('/api/employees', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, mobile })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to add employee');
-      
-      showToast('Employee added successfully', 'success');
-      modalAddEmployee.style.display = 'none';
+  // Navigation
+  if (navEmployeeManagement) {
+    navEmployeeManagement.addEventListener('click', (e) => {
+      e.preventDefault();
+      showView('employee-management');
+      renderEmpMonthTabs();
       fetchEmployees();
+    });
+  }
+
+  // Render month tabs (Prev Month | Current Month)
+  function renderEmpMonthTabs() {
+    const tabContainer = document.getElementById('emp-month-tabs');
+    if (!tabContainer) return;
+    tabContainer.innerHTML = '';
+    [_empPrevMonth, _empCurrMonth].forEach(ym => {
+      const btn = document.createElement('button');
+      btn.className = 'btn ' + (ym === empActiveMonth ? 'btn-primary' : 'btn-secondary');
+      btn.style.cssText = 'padding:0.4rem 1.2rem; font-size:0.85rem; border-radius:2rem; margin-right:0.5rem;';
+      btn.textContent = empMonthLabel(ym);
+      btn.addEventListener('click', () => {
+        empActiveMonth = ym;
+        renderEmpMonthTabs();
+        fetchEmployees();
+      });
+      tabContainer.appendChild(btn);
+    });
+    const title = document.getElementById('emp-month-title');
+    if (title) title.textContent = empMonthLabel(empActiveMonth) + ' — Advance Register';
+  }
+
+  // Add Employee Button
+  const btnAddEmployee = document.getElementById('btn-add-employee');
+  if (btnAddEmployee) {
+    btnAddEmployee.addEventListener('click', () => {
+      document.getElementById('new-emp-name').value = '';
+      document.getElementById('new-emp-mobile').value = '';
+      if (modalAddEmployee) modalAddEmployee.style.display = 'flex';
+    });
+  }
+
+  // Add Employee Form Submit
+  if (formAddEmployee) {
+    formAddEmployee.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('new-emp-name').value.trim();
+      const mobile = document.getElementById('new-emp-mobile').value.trim();
+      if (!name) { showToast('Employee name is required.', 'warning'); return; }
+      try {
+        const res = await fetch('/api/employees', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, mobile })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to add employee');
+        showToast('Employee added successfully', 'success');
+        if (modalAddEmployee) modalAddEmployee.style.display = 'none';
+        fetchEmployees();
+      } catch (err) { showToast(err.message, 'error'); }
+    });
+  }
+
+  // Edit Employee — open modal
+  window.openEditEmployee = function(id, name, mobile) {
+    document.getElementById('edit-emp-id').value = id;
+    document.getElementById('edit-emp-name').value = name;
+    document.getElementById('edit-emp-mobile').value = mobile || '';
+    if (modalEditEmployee) modalEditEmployee.style.display = 'flex';
+  };
+
+  // Edit Employee Form Submit
+  if (formEditEmployee) {
+    formEditEmployee.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('edit-emp-id').value;
+      const name = document.getElementById('edit-emp-name').value.trim();
+      const mobile = document.getElementById('edit-emp-mobile').value.trim();
+      if (!name) { showToast('Employee name is required.', 'warning'); return; }
+      try {
+        const res = await fetch(`/api/employees/${id}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, mobile })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to update employee');
+        showToast('Employee updated successfully', 'success');
+        if (modalEditEmployee) modalEditEmployee.style.display = 'none';
+        fetchEmployees();
+      } catch (err) { showToast(err.message, 'error'); }
+    });
+  }
+
+  // Add Transaction Form Submit
+  if (formEmployeeTxn) {
+    formEmployeeTxn.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('txn-emp-id').value;
+      const date = document.getElementById('txn-emp-date').value;
+      const type = document.getElementById('txn-emp-type').value;
+      const amount = document.getElementById('txn-emp-amount').value;
+      const desc = document.getElementById('txn-emp-desc').value;
+      if (!date || !amount || parseFloat(amount) <= 0) {
+        showToast('Date and a positive amount are required.', 'warning'); return;
+      }
+      if (!date.startsWith(empActiveMonth)) {
+        showToast(`Date must be within ${empMonthLabel(empActiveMonth)}.`, 'warning'); return;
+      }
+      if (isDayClosed || date < activeDate) {
+        showToast('This date is locked/frozen. Employee transactions cannot be added.', 'error');
+        return;
+      }
+      try {
+        const res = await fetch(`/api/employees/${id}/transactions`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ date, type, amount, description: desc })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to add transaction');
+        showToast('Transaction added.', 'success');
+        if (modalEmployeeTxn) modalEmployeeTxn.style.display = 'none';
+        fetchEmployees();
+      } catch (err) { showToast(err.message, 'error'); }
+    });
+  }
+
+  // Fetch & Render Employees for Active Month
+  async function fetchEmployees() {
+    const tbody = document.getElementById('employee-list-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:2rem; color:var(--text-muted);">Loading...</td></tr>';
+    try {
+      const res = await fetch(`/api/employees?month=${empActiveMonth}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load employees');
+
+      // Month totals summary bar (includes opening balance, given, settled, and closing balance)
+      const totalOpening = data.employees.reduce((s, e) => s + Number(e.opening_balance || 0), 0);
+      const totalGiven = data.employees.reduce((s, e) => s + Number(e.month_given || 0), 0);
+      const totalSettled = data.employees.reduce((s, e) => s + Number(e.month_settled || 0), 0);
+      const totalClosing = totalOpening + totalGiven - totalSettled;
+      const summaryEl = document.getElementById('emp-month-summary');
+      if (summaryEl) {
+        summaryEl.innerHTML = `
+          <span style="margin-right:1.5rem;">Total Opening Bal: <strong style="color:var(--danger);">&#8377; ${totalOpening.toLocaleString('en-IN', {minimumFractionDigits:2})}</strong></span>
+          <span style="margin-right:1.5rem;">Total Given: <strong style="color:var(--accent);">&#8377; ${totalGiven.toLocaleString('en-IN', {minimumFractionDigits:2})}</strong></span>
+          <span style="margin-right:1.5rem;">Total Settled: <strong style="color:var(--success);">&#8377; ${totalSettled.toLocaleString('en-IN', {minimumFractionDigits:2})}</strong></span>
+          <span>Net Outstanding (Closing): <strong style="color:${totalClosing > 0.01 ? 'var(--danger)' : 'var(--text-muted)'};">&#8377; ${totalClosing.toLocaleString('en-IN', {minimumFractionDigits:2})}</strong></span>
+        `;
+      }
+
+      tbody.innerHTML = '';
+      if (data.employees.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:3rem; color:var(--text-muted);">No employees found.</td></tr>';
+        return;
+      }
+
+      const fmt = (n) => '&#8377; ' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      data.employees.forEach(emp => {
+        const opening = Number(emp.opening_balance || 0);
+        const given = Number(emp.month_given || 0);
+        const settled = Number(emp.month_settled || 0);
+        const closing = opening + given - settled;
+        const closingStyle = closing > 0.01 ? 'color:var(--danger); font-weight:700;' : closing < -0.01 ? 'color:var(--success); font-weight:700;' : 'color:var(--text-muted);';
+        const safeName = emp.name.replace(/'/g, "\\'");
+        const safeMobile = (emp.mobile || '').replace(/'/g, "\\'");
+
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid rgba(255,255,255,0.04)';
+        tr.innerHTML = `
+          <td style="padding:0.5rem 0.75rem; font-weight:600;">${emp.name}</td>
+          <td style="padding:0.5rem 0.75rem; color:var(--text-muted);">${emp.mobile || '&#8212;'}</td>
+          <td style="padding:0.5rem 0.75rem; text-align:right; color:var(--danger);">${opening > 0.01 ? fmt(opening) : '&#8212;'}</td>
+          <td style="padding:0.5rem 0.75rem; text-align:right; color:var(--accent);">${given > 0.01 ? fmt(given) : '&#8212;'}</td>
+          <td style="padding:0.5rem 0.75rem; text-align:right; color:var(--success);">${settled > 0.01 ? fmt(settled) : '&#8212;'}</td>
+          <td style="padding:0.5rem 0.75rem; text-align:right; ${closingStyle}">${fmt(closing)}</td>
+          <td style="padding:0.5rem 0.75rem; text-align:center;">
+            <button class="btn btn-secondary" style="padding:0.2rem 0.6rem; font-size:0.75rem; margin-right:0.25rem;" onclick="openEditEmployee(${emp.id}, '${safeName}', '${safeMobile}')">Edit</button>
+            <button class="btn btn-secondary" style="padding:0.2rem 0.6rem; font-size:0.75rem; margin-right:0.25rem;" onclick="openEmployeeTxn(${emp.id}, '${safeName}')">+ Txn</button>
+            <button class="btn btn-secondary" style="padding:0.2rem 0.6rem; font-size:0.75rem; margin-right:0.25rem;" onclick="openEmployeeLedger(${emp.id}, '${safeName}')">Ledger</button>
+            <button style="padding:0.2rem 0.6rem; font-size:0.75rem; background:var(--danger); color:#fff; border:none; border-radius:0.4rem; cursor:pointer;" onclick="deleteEmployee(${emp.id}, ${closing})">Del</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
     } catch (err) {
       showToast(err.message, 'error');
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--danger);">${err.message}</td></tr>`;
     }
-  });
-}
+  }
 
-// Fetch Employees List
-async function fetchEmployees() {
-  const tbody = document.getElementById('employee-list-tbody');
-  if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">Loading...</td></tr>';
-  try {
-    const res = await fetch('/api/employees');
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Failed to load employees');
-    
-    tbody.innerHTML = '';
-    if (data.employees.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">No employees found.</td></tr>';
+  // Delete Employee
+  window.deleteEmployee = async function(id, closingBalance) {
+    if (Math.abs(closingBalance) > 0.01) {
+      showToast('Cannot delete employee with outstanding advance.', 'error'); return;
+    }
+    if (!confirm('Delete this employee?')) return;
+    try {
+      const res = await fetch(`/api/employees/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to delete');
+      showToast('Employee deleted.', 'success');
+      fetchEmployees();
+    } catch (err) { showToast(err.message, 'error'); }
+  };
+
+  // Open Transaction Modal
+  window.openEmployeeTxn = function(id, name) {
+    document.getElementById('txn-emp-id').value = id;
+    document.getElementById('txn-emp-name').textContent = name;
+    const globalDateEl = document.getElementById('reading-date');
+    const globalVal = globalDateEl ? globalDateEl.value : '';
+    const defaultDate = (globalVal && globalVal.startsWith(empActiveMonth)) ? globalVal : `${empActiveMonth}-01`;
+    document.getElementById('txn-emp-date').value = defaultDate;
+    document.getElementById('txn-emp-date').min = `${empActiveMonth}-01`;
+    document.getElementById('txn-emp-date').max = `${empActiveMonth}-31`;
+    document.getElementById('txn-emp-amount').value = '';
+    document.getElementById('txn-emp-desc').value = '';
+    if (modalEmployeeTxn) modalEmployeeTxn.style.display = 'flex';
+  };
+
+  // Open Edit Transaction Modal
+  window.openEditEmployeeTxn = function(txnId, empId, empName, date, type, amount, desc) {
+    document.getElementById('edit-txn-id').value = txnId;
+    document.getElementById('edit-txn-emp-id').value = empId;
+    document.getElementById('edit-txn-emp-name').textContent = empName;
+    document.getElementById('edit-txn-date').value = date;
+    document.getElementById('edit-txn-date').min = `${empActiveMonth}-01`;
+    document.getElementById('edit-txn-date').max = `${empActiveMonth}-31`;
+    document.getElementById('edit-txn-type').value = type;
+    document.getElementById('edit-txn-amount').value = amount;
+    document.getElementById('edit-txn-desc').value = desc || '';
+    if (modalEmployeeEditTxn) modalEmployeeEditTxn.style.display = 'flex';
+  };
+
+  // Edit Transaction Submit
+  if (formEmployeeEditTxn) {
+    formEmployeeEditTxn.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const txnId = document.getElementById('edit-txn-id').value;
+      const empId = document.getElementById('edit-txn-emp-id').value;
+      const empName = document.getElementById('edit-txn-emp-name').textContent;
+      const date = document.getElementById('edit-txn-date').value;
+      const type = document.getElementById('edit-txn-type').value;
+      const amount = document.getElementById('edit-txn-amount').value;
+      const desc = document.getElementById('edit-txn-desc').value;
+
+      if (!date || !amount || parseFloat(amount) <= 0) {
+        showToast('Date and a positive amount are required.', 'warning'); return;
+      }
+      if (!date.startsWith(empActiveMonth)) {
+        showToast(`Date must be within ${empMonthLabel(empActiveMonth)}.`, 'warning'); return;
+      }
+      if (isDayClosed || date < activeDate) {
+        showToast('Cannot modify transactions belonging to a locked/frozen date.', 'error');
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/employees/transactions/${txnId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ date, type, amount, description: desc })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to update transaction');
+        showToast('Transaction updated successfully.', 'success');
+        if (modalEmployeeEditTxn) modalEmployeeEditTxn.style.display = 'none';
+        openEmployeeLedger(empId, empName);
+        fetchEmployees();
+      } catch (err) { showToast(err.message, 'error'); }
+    });
+  }
+
+  // Delete Transaction
+  window.deleteEmployeeTxn = async function(txnId, empId, empName, txnDate) {
+    if (isDayClosed || (txnDate && txnDate < activeDate)) {
+      showToast('Cannot delete transaction from a locked/frozen date.', 'error');
       return;
     }
-    
-    data.employees.forEach(emp => {
-      const bal = Number(emp.outstanding_advance || 0);
-      const balStr = bal === 0 ? '₹ 0.00' : '₹ ' + bal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${emp.name}</td>
-        <td>${emp.mobile || '-'}</td>
-        <td style="text-align: right; color: var(--danger); font-weight: 700;">${balStr}</td>
-        <td style="text-align: center;">
-          <button class="btn btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; margin-right: 0.2rem;" onclick="openEmployeeTxn(${emp.id}, '${emp.name}')">Add Txn</button>
-          <button class="btn btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; margin-right: 0.2rem;" onclick="openEmployeeLedger(${emp.id}, '${emp.name}')">Ledger</button>
-          <button class="btn btn-danger" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; background: var(--danger); color: #fff; border: none;" onclick="deleteEmployee(${emp.id}, ${bal})">Delete</button>
-        </td>
-      `;
-      tbody.appendChild(tr);
-    });
-  } catch (err) {
-    showToast(err.message, 'error');
-    tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--danger);">${err.message}</td></tr>`;
-  }
-}
-
-// Delete Employee
-window.deleteEmployee = async function(id, balance) {
-  if (Math.abs(balance) > 0.01) {
-    showToast('Cannot delete employee with outstanding advance balance. Settle the balance first.', 'error');
-    return;
-  }
-  if (!confirm('Are you sure you want to delete this employee?')) return;
-  try {
-    const res = await fetch(`/api/employees/${id}`, { method: 'DELETE' });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Failed to delete');
-    showToast('Employee deleted.', 'success');
-    fetchEmployees();
-  } catch (err) {
-    showToast(err.message, 'error');
-  }
-};
-
-// Open Transaction Modal
-window.openEmployeeTxn = function(id, name) {
-  document.getElementById('txn-emp-id').value = id;
-  document.getElementById('txn-emp-name').textContent = name;
-  document.getElementById('txn-emp-date').value = document.getElementById('global-date').value;
-  document.getElementById('txn-emp-amount').value = '';
-  document.getElementById('txn-emp-desc').value = '';
-  modalEmployeeTxn.style.display = 'flex';
-};
-
-// Add Transaction Submit
-if (formEmployeeTxn) {
-  formEmployeeTxn.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const id = document.getElementById('txn-emp-id').value;
-    const date = document.getElementById('txn-emp-date').value;
-    const type = document.getElementById('txn-emp-type').value;
-    const amount = document.getElementById('txn-emp-amount').value;
-    const desc = document.getElementById('txn-emp-desc').value;
-    
+    if (!confirm('Are you sure you want to delete this transaction?')) return;
     try {
-      const res = await fetch(`/api/employees/${id}/transactions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date, type, amount, description: desc })
+      const res = await fetch(`/api/employees/transactions/${txnId}`, {
+        method: 'DELETE'
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to add transaction');
-      
-      showToast('Transaction added.', 'success');
-      modalEmployeeTxn.style.display = 'none';
+      if (!res.ok) throw new Error(data.error || 'Failed to delete transaction');
+      showToast('Transaction deleted successfully.', 'success');
+      openEmployeeLedger(empId, empName);
       fetchEmployees();
+    } catch (err) { showToast(err.message, 'error'); }
+  };
+
+  // Open Ledger Modal — filtered to active month only, with opening balance carried forward
+  window.openEmployeeLedger = async function(id, name) {
+    const nameEl = document.getElementById('ledger-emp-name');
+    const monthEl = document.getElementById('ledger-emp-month');
+    const tbody = document.getElementById('employee-ledger-tbody');
+    if (nameEl) nameEl.textContent = name;
+    if (monthEl) monthEl.textContent = empMonthLabel(empActiveMonth);
+    if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:2rem;">Loading...</td></tr>';
+    if (modalEmployeeLedger) modalEmployeeLedger.style.display = 'flex';
+
+    try {
+      const res = await fetch(`/api/employees/${id}/transactions?month=${empActiveMonth}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to fetch ledger');
+
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      const openingBalance = Number(data.openingBalance || 0);
+
+      // Render Opening Balance carried-forward row first
+      const openingTr = document.createElement('tr');
+      openingTr.style.background = 'rgba(255,255,255,0.01)';
+      openingTr.style.borderBottom = '1px solid rgba(255,255,255,0.04)';
+      const opBalStyle = openingBalance > 0.01 ? 'color:var(--danger); font-weight:700;' : openingBalance < -0.01 ? 'color:var(--success); font-weight:700;' : 'color:var(--text-muted);';
+      const opGiven = openingBalance > 0.01 ? '&#8377; ' + openingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '&#8212;';
+      const opSettled = openingBalance < -0.01 ? '&#8377; ' + Math.abs(openingBalance).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '&#8212;';
+      
+      openingTr.innerHTML = `
+        <td style="padding:0.45rem 0.75rem; font-style:italic; font-weight:600;">Opening Balance</td>
+        <td style="padding:0.45rem 0.75rem; font-style:italic; color:var(--text-muted);">Carried forward</td>
+        <td style="padding:0.45rem 0.75rem; text-align:right; color:var(--danger);">${opGiven}</td>
+        <td style="padding:0.45rem 0.75rem; text-align:right; color:var(--success);">${opSettled}</td>
+        <td style="padding:0.45rem 0.75rem; text-align:right; ${opBalStyle}">&#8377; ${openingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+        <td style="padding:0.45rem 0.75rem;"></td>
+      `;
+      tbody.appendChild(openingTr);
+
+      if (data.transactions.length === 0) {
+        return; // Only Opening Balance is shown (which is correct)
+      }
+
+      data.transactions.forEach(tx => {
+        const given = tx.advance_given > 0 ? '&#8377; ' + Number(tx.advance_given).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '&#8212;';
+        const settled = tx.amount_settled > 0 ? '&#8377; ' + Number(tx.amount_settled).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '&#8212;';
+        const bal = Number(tx.running_balance);
+        const balStyle = bal > 0.01 ? 'color:var(--danger); font-weight:700;' : bal < -0.01 ? 'color:var(--success); font-weight:700;' : 'color:var(--text-muted);';
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid rgba(255,255,255,0.04)';
+        
+        const safeName = name.replace(/'/g, "\\'");
+        const safeDesc = (tx.description || '').replace(/'/g, "\\'");
+        const amt = tx.advance_given > 0 ? tx.advance_given : tx.amount_settled;
+
+        tr.innerHTML = `
+          <td style="padding:0.45rem 0.75rem;">${formatDate(tx.transaction_date)}</td>
+          <td style="padding:0.45rem 0.75rem;">${tx.transaction_type}${tx.description ? '<br><small style="color:var(--text-muted);">' + tx.description + '</small>' : ''}</td>
+          <td style="padding:0.45rem 0.75rem; text-align:right; color:var(--danger);">${given}</td>
+          <td style="padding:0.45rem 0.75rem; text-align:right; color:var(--success);">${settled}</td>
+          <td style="padding:0.45rem 0.75rem; text-align:right; ${balStyle}">&#8377; ${bal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+          <td style="padding:0.45rem 0.75rem; text-align:center;">
+            <button class="btn btn-secondary" style="padding:0.15rem 0.45rem; font-size:0.75rem; margin-right:0.25rem;" onclick="openEditEmployeeTxn(${tx.id}, ${id}, '${safeName}', '${tx.transaction_date}', '${tx.transaction_type}', ${amt}, '${safeDesc}')">Edit</button>
+            <button style="padding:0.15rem 0.45rem; font-size:0.75rem; background:var(--danger); color:#fff; border:none; border-radius:0.4rem; cursor:pointer;" onclick="deleteEmployeeTxn(${tx.id}, ${id}, '${safeName}', '${tx.transaction_date}')">Del</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
     } catch (err) {
       showToast(err.message, 'error');
+      if (tbody) tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--danger);">${err.message}</td></tr>`;
     }
-  });
-}
+  };
 
-// Open Ledger Modal
-window.openEmployeeLedger = async function(id, name) {
-  document.getElementById('ledger-emp-name').textContent = name;
-  const tbody = document.getElementById('employee-ledger-tbody');
-  tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Loading...</td></tr>';
-  modalEmployeeLedger.style.display = 'flex';
+  // ── END EMPLOYEE MANAGEMENT ───────────────────────────────────────────────────
+
+
+  // ── TT (MH-19-CY-5682) LEDGER ──────────────────────────────────────────────────
+
+  const navTtLedger = document.getElementById('nav-tt-ledger');
+  const ttMonthSelect = document.getElementById('tt-month-select');
+  const ttStatementBody = document.getElementById('tt-statement-body');
+  const modalTtManual = document.getElementById('modal-tt-manual');
+  const modalTtSettlement = document.getElementById('modal-tt-settlement');
+  const formTtManual = document.getElementById('form-tt-manual');
+  const formTtSettlement = document.getElementById('form-tt-settlement');
+  const btnTtManualEntry = document.getElementById('btn-tt-manual-entry');
+  const btnTtRecordSettlement = document.getElementById('btn-tt-record-settlement');
   
-  try {
-    const res = await fetch(`/api/employees/${id}/transactions`);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Failed to fetch ledger');
+  const ttStatOpening = document.getElementById('tt-stat-opening');
+  const ttStatDebits = document.getElementById('tt-stat-debits');
+  const ttStatCredits = document.getElementById('tt-stat-credits');
+  const ttStatClosing = document.getElementById('tt-stat-closing');
+
+  if (navTtLedger) {
+    navTtLedger.addEventListener('click', (e) => {
+      e.preventDefault();
+      showView('tt-ledger');
+    });
+  }
+
+  if (ttMonthSelect) {
+    ttMonthSelect.addEventListener('change', () => {
+      loadTtLedger();
+    });
+  }
+
+  if (btnTtManualEntry) {
+    btnTtManualEntry.addEventListener('click', () => {
+      document.getElementById('tt-manual-date').value = dateInput.value || new Date().toISOString().split('T')[0];
+      document.getElementById('tt-manual-amount').value = '';
+      document.getElementById('tt-manual-notes').value = '';
+      document.getElementById('tt-manual-type').value = 'DEBIT';
+      modalTtManual.style.display = 'flex';
+    });
+  }
+
+  if (btnTtRecordSettlement) {
+    btnTtRecordSettlement.addEventListener('click', () => {
+      const monthVal = ttMonthSelect.value;
+      if (!monthVal) {
+        showToast('Please select a month first.', 'warning');
+        return;
+      }
+      const [year, month] = monthVal.split('-');
+      const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      const monthName = monthNames[parseInt(month, 10) - 1];
+      document.getElementById('tt-settlement-target-month').textContent = `Recording settlement for ${monthName} ${year}`;
+      document.getElementById('tt-settlement-date').value = new Date().toISOString().split('T')[0];
+      document.getElementById('tt-settlement-amount').value = '';
+      modalTtSettlement.style.display = 'flex';
+    });
+  }
+
+  if (formTtManual) {
+    formTtManual.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const date = document.getElementById('tt-manual-date').value;
+      const type = document.getElementById('tt-manual-type').value;
+      const amount = parseFloat(document.getElementById('tt-manual-amount').value);
+      const notes = document.getElementById('tt-manual-notes').value;
+
+      if (!date || !type || isNaN(amount) || amount <= 0) {
+        showToast('Please enter a valid date and positive amount.', 'error');
+        return;
+      }
+
+      if (isDayClosed || date < activeDate) {
+        showToast('This date is locked/frozen. TT transactions cannot be added.', 'error');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/tt/transactions/manual', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ date, type, amount, notes })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showToast(data.message || 'Manual entry saved.', 'success');
+          modalTtManual.style.display = 'none';
+          loadTtLedger();
+        } else {
+          showToast(data.error || 'Failed to save entry.', 'error');
+        }
+      } catch (err) {
+        console.error('Error saving manual entry:', err);
+        showToast('Network error saving entry.', 'error');
+      }
+    });
+  }
+
+  if (formTtSettlement) {
+    formTtSettlement.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const settlement_month = ttMonthSelect.value;
+      const date = document.getElementById('tt-settlement-date').value;
+      const amount = parseFloat(document.getElementById('tt-settlement-amount').value);
+
+      if (!settlement_month || !date || isNaN(amount) || amount <= 0) {
+        showToast('Please fill all required fields.', 'error');
+        return;
+      }
+
+      if (isDayClosed || date < activeDate) {
+        showToast('This date is locked/frozen. TT settlements cannot be added/modified.', 'error');
+        return;
+      }
+
+      async function sendSettlement(overwrite = false) {
+        try {
+          const res = await fetch('/api/tt/transactions/settlement', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ settlement_month, date, amount, overwrite })
+          });
+          
+          if (res.status === 409) {
+            const data = await res.json();
+            const confirmOverwrite = confirm(`${data.message}\nDo you want to edit and replace the existing settlement?`);
+            if (confirmOverwrite) {
+              await sendSettlement(true);
+            }
+            return;
+          }
+
+          const data = await res.json();
+          if (res.ok) {
+            showToast(data.message || 'Settlement recorded.', 'success');
+            modalTtSettlement.style.display = 'none';
+            loadTtLedger();
+          } else {
+            showToast(data.error || 'Failed to save settlement.', 'error');
+          }
+        } catch (err) {
+          console.error('Error saving settlement:', err);
+          showToast('Network error saving settlement.', 'error');
+        }
+      }
+
+      await sendSettlement(false);
+    });
+  }
+
+  function initializeTtMonthSelector() {
+    if (!ttMonthSelect) return;
+    if (ttMonthSelect.children.length > 0) return;
+
+    const startYear = 2026;
+    const startMonth = 4; // May (0-indexed is 4)
     
-    tbody.innerHTML = '';
-    if (data.transactions.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No transactions found.</td></tr>';
-      return;
+    const activeDateObj = new Date((dateInput.value || activeDate) + 'T00:00:00');
+    const endYear = activeDateObj.getFullYear();
+    const endMonth = activeDateObj.getMonth();
+
+    ttMonthSelect.innerHTML = '';
+
+    let curYear = endYear;
+    let curMonth = endMonth;
+
+    while (curYear > startYear || (curYear === startYear && curMonth >= startMonth)) {
+      const monthVal = `${curYear}-${String(curMonth + 1).padStart(2, '0')}`;
+      const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      const label = `${months[curMonth]} ${curYear}`;
+      
+      const opt = document.createElement('option');
+      opt.value = monthVal;
+      opt.textContent = label;
+      ttMonthSelect.appendChild(opt);
+
+      curMonth--;
+      if (curMonth < 0) {
+        curMonth = 11;
+        curYear--;
+      }
+    }
+  }
+
+  async function loadTtLedger() {
+    initializeTtMonthSelector();
+    if (!ttMonthSelect.value) {
+      const activeDateVal = dateInput.value || activeDate;
+      ttMonthSelect.value = activeDateVal.substring(0, 7);
     }
     
-    data.transactions.forEach(tx => {
-      const given = tx.advance_given > 0 ? '₹ ' + Number(tx.advance_given).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-';
-      const settled = tx.amount_settled > 0 ? '₹ ' + Number(tx.amount_settled).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-';
-      const balStr = '₹ ' + Number(tx.running_balance).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${formatDate(tx.transaction_date)}</td>
-        <td>${tx.transaction_type} ${tx.description ? '<br><small style="color:var(--text-muted)">' + tx.description + '</small>' : ''}</td>
-        <td style="text-align: right; color: var(--danger);">${given}</td>
-        <td style="text-align: right; color: var(--success);">${settled}</td>
-        <td style="text-align: right; font-weight: 700;">${balStr}</td>
-      `;
-      tbody.appendChild(tr);
-    });
-  } catch (err) {
-    showToast(err.message, 'error');
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--danger);">${err.message}</td></tr>`;
-  }
-};
+    const selectedMonth = ttMonthSelect.value;
+    if (!selectedMonth) return;
 
-// ── END EMPLOYEE MANAGEMENT ──────────────────────────────────────────────────
+    if (ttStatementBody) {
+      ttStatementBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Loading...</td></tr>';
+    }
+
+    try {
+      const res = await fetch(`/api/tt/transactions?month=${selectedMonth}`);
+      if (!res.ok) {
+        throw new Error('Failed to fetch ledger transactions');
+      }
+      const data = await res.json();
+      const transactions = data.transactions || [];
+      const openingBalance = parseFloat(data.openingBalance || 0);
+
+      let totalDebits = 0;
+      let totalCredits = 0;
+      transactions.forEach(t => {
+        const amt = parseFloat(t.amount);
+        if (t.type === 'DEBIT') {
+          totalDebits += amt;
+        } else {
+          totalCredits += amt;
+        }
+      });
+
+      const closingBalance = openingBalance + totalCredits - totalDebits;
+
+      if (ttStatOpening) ttStatOpening.textContent = `₹ ${Math.round(openingBalance).toLocaleString('en-IN')}`;
+      if (ttStatDebits) ttStatDebits.textContent = `₹ ${Math.round(totalDebits).toLocaleString('en-IN')}`;
+      if (ttStatCredits) ttStatCredits.textContent = `₹ ${Math.round(totalCredits).toLocaleString('en-IN')}`;
+      if (ttStatClosing) ttStatClosing.textContent = `₹ ${Math.round(closingBalance).toLocaleString('en-IN')}`;
+
+      if (ttStatementBody) {
+        if (transactions.length === 0) {
+          ttStatementBody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 1.5rem; color:var(--text-muted); font-style:italic;">No transactions recorded for this month.</td></tr>`;
+          return;
+        }
+
+        let currentBal = openingBalance;
+        let html = '';
+        transactions.forEach(t => {
+          const amt = parseFloat(t.amount);
+          let debitStr = '';
+          let creditStr = '';
+          if (t.type === 'DEBIT') {
+            currentBal -= amt;
+            debitStr = `₹ ${Math.round(amt).toLocaleString('en-IN')}`;
+          } else {
+            currentBal += amt;
+            creditStr = `₹ ${Math.round(amt).toLocaleString('en-IN')}`;
+          }
+
+          let desc = t.description;
+          if (t.source === 'SETTLEMENT' && t.profit !== null) {
+            desc = `Settlement Received (Profit: ₹${Math.round(t.profit).toLocaleString('en-IN')})`;
+          }
+
+          if (t.notes) {
+            desc += `<div style="font-size:0.75rem; color:var(--text-muted); font-style:italic; margin-top:0.15rem;">Note: ${escapeHtml(t.notes)}</div>`;
+          }
+
+          html += `
+            <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.03);">
+              <td style="padding: 0.65rem 0.85rem;">${formatDate(t.date)}</td>
+              <td style="padding: 0.65rem 0.85rem;">${desc}</td>
+              <td class="text-right" style="padding: 0.65rem 0.85rem; text-align:right; color:var(--danger); font-weight:600;">${debitStr}</td>
+              <td class="text-right" style="padding: 0.65rem 0.85rem; text-align:right; color:var(--success); font-weight:600;">${creditStr}</td>
+              <td class="text-right" style="padding: 0.65rem 0.85rem; text-align:right; font-weight:700; color:var(--text-main);">₹ ${Math.round(currentBal).toLocaleString('en-IN')}</td>
+            </tr>
+          `;
+        });
+        ttStatementBody.innerHTML = html;
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Error loading ledger: ' + err.message, 'error');
+      if (ttStatementBody) {
+        ttStatementBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--danger);">${err.message}</td></tr>`;
+      }
+    }
+  }
+
+  function escapeHtml(text) {
+    if (!text) return '';
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+});

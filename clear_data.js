@@ -60,6 +60,21 @@ const db = new sqlite3.Database(dbPath, (err) => {
       if (err) console.error('Error seeding hpcl_opening_balance:', err.message);
       else console.log('Seeded default opening balance ₹4,700.');
     });
+
+    db.run('DELETE FROM employee_transactions', (err) => {
+      if (err) console.error('Error clearing employee_transactions:', err.message);
+      else console.log('Table "employee_transactions" cleared.');
+    });
+
+    db.run('DELETE FROM employees', (err) => {
+      if (err) console.error('Error clearing employees:', err.message);
+      else console.log('Table "employees" cleared.');
+    });
+
+    db.run('DELETE FROM tt_transactions', (err) => {
+      if (err) console.error('Error clearing tt_transactions:', err.message);
+      else console.log('Table "tt_transactions" cleared.');
+    });
   });
 
   db.close((err) => {

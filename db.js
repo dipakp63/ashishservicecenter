@@ -266,6 +266,20 @@ async function initDatabase() {
         FOREIGN KEY (employee_id) REFERENCES employees(id)
       )`,
     },
+    {
+      sql: `CREATE TABLE IF NOT EXISTS tt_transactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        date TEXT NOT NULL,
+        type TEXT NOT NULL,
+        source TEXT NOT NULL,
+        amount REAL NOT NULL,
+        profit REAL DEFAULT NULL,
+        description TEXT NOT NULL,
+        notes TEXT,
+        settlement_month TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`,
+    },
   ];
 
   // Run each CREATE TABLE individually (batch may not work well with DDL on all backends)

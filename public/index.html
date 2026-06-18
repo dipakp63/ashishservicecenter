@@ -54,7 +54,7 @@
             </a>
           </li>
           <li>
-            <a href="#" class="nav-item" id="nav-tt-tracker" onclick="alert('Feature coming soon!')">
+            <a href="#" class="nav-item" id="nav-tt-ledger">
               <span class="nav-icon">🚛</span>
               <span class="nav-text">TT (MH-19-CY-5682)</span>
             </a>
@@ -1356,11 +1356,13 @@
                       style="padding: 0.45rem 0.65rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.4rem; color: var(--text-main); font-size: 0.9rem; width: 100%; cursor: pointer; appearance: auto;">
                       <option value="">— Select Account Type —</option>
                       <option value="Central Bank CC">Central Bank CC</option>
-                      <option value="Central Bank Current Account">Central Bank Current Account</option>
-                      <option value="ICICI Bank Current Account">ICICI Bank Current Account</option>
+                      <option value="Central Bank Current">Central Bank Current</option>
+                      <option value="Central Bank Extortion">Central Bank Extortion</option>
+                      <option value="Central Bank Rent">Central Bank Rent</option>
+                      <option value="Central Bank-Dipak Patil (3297760743)">Central Bank-Dipak Patil (3297760743)</option>
+                      <option value="Central Bank-Dipak Patil (3311034209)">Central Bank-Dipak Patil (3311034209)</option>
                       <option value="ICICI Bank CC">ICICI Bank CC</option>
-                      <option value="Central Bank Rent Account">Central Bank Rent Account</option>
-                      <option value="Central Bank Extortion Account">Central Bank Extortion Account</option>
+                      <option value="ICICI Bank Current">ICICI Bank Current</option>
                     </select>
                   </div>
 
@@ -1368,15 +1370,15 @@
                   <div style="display: flex; flex-direction: column; gap: 0.3rem;">
                     <label style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.04em;">Account No</label>
                     <input type="hidden" id="bank-detail-date">
-                    <input type="text" id="bank-detail-readonly" readonly value="84920183749201"
+                    <input type="text" id="bank-detail-readonly" readonly value=""
                       style="padding: 0.45rem 0.65rem; background: rgba(0,0,0,0.1); border: 1px solid rgba(255,255,255,0.05); border-radius: 0.4rem; color: var(--text-main); font-size: 1.2rem; font-weight: bold; width: 100%; cursor: not-allowed; font-family: monospace;">
                   </div>
 
                   <!-- Account Description -->
                   <div style="display: flex; flex-direction: column; gap: 0.3rem;">
                     <label style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.04em;">Account Description</label>
-                    <textarea id="bank-detail-description" rows="2" placeholder="Enter details..."
-                      style="padding: 0.45rem 0.65rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.4rem; color: var(--text-main); font-size: 0.9rem; width: 100%; resize: vertical;"></textarea>
+                    <textarea id="bank-detail-description" rows="2" placeholder="Details will be added later" readonly
+                      style="padding: 0.45rem 0.65rem; background: rgba(0,0,0,0.1); border: 1px solid rgba(255,255,255,0.05); border-radius: 0.4rem; color: var(--text-muted); font-size: 0.9rem; width: 100%; resize: none; cursor: not-allowed;"></textarea>
                   </div>
 
                   <p style="font-size: 0.65rem; color: var(--text-muted); margin-top: auto; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.05); line-height: 1.4;">
@@ -2053,9 +2055,6 @@
         </div>
       </div>
 
-    </div>
-  </div>
-
   
       <!-- VIEW: Employee Management -->
       <div id="view-employee-management" class="view-pane" style="display: none;">
@@ -2087,8 +2086,86 @@
           </div>
         </section>
       </div>
+<!-- VIEW: TT (MH-19-CY-5682) Ledger -->
+      <div id="view-tt-ledger" class="view-pane" style="display: none;">
+        <header class="content-header">
+          <div class="header-title-wrapper">
+            <h1>TT Ledger (MH-19-CY-5682)</h1>
+            <p class="subtitle">Record manual entries and track monthly settlements & profit</p>
+          </div>
+        </header>
 
-      <!-- Employee Modal: Add Employee -->
+        <main class="content-body" style="flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 0.75rem; width: 100%;">
+          <!-- Stat Cards Row -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 0.5rem; max-width: 960px; width: 100%; margin-inline: auto;">
+            <!-- Opening Balance -->
+            <div class="card" style="padding: 0.75rem 1rem; border-left: 4px solid var(--text-muted); background: rgba(255,255,255,0.01); display: flex; flex-direction: column; justify-content: center;">
+              <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.02em;">Opening Balance</span>
+              <span id="tt-stat-opening" style="font-size: 1.2rem; font-weight: 700; color: var(--text-main); margin-top: 0.15rem;">₹ 0</span>
+            </div>
+            <!-- Total Debits -->
+            <div class="card" style="padding: 0.75rem 1rem; border-left: 4px solid var(--danger); background: rgba(239, 68, 68, 0.02); display: flex; flex-direction: column; justify-content: center;">
+              <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.02em;">Total Debits</span>
+              <span id="tt-stat-debits" style="font-size: 1.2rem; font-weight: 700; color: var(--danger); margin-top: 0.15rem;">₹ 0</span>
+            </div>
+            <!-- Total Credits -->
+            <div class="card" style="padding: 0.75rem 1rem; border-left: 4px solid var(--success); background: rgba(16, 185, 129, 0.02); display: flex; flex-direction: column; justify-content: center;">
+              <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.02em;">Total Credits</span>
+              <span id="tt-stat-credits" style="font-size: 1.2rem; font-weight: 700; color: var(--success); margin-top: 0.15rem;">₹ 0</span>
+            </div>
+            <!-- Closing Balance -->
+            <div class="card" style="padding: 0.75rem 1rem; border-left: 4px solid var(--accent); background: rgba(6, 182, 212, 0.02); display: flex; flex-direction: column; justify-content: center;">
+              <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.02em;">Closing Balance</span>
+              <span id="tt-stat-closing" style="font-size: 1.2rem; font-weight: 700; color: var(--accent); margin-top: 0.15rem;">₹ 0</span>
+            </div>
+          </div>
+
+          <!-- Month Selector & Action Buttons Filter Row -->
+          <section class="card filter-card" style="margin-bottom: 0.5rem; padding: 0.75rem 1.25rem; max-width: 960px; width: 100%; margin-inline: auto;">
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem;">
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <label for="tt-month-select" style="margin-bottom: 0; font-weight: 600; font-size: 0.9rem; color: var(--text-muted);">Select Month</label>
+                <select id="tt-month-select" style="padding: 0.4rem 0.85rem; border-radius: 0.5rem; background: rgba(8,12,22,0.8); border: 1px solid rgba(255,255,255,0.1); color: var(--text-main); font-weight: 600; font-size: 0.9rem; cursor: pointer; height: auto;">
+                  <!-- Automatically populated -->
+                </select>
+              </div>
+              <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                <button type="button" id="btn-tt-manual-entry" class="btn btn-secondary" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.85rem; font-size: 0.85rem; min-height: auto;">
+                  <span>✏️</span> Manual Entry
+                </button>
+                <button type="button" id="btn-tt-record-settlement" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.85rem; font-size: 0.85rem; min-height: auto;">
+                  <span>📥</span> Record Settlement
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <!-- Ledger Table -->
+          <section class="card" style="max-width: 960px; width: 100%; margin-inline: auto; padding: 0; display: flex; flex-direction: column; overflow: hidden; flex: 1; min-height: 0;">
+            <div style="overflow-y: auto; flex: 1;">
+              <table class="table" style="width: 100%; border-collapse: collapse;">
+                <thead>
+                  <tr style="border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.01);">
+                    <th style="padding: 0.75rem 0.85rem; text-align: left; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Date</th>
+                    <th style="padding: 0.75rem 0.85rem; text-align: left; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Particulars</th>
+                    <th style="padding: 0.75rem 0.85rem; text-align: right; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Debit (₹)</th>
+                    <th style="padding: 0.75rem 0.85rem; text-align: right; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Credit (₹)</th>
+                    <th style="padding: 0.75rem 0.85rem; text-align: right; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Running Balance (₹)</th>
+                  </tr>
+                </thead>
+                <tbody id="tt-statement-body">
+                  <tr><td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-muted);">Select a month to view TT ledger.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </main>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Employee Modal: Add Employee -->
       <div id="modal-add-employee" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); z-index: 100; align-items: center; justify-content: center;">
         <div class="modal-content card" style="width: 90%; max-width: 400px; padding: 1.5rem;">
           <h2 style="margin-top: 0; margin-bottom: 1rem; font-size: 1.2rem;">Add New Employee</h2>
@@ -2174,7 +2251,65 @@
       </div>
 
 
+
+  <!-- TT Modal: Manual Entry -->
+  <div id="modal-tt-manual" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); z-index: 100; align-items: center; justify-content: center;">
+    <div class="modal-content card" style="width: 90%; max-width: 400px; padding: 1.5rem;">
+      <h2 style="margin-top: 0; margin-bottom: 1rem; font-size: 1.2rem; font-family: var(--font-header);">Record TT Manual Entry</h2>
+      <form id="form-tt-manual" style="display: flex; flex-direction: column; gap: 1rem;">
+        <div class="form-group">
+          <label for="tt-manual-date" style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;">Date</label>
+          <input type="date" id="tt-manual-date" class="form-control" required style="width: 100%; padding: 0.5rem; height: 38px;">
+        </div>
+        <div class="form-group">
+          <label for="tt-manual-type" style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;">Transaction Type</label>
+          <select id="tt-manual-type" class="form-control" required style="width: 100%; padding: 0.5rem; height: 38px; appearance: auto;">
+            <option value="DEBIT">Debit (Payment/Expense)</option>
+            <option value="CREDIT">Credit (Receipt/Settlement)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="tt-manual-amount" style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;">Amount (₹)</label>
+          <input type="number" id="tt-manual-amount" class="form-control" required step="0.01" min="0.01" placeholder="0.00" style="width: 100%; padding: 0.5rem; height: 38px; font-weight: 600;">
+        </div>
+        <div class="form-group">
+          <label for="tt-manual-notes" style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;">Notes / Remarks</label>
+          <input type="text" id="tt-manual-notes" class="form-control" placeholder="e.g. Toll, driver expense" style="width: 100%; padding: 0.5rem; height: 38px;">
+        </div>
+        <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 0.5rem;">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-tt-manual').style.display='none'">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Entry</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TT Modal: Record Settlement -->
+  <div id="modal-tt-settlement" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); z-index: 100; align-items: center; justify-content: center;">
+    <div class="modal-content card" style="width: 90%; max-width: 400px; padding: 1.5rem;">
+      <h2 style="margin-top: 0; margin-bottom: 0.25rem; font-size: 1.2rem; font-family: var(--font-header);">Record TT Settlement</h2>
+      <p id="tt-settlement-target-month" style="font-size: 0.8rem; color: var(--accent); font-weight: 600; margin-bottom: 1rem;"></p>
+      <form id="form-tt-settlement" style="display: flex; flex-direction: column; gap: 1rem;">
+        <div class="form-group">
+          <label for="tt-settlement-date" style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;">Date Received</label>
+          <input type="date" id="tt-settlement-date" class="form-control" required style="width: 100%; padding: 0.5rem; height: 38px;">
+        </div>
+        <div class="form-group">
+          <label for="tt-settlement-amount" style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;">Settlement Amount (₹)</label>
+          <input type="number" id="tt-settlement-amount" class="form-control" required step="0.01" min="0.01" placeholder="0.00" style="width: 100%; padding: 0.5rem; height: 38px; font-weight: 600;">
+        </div>
+        <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; margin: 0 0 0.5rem 0;">
+          * Note: Monthly profit is auto-computed as (Settlement Amount - Total Debits for that month).
+        </p>
+        <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 0.5rem;">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-tt-settlement').style.display='none'">Cancel</button>
+          <button type="submit" class="btn btn-primary">Record Settlement</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- JS Logic -->
-  <script src="app.js?v=1.6.1"></script>
+  <script src="app.js?v=1.6.5"></script>
 </body>
 </html>
