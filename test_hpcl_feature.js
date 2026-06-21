@@ -57,6 +57,7 @@ const runTest = async () => {
   await new Promise((resolve, reject) => {
     db.serialize(() => {
       db.run('DELETE FROM hpcl_transactions');
+      db.run('DELETE FROM cash_reconciliation');
       db.run('DELETE FROM hpcl_config', (err) => {
         if (err) reject(err);
         else resolve();
@@ -89,7 +90,7 @@ const runTest = async () => {
     // 3. Post a CREDIT (RTGS Load) of ₹1,400,000
     console.log('\nPosting Credit (RTGS of ₹1400000)...');
     const creditPayload = {
-      date: '2026-05-01',
+      date: '2026-06-01',
       description: 'RTGS Ref: 12345',
       type: 'CREDIT',
       amount: 1400000
@@ -107,7 +108,7 @@ const runTest = async () => {
     // 4. Post a DEBIT (Tanker Invoice Allotment) of ₹1,000,000
     console.log('\nPosting Debit (Tanker Invoice of ₹1000000)...');
     const debitPayload = {
-      date: '2026-05-02',
+      date: '2026-06-02',
       description: 'Tanker Invoice No: 987654',
       type: 'DEBIT',
       amount: 1000000
@@ -125,7 +126,7 @@ const runTest = async () => {
     // 5. Post 10 more transactions (total 12) to test limit to last 10 entries descending
     console.log('\nPosting 10 additional transactions...');
     for (let i = 1; i <= 10; i++) {
-      const dateStr = `2026-05-${String(i + 2).padStart(2, '0')}`;
+      const dateStr = `2026-06-${String(i + 2).padStart(2, '0')}`;
       const payload = {
         date: dateStr,
         description: `Auto Tx ${i}`,
@@ -203,7 +204,7 @@ const runTest = async () => {
     console.log('\nLedger after voiding transaction:');
     allTxAfter.forEach(t => console.log(`ID: ${t.id} | Date: ${t.date} | ${t.type} | Amount: ${t.amount} | Bal: ${t.running_balance}`));
 
-    // Find the next transaction in the sequence (Auto Tx 1, which was a Debit of 10000 on 2026-05-03)
+    // Find the next transaction in the sequence (Auto Tx 1, which was a Debit of 10000 on 2026-06-03)
     const nextTx = allTxAfter.find(t => t.description === 'Auto Tx 1');
     console.log(`Checking recalculated balance of ${nextTx.description}. Expected: 1394700, Got: ${nextTx.running_balance}`);
     if (nextTx.running_balance !== 1394700) {

@@ -161,6 +161,7 @@ async function initDatabase() {
         closing_dip REAL NOT NULL,
         closing_stock REAL NOT NULL,
         decantation_qty REAL DEFAULT 0,
+        tt_decantation INTEGER DEFAULT 0,
         PRIMARY KEY (date, tank_id)
       )`,
     },
@@ -274,9 +275,35 @@ async function initDatabase() {
         source TEXT NOT NULL,
         amount REAL NOT NULL,
         profit REAL DEFAULT NULL,
+        particular1 TEXT DEFAULT '',
         description TEXT NOT NULL,
         notes TEXT,
         settlement_month TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`,
+    },
+    {
+      sql: `CREATE TABLE IF NOT EXISTS tt_trips (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        date TEXT NOT NULL,
+        start_km REAL NOT NULL,
+        end_km REAL NOT NULL,
+        run_km REAL NOT NULL,
+        fuel_filled REAL DEFAULT 0,
+        load_qty REAL DEFAULT 0,
+        driver_name TEXT,
+        notes TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`,
+    },
+    {
+      sql: `CREATE TABLE IF NOT EXISTS tt_entries (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        date TEXT NOT NULL,
+        trip_for TEXT NOT NULL,
+        entry_given TEXT NOT NULL,
+        remark1 TEXT,
+        remark2 TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )`,
     },
@@ -288,6 +315,23 @@ async function initDatabase() {
   }
 
   console.log('[DB] All tables initialized successfully.');
+
+  // ── Migrations ────────────────────────────────────────────────────────────
+  // Add particular1 column to tt_transactions if it doesn't exist
+  try {
+    await run(`ALTER TABLE tt_transactions ADD COLUMN particular1 TEXT DEFAULT ''`);
+    console.log('[DB] Migration: added particular1 column to tt_transactions.');
+  } catch (e) {
+    // Column already exists — ignore
+  }
+
+  // Add tt_decantation column to tank_readings if it doesn't exist
+  try {
+    await run(`ALTER TABLE tank_readings ADD COLUMN tt_decantation INTEGER DEFAULT 0`);
+    console.log('[DB] Migration: added tt_decantation column to tank_readings.');
+  } catch (e) {
+    // Column already exists — ignore
+  }
 }
 
 module.exports = { run, get, all, batch, initDatabase };

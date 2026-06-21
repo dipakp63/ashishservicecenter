@@ -446,10 +446,12 @@ app.post('/api/tanks', async (req, res) => {
         });
       }
 
+      const ttDecant = parseInt(t.tt_decantation, 10) || 0;
+
       statements.push({
-        sql: `INSERT OR REPLACE INTO tank_readings (date, tank_id, tank_name, product, capacity, opening_dip, opening_stock, closing_dip, closing_stock, decantation_qty)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        args: [date, t.tank_id, t.tank_name, t.product, capacity, openingDip, opening, dip, closing, decantation],
+        sql: `INSERT OR REPLACE INTO tank_readings (date, tank_id, tank_name, product, capacity, opening_dip, opening_stock, closing_dip, closing_stock, decantation_qty, tt_decantation)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [date, t.tank_id, t.tank_name, t.product, capacity, openingDip, opening, dip, closing, decantation, ttDecant],
       });
     }
 
@@ -592,6 +594,7 @@ app.post('/api/cash', async (req, res) => {
       notes_500, notes_200, notes_100, notes_50, notes_20, notes_10, coins,
       coins_20, coins_10, coins_5, coins_2, coins_1,
       non_cash_payments,
+      decantation_yes, own_tanker_yes, own_tanker_amount
     } = req.body;
 
     if (
@@ -609,6 +612,13 @@ app.post('/api/cash', async (req, res) => {
     if (date > activeDate) {
       return res.status(400).json({ error: `This date is locked. You must complete calculations for ${activeDate} first.` });
     }
+
+    // Fetch diesel rate for the date to compute fuel filled (liters) if own tanker decants
+    const rateRow = await db.get(
+      `SELECT rate_diesel FROM rates WHERE date = ?`,
+      [date]
+    );
+    const rateDiesel = rateRow ? parseFloat(rateRow.rate_diesel) : 0;
 
     // Build transaction batch
     const statements = [
@@ -647,10 +657,6 @@ app.post('/api/cash', async (req, res) => {
       },
       {
         sql: `DELETE FROM employee_transactions WHERE transaction_date = ? AND description LIKE 'Employee Payment (Day Closing)%'`,
-        args: [date],
-      },
-      {
-        sql: `DELETE FROM tt_transactions WHERE date = ? AND source = 'AUTO'`,
         args: [date],
       },
     ];
@@ -693,18 +699,65 @@ app.post('/api/cash', async (req, res) => {
           }
         }
 
-        // Automatically create a DEBIT transaction in the TT ledger if this is a MH-19-CY-5682 type payment
-        if (type === 'MH-19-CY-5682' && amount > 0) {
-          statements.push({
-            sql: `INSERT INTO tt_transactions (date, type, source, amount, description)
-                  VALUES (?, 'DEBIT', 'AUTO', ?, 'Day Closing Debit')`,
-            args: [date, amount],
-          });
-        }
       }
     });
 
     await db.batch(statements);
+
+    // Hook for MH-19-CY-5682 Ledger and Fuel Filled auto-log
+    if (decantation_yes && own_tanker_yes) {
+      const ownAmt = parseFloat(own_tanker_amount) || 0;
+      if (ownAmt > 0) {
+        // Part 2: Push Debit entry to TT Ledger if it doesn't exist
+        const existingDebit = await db.get(
+          `SELECT id FROM tt_transactions WHERE date = ? AND type = 'DEBIT' LIMIT 1`,
+          [date]
+        );
+        if (!existingDebit) {
+          await db.run(
+            `INSERT INTO tt_transactions (date, type, source, amount, description)
+             VALUES (?, 'DEBIT', 'AUTO', ?, 'Day Closing Auto-Entry')`,
+            [date, ownAmt]
+          );
+        }
+
+        // Part 3: Calculate and push Fuel Filled (L) to tt_trips if not already present
+        if (rateDiesel > 0) {
+          const liters = parseFloat((ownAmt / rateDiesel).toFixed(2));
+          const completedTrip = await db.get(
+            `SELECT id, fuel_filled FROM tt_trips WHERE end_km > start_km ORDER BY date DESC, id DESC LIMIT 1`
+          );
+
+          if (completedTrip) {
+            if (!(completedTrip.fuel_filled > 0)) {
+              await db.run(
+                `UPDATE tt_trips SET fuel_filled = ? WHERE id = ?`,
+                [liters, completedTrip.id]
+              );
+            }
+          } else {
+            const existingTrip = await db.get(
+              `SELECT id, fuel_filled FROM tt_trips WHERE date = ? LIMIT 1`,
+              [date]
+            );
+            if (existingTrip) {
+              if (!(existingTrip.fuel_filled > 0)) {
+                await db.run(
+                  `UPDATE tt_trips SET fuel_filled = ? WHERE id = ?`,
+                  [liters, existingTrip.id]
+                );
+              }
+            } else {
+              await db.run(
+                `INSERT INTO tt_trips (date, start_km, end_km, run_km, fuel_filled, load_qty, driver_name, notes)
+                 VALUES (?, 0, 0, 0, ?, 0, '', 'Auto-logged from Day Closing')`,
+                [date, liters]
+              );
+            }
+          }
+        }
+      }
+    }
 
     // End-of-month check to automatically trigger GST report
     if (isLastDayOfMonth(date)) {
@@ -1146,10 +1199,7 @@ app.post('/api/debtor-transactions', async (req, res) => {
       return res.status(400).json({ error: 'Debtor, date, and transaction type are required.' });
     }
 
-    const activeDate = await getActiveDate();
-    if (transaction_date < activeDate) {
-      return res.status(403).json({ error: 'This date has been finalized and frozen. Debtor transactions cannot be added.' });
-    }
+    // Bypassed lock validation for Category B debtor transactions
 
     if (transaction_type !== 'DEBIT' && transaction_type !== 'CREDIT') {
       return res.status(400).json({ error: 'Transaction type must be DEBIT or CREDIT.' });
@@ -1196,7 +1246,7 @@ app.get('/api/debtors/:id/transactions', async (req, res) => {
     }
 
     const rows = await db.all(`
-      SELECT id, transaction_date, transaction_type, description, debit_amount, credit_amount
+      SELECT id, transaction_date, transaction_type, description, debit_amount, credit_amount, remarks
       FROM debtor_transactions
       WHERE debtor_id = ?
       ORDER BY transaction_date ASC, id ASC
@@ -1219,6 +1269,40 @@ app.get('/api/debtors/:id/transactions', async (req, res) => {
   } catch (err) {
     console.error('[Udhari] Error fetching debtor ledger:', err.message);
     res.status(500).json({ error: 'Database error fetching ledger.' });
+  }
+});
+
+// PUT /api/debtor-transactions/:id — Update debtor transaction details
+app.put('/api/debtor-transactions/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { transaction_date, description, debit_amount, credit_amount, remarks } = req.body;
+
+    if (!transaction_date) {
+      return res.status(400).json({ error: 'Transaction date is required.' });
+    }
+
+    const tx = await db.get(`SELECT transaction_date FROM debtor_transactions WHERE id = ?`, [id]);
+    if (!tx) {
+      return res.status(404).json({ error: 'Transaction not found.' });
+    }
+
+    // Bypassed lock validation for Category B debtor transactions
+
+    const parsedDebit = parseFloat(debit_amount) || 0;
+    const parsedCredit = parseFloat(credit_amount) || 0;
+
+    await db.run(
+      `UPDATE debtor_transactions
+       SET transaction_date = ?, description = ?, debit_amount = ?, credit_amount = ?, remarks = ?
+       WHERE id = ?`,
+      [transaction_date, description || '', parsedDebit, parsedCredit, remarks || '', id]
+    );
+
+    res.json({ success: true, message: 'Transaction updated successfully.' });
+  } catch (err) {
+    console.error('[Udhari] Error updating debtor transaction:', err.message);
+    res.status(500).json({ error: 'Database error updating transaction.' });
   }
 });
 
@@ -1275,22 +1359,28 @@ app.get('/api/employees', async (req, res) => {
     const month = (req.query.month && /^\d{4}-\d{2}$/.test(req.query.month))
       ? req.query.month : defaultMonth;
 
-    const startOfMonth = `${month}-01`;
+    // Prune logic: Keep employee transactions for last two months only
+    const activeDate = await getActiveDate();
+    const [y, m] = activeDate.split('-');
+    const limitDate = new Date(Date.UTC(parseInt(y), parseInt(m) - 1, 1));
+    limitDate.setUTCMonth(limitDate.getUTCMonth() - 1);
+    const limitStr = `${limitDate.getUTCFullYear()}-${String(limitDate.getUTCMonth() + 1).padStart(2, '0')}-01`;
+    await db.run('DELETE FROM employee_transactions WHERE transaction_date < ?', [limitStr]);
+
     const rows = await db.all(`
       SELECT 
         e.id, 
         e.name, 
         e.mobile, 
         e.is_active,
-        COALESCE((SELECT COALESCE(SUM(advance_given), 0) - COALESCE(SUM(amount_settled), 0) FROM employee_transactions
-          WHERE employee_id = e.id AND transaction_date < ?), 0) AS opening_balance,
+        0 AS opening_balance,
         COALESCE((SELECT SUM(advance_given) FROM employee_transactions
           WHERE employee_id = e.id AND strftime('%Y-%m', transaction_date) = ?), 0) AS month_given,
         COALESCE((SELECT SUM(amount_settled) FROM employee_transactions
           WHERE employee_id = e.id AND strftime('%Y-%m', transaction_date) = ?), 0) AS month_settled
       FROM employees e
       ORDER BY e.name ASC
-    `, [startOfMonth, month, month]);
+    `, [month, month]);
 
     res.json({ employees: rows, month });
   } catch (err) {
@@ -1353,15 +1443,6 @@ app.put('/api/employees/:id', async (req, res) => {
 app.delete('/api/employees/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const balanceRow = await db.get(`
-      SELECT COALESCE(SUM(advance_given), 0) - COALESCE(SUM(amount_settled), 0) AS outstanding
-      FROM employee_transactions WHERE employee_id = ?
-    `, [id]);
-    const balance = parseFloat((balanceRow && balanceRow.outstanding) || 0);
-    if (Math.abs(balance) > 0.005) {
-      return res.status(400).json({ error: 'Cannot delete employee with outstanding advance balance.' });
-    }
-
     const activeDate = await getActiveDate();
     const lockedTx = await db.get(`
       SELECT id FROM employee_transactions 
@@ -1371,7 +1452,6 @@ app.delete('/api/employees/:id', async (req, res) => {
     if (lockedTx) {
       return res.status(403).json({ error: 'Cannot delete employee with transaction history in finalized/locked dates.' });
     }
-
     await db.run(`DELETE FROM employee_transactions WHERE employee_id = ?`, [id]);
     const result = await db.run(`DELETE FROM employees WHERE id = ?`, [id]);
     if (result.rowsAffected === 0) return res.status(404).json({ error: 'Employee not found.' });
@@ -1392,24 +1472,16 @@ app.get('/api/employees/:id/transactions', async (req, res) => {
     const month = (req.query.month && /^\d{4}-\d{2}$/.test(req.query.month))
       ? req.query.month : defaultMonth;
 
-    const startOfMonth = `${month}-01`;
-    
-    // Fetch opening balance prior to the selected month
-    const openingRow = await db.get(`
-      SELECT COALESCE(SUM(advance_given), 0) - COALESCE(SUM(amount_settled), 0) AS opening_balance
-      FROM employee_transactions
-      WHERE employee_id = ? AND transaction_date < ?
-    `, [id, startOfMonth]);
-    const openingBalance = openingRow ? parseFloat(openingRow.opening_balance || 0) : 0;
+    const openingBalance = 0;
 
     const rows = await db.all(`
-      SELECT id, transaction_date, transaction_type, description, advance_given, amount_settled
+      SELECT id, transaction_date, transaction_type, description, advance_given, amount_settled, remarks
       FROM employee_transactions WHERE employee_id = ?
         AND strftime('%Y-%m', transaction_date) = ?
       ORDER BY transaction_date ASC, id ASC
     `, [id, month]);
 
-    // Running balance starts from opening balance (carried forward)
+    // Running balance starts from opening balance (carried forward, which is always 0)
     let runningBalance = openingBalance;
     const transactions = rows.map(row => {
       runningBalance += (row.advance_given || 0) - (row.amount_settled || 0);
@@ -1431,10 +1503,7 @@ app.post('/api/employees/:id/transactions', async (req, res) => {
       return res.status(400).json({ error: 'Employee, date, transaction type, and amount are required.' });
     }
 
-    const activeDate = await getActiveDate();
-    if (date < activeDate) {
-      return res.status(403).json({ error: 'This date has been finalized and frozen. Employee transactions cannot be added.' });
-    }
+    // Bypassed lock validation for Category B employee transactions
 
     const val = parseFloat(amount) || 0;
     if (val <= 0) return res.status(400).json({ error: 'Amount must be positive.' });
@@ -1460,33 +1529,38 @@ app.post('/api/employees/:id/transactions', async (req, res) => {
 app.put('/api/employees/transactions/:txnId', async (req, res) => {
   try {
     const { txnId } = req.params;
-    const { date, type, amount, description } = req.body;
-    if (!txnId || !date || !type || amount === undefined) {
-      return res.status(400).json({ error: 'Transaction ID, date, type, and amount are required.' });
+    const { date, type, amount, description, remarks, advance_given, amount_settled } = req.body;
+    if (!txnId || !date) {
+      return res.status(400).json({ error: 'Transaction ID and date are required.' });
     }
 
     const tx = await db.get(`SELECT transaction_date FROM employee_transactions WHERE id = ?`, [txnId]);
     if (!tx) {
       return res.status(404).json({ error: 'Transaction not found.' });
     }
-    const activeDate = await getActiveDate();
-    if (tx.transaction_date < activeDate || date < activeDate) {
-      return res.status(403).json({ error: 'Cannot update transactions belonging to a locked/frozen date.' });
+    // Bypassed lock validation for Category B employee transactions
+
+    let final_given = 0;
+    let final_settled = 0;
+    let final_type = type;
+
+    if (advance_given !== undefined && amount_settled !== undefined) {
+      final_given = parseFloat(advance_given) || 0;
+      final_settled = parseFloat(amount_settled) || 0;
+      final_type = final_given > 0 ? 'Advance Given' : 'Advance Settled';
+    } else {
+      const val = parseFloat(amount) || 0;
+      if (val <= 0) return res.status(400).json({ error: 'Amount must be positive.' });
+      const isAdvance = type === 'Advance Given';
+      final_given = isAdvance ? val : 0;
+      final_settled = !isAdvance ? val : 0;
     }
-
-    const val = parseFloat(amount) || 0;
-    if (val <= 0) return res.status(400).json({ error: 'Amount must be positive.' });
-
-    // type: 'Advance Given' → advance_given, anything else → amount_settled
-    const isAdvance = type === 'Advance Given';
-    const advance_given = isAdvance ? val : 0;
-    const amount_settled = !isAdvance ? val : 0;
 
     await db.run(
       `UPDATE employee_transactions
-       SET transaction_date = ?, transaction_type = ?, description = ?, advance_given = ?, amount_settled = ?
+       SET transaction_date = ?, transaction_type = ?, description = ?, advance_given = ?, amount_settled = ?, remarks = ?
        WHERE id = ?`,
-      [date, type, description || '', advance_given, amount_settled, txnId]
+      [date, final_type, description || '', final_given, final_settled, remarks || '', txnId]
     );
     res.json({ success: true, message: 'Transaction updated successfully.' });
   } catch (err) {
@@ -1503,13 +1577,7 @@ app.delete('/api/employees/transactions/:txnId', async (req, res) => {
       return res.status(400).json({ error: 'Transaction ID is required.' });
     }
 
-    const tx = await db.get(`SELECT transaction_date FROM employee_transactions WHERE id = ?`, [txnId]);
-    if (tx) {
-      const activeDate = await getActiveDate();
-      if (tx.transaction_date < activeDate) {
-        return res.status(403).json({ error: 'Cannot delete transaction from a finalized and locked date.' });
-      }
-    }
+    // Bypassed lock validation for Category B employee transactions
 
     await db.run(`DELETE FROM employee_transactions WHERE id = ?`, [txnId]);
     res.json({ success: true, message: 'Transaction deleted successfully.' });
@@ -1589,10 +1657,7 @@ app.post('/api/tt/transactions/manual', async (req, res) => {
       return res.status(400).json({ error: 'Date, type (DEBIT/CREDIT), and valid amount are required.' });
     }
 
-    const activeDate = await getActiveDate();
-    if (date < activeDate) {
-      return res.status(403).json({ error: 'This date has been finalized and frozen. TT transactions cannot be added.' });
-    }
+    // Bypassed lock validation for Category B TT transactions
 
     if (type !== 'DEBIT' && type !== 'CREDIT') {
       return res.status(400).json({ error: 'Type must be DEBIT or CREDIT.' });
@@ -1626,11 +1691,6 @@ app.post('/api/tt/transactions/settlement', async (req, res) => {
       return res.status(400).json({ error: 'Amount must be positive.' });
     }
 
-    const activeDate = await getActiveDate();
-    if (date < activeDate) {
-      return res.status(403).json({ error: 'This date has been finalized and frozen. TT transactions cannot be added.' });
-    }
-
     // Check for existing settlement
     const existing = await db.get(
       `SELECT * FROM tt_transactions WHERE source = 'SETTLEMENT' AND settlement_month = ?`,
@@ -1638,9 +1698,6 @@ app.post('/api/tt/transactions/settlement', async (req, res) => {
     );
 
     if (existing) {
-      if (existing.date < activeDate) {
-        return res.status(403).json({ error: 'Cannot modify a settlement belonging to a locked/frozen date.' });
-      }
       if (!overwrite) {
         return res.status(409).json({
           error: 'already_exists',
@@ -1677,6 +1734,344 @@ app.post('/api/tt/transactions/settlement', async (req, res) => {
   } catch (err) {
     console.error('Error saving settlement:', err.message);
     res.status(500).json({ error: 'Database error saving settlement.' });
+  }
+});
+
+// GET /api/tt/entries — Fetch entries for a specific month (YYYY-MM)
+app.get('/api/tt/entries', async (req, res) => {
+  try {
+    const { month } = req.query; // YYYY-MM
+    if (!month || !/^\d{4}-\d{2}$/.test(month)) {
+      return res.status(400).json({ error: 'Month parameter in YYYY-MM format is required.' });
+    }
+    
+    const entries = await db.all(
+      `SELECT * FROM tt_entries WHERE date LIKE ? ORDER BY date ASC, id ASC`,
+      [`${month}-%`]
+    );
+
+    res.json({ success: true, entries: entries });
+  } catch (err) {
+    console.error('Error fetching TT entries:', err.message);
+    res.status(500).json({ error: 'Database error fetching entries.' });
+  }
+});
+
+// POST /api/tt/entries — Log a new trip entry
+app.post('/api/tt/entries', async (req, res) => {
+  try {
+    const { date, trip_for, entry_given, remark1, remark2 } = req.body;
+    if (!date) {
+      return res.status(400).json({ error: 'Date is required.' });
+    }
+    // Bypassed lock validation for Category B TT entries
+    if (!trip_for || !entry_given) {
+      return res.status(400).json({ error: 'Trip For and Entry Given are required.' });
+    }
+
+    await db.run(
+      `INSERT INTO tt_entries (date, trip_for, entry_given, remark1, remark2)
+       VALUES (?, ?, ?, ?, ?)`,
+      [date, trip_for, entry_given, remark1 || '', remark2 || '']
+    );
+
+    res.json({ success: true, message: 'Entry recorded successfully.' });
+  } catch (err) {
+    console.error('Error saving TT entry:', err.message);
+    res.status(500).json({ error: 'Database error saving entry.' });
+  }
+});
+
+// PUT /api/tt/entries/:id — Edit an entry inline
+app.put('/api/tt/entries/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { date, trip_for, entry_given, remark1, remark2 } = req.body;
+
+    if (!date || !trip_for || !entry_given) {
+      return res.status(400).json({ error: 'Date, Trip For, and Entry Given are required.' });
+    }
+
+    // Bypassed lock validation for Category B TT entries
+
+    await db.run(
+      `UPDATE tt_entries 
+       SET date = ?, trip_for = ?, entry_given = ?, remark1 = ?, remark2 = ?
+       WHERE id = ?`,
+      [date, trip_for, entry_given, remark1 || '', remark2 || '', id]
+    );
+
+    res.json({ success: true, message: 'Entry updated successfully.' });
+  } catch (err) {
+    console.error('Error updating TT entry:', err.message);
+    res.status(500).json({ error: 'Database error updating entry.' });
+  }
+});
+
+// DELETE /api/tt/entries/:id — Delete an entry
+app.delete('/api/tt/entries/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    // Bypassed lock validation for Category B TT entries
+
+    await db.run(`DELETE FROM tt_entries WHERE id = ?`, [id]);
+    res.json({ success: true, message: 'Entry deleted successfully.' });
+  } catch (err) {
+    console.error('Error deleting TT entry:', err.message);
+    res.status(500).json({ error: 'Database error deleting entry.' });
+  }
+});
+
+// GET /api/tt/trips — Fetch trips for a specific month (YYYY-MM)
+app.get('/api/tt/trips', async (req, res) => {
+  try {
+    const { month } = req.query; // YYYY-MM
+    if (!month || !/^\d{4}-\d{2}$/.test(month)) {
+      return res.status(400).json({ error: 'Month parameter in YYYY-MM format is required.' });
+    }
+    
+    const trips = await db.all(
+      `SELECT * FROM tt_trips WHERE date LIKE ? ORDER BY date ASC, id ASC`,
+      [`${month}-%`]
+    );
+
+    const totals = await db.get(
+      `SELECT COUNT(id) AS total_trips, SUM(run_km) AS total_run, SUM(fuel_filled) AS total_fuel
+       FROM tt_trips WHERE date LIKE ? AND end_km > start_km AND fuel_filled > 0`,
+      [`${month}-%`]
+    );
+
+    res.json({
+      trips: trips,
+      totalTrips: totals.total_trips || 0,
+      totalRun: totals.total_run || 0,
+      totalFuel: totals.total_fuel || 0
+    });
+  } catch (err) {
+    console.error('Error fetching TT trips:', err.message);
+    res.status(500).json({ error: 'Database error fetching trips.' });
+  }
+});
+
+// POST /api/tt/trips/decant-log — Auto-log trip from Day Closing Decantation
+app.post('/api/tt/trips/decant-log', async (req, res) => {
+  try {
+    const { date, km_reading } = req.body;
+    if (!date) {
+      return res.status(400).json({ error: 'Date is required.' });
+    }
+    // Bypassed lock validation for Category B TT decant-log
+    const K = parseFloat(km_reading);
+    if (isNaN(K)) {
+      return res.status(400).json({ error: 'Kilometer reading is required.' });
+    }
+
+    // Check if we already have an auto-logged trip for this date
+    const existingTrip = await db.get(
+      `SELECT id, start_km FROM tt_trips WHERE date = ? AND notes = ? LIMIT 1`,
+      [date, 'Auto-logged from Decantation Details']
+    );
+
+    if (existingTrip) {
+      // Find the trip before this existing trip to update its closing reading
+      const prevTrip = await db.get(
+        `SELECT id, start_km FROM tt_trips WHERE id < ? ORDER BY id DESC LIMIT 1`,
+        [existingTrip.id]
+      );
+      if (prevTrip) {
+        const prevRunKm = K - prevTrip.start_km;
+        await db.run(
+          `UPDATE tt_trips SET end_km = ?, run_km = ? WHERE id = ?`,
+          [K, prevRunKm, prevTrip.id]
+        );
+      }
+      
+      // Update the existing trip
+      await db.run(
+        `UPDATE tt_trips SET start_km = ?, end_km = ?, run_km = 0, fuel_filled = 0, load_qty = 14000 WHERE id = ?`,
+        [K, K, existingTrip.id]
+      );
+    } else {
+      // Find the previous latest trip in the database
+      const prevTrip = await db.get(
+        `SELECT id, start_km FROM tt_trips ORDER BY date DESC, id DESC LIMIT 1`
+      );
+      if (prevTrip) {
+        const prevRunKm = K - prevTrip.start_km;
+        await db.run(
+          `UPDATE tt_trips SET end_km = ?, run_km = ? WHERE id = ?`,
+          [K, prevRunKm, prevTrip.id]
+        );
+      }
+
+      // Insert new trip for the active day
+      await db.run(
+        `INSERT INTO tt_trips (date, start_km, end_km, run_km, fuel_filled, load_qty, driver_name, notes)
+         VALUES (?, ?, ?, 0, 0, 14000, '', ?)`,
+        [date, K, K, 'Auto-logged from Decantation Details']
+      );
+    }
+
+    res.json({ success: true, message: 'Decantation trip logged successfully.' });
+  } catch (err) {
+    console.error('Error logging decantation trip:', err.message);
+    res.status(500).json({ error: 'Database error logging decantation trip.' });
+  }
+});
+
+// POST /api/tt/trips — Log a new journey/trip for the tanker
+app.post('/api/tt/trips', async (req, res) => {
+  try {
+    const { date, start_km, end_km, fuel_filled, load_qty, driver_name, notes } = req.body;
+    if (!date) {
+      return res.status(400).json({ error: 'Date is required.' });
+    }
+    // Bypassed lock validation for Category B TT trips
+
+    let startKm = parseFloat(start_km);
+    let endKm = parseFloat(end_km);
+    
+    if (isNaN(startKm)) {
+      const lastTrip = await db.get(`SELECT end_km FROM tt_trips ORDER BY date DESC, id DESC LIMIT 1`);
+      startKm = lastTrip ? parseFloat(lastTrip.end_km) : 0;
+    }
+    
+    if (isNaN(endKm)) {
+      return res.status(400).json({ error: 'End KM reading is required.' });
+    }
+    
+    const runKm = endKm - startKm;
+    const fuelFilled = parseFloat(fuel_filled) || 0;
+    const loadQty = parseFloat(load_qty) || 0;
+
+    await db.run(
+      `INSERT INTO tt_trips (date, start_km, end_km, run_km, fuel_filled, load_qty, driver_name, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [date, startKm, endKm, runKm, fuelFilled, loadQty, driver_name || '', notes || '']
+    );
+
+    res.json({ success: true, message: 'Trip recorded successfully.' });
+  } catch (err) {
+    console.error('Error saving TT trip:', err.message);
+    res.status(500).json({ error: 'Database error saving trip.' });
+  }
+});
+
+// PUT /api/tt/trips/:id — Edit a trip inline
+app.put('/api/tt/trips/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { date, start_km, end_km, fuel_filled, load_qty, driver_name, notes } = req.body;
+    
+    const startKm = parseFloat(start_km);
+    const endKm = parseFloat(end_km);
+    if (isNaN(startKm) || isNaN(endKm)) {
+      return res.status(400).json({ error: 'Valid Start KM and End KM are required.' });
+    }
+    const runKm = endKm - startKm;
+    const fuelFilled = parseFloat(fuel_filled) || 0;
+    const loadQty = parseFloat(load_qty) || 0;
+
+    // Bypassed lock validation for Category B TT trips
+
+    await db.run(
+      `UPDATE tt_trips 
+       SET date = ?, start_km = ?, end_km = ?, run_km = ?, fuel_filled = ?, load_qty = ?, driver_name = ?, notes = ?
+       WHERE id = ?`,
+      [date, startKm, endKm, runKm, fuelFilled, loadQty, driver_name || '', notes || '', id]
+    );
+
+    res.json({ success: true, message: 'Trip updated successfully.' });
+  } catch (err) {
+    console.error('Error updating TT trip:', err.message);
+    res.status(500).json({ error: 'Database error updating trip.' });
+  }
+});
+
+// DELETE /api/tt/trips/:id — Remove a trip
+app.delete('/api/tt/trips/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    // Bypassed lock validation for Category B TT trips
+
+    await db.run(`DELETE FROM tt_trips WHERE id = ?`, [id]);
+    res.json({ success: true, message: 'Trip deleted successfully.' });
+  } catch (err) {
+    console.error('Error deleting TT trip:', err.message);
+    res.status(500).json({ error: 'Database error deleting trip.' });
+  }
+});
+
+// PUT /api/tt/transactions/:id — Edit a ledger transaction inline
+app.put('/api/tt/transactions/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { date, description, type, amount, notes } = req.body;
+    
+    if (!date || !type || amount === undefined || isNaN(parseFloat(amount))) {
+      return res.status(400).json({ error: 'Date, type, and valid amount are required.' });
+    }
+    
+    const amt = parseFloat(amount);
+    if (type !== 'DEBIT' && type !== 'CREDIT') {
+      return res.status(400).json({ error: 'Type must be DEBIT or CREDIT.' });
+    }
+
+    // Bypassed lock validation for Category B TT transactions
+
+    await db.run(
+      `UPDATE tt_transactions
+       SET date = ?, description = ?, type = ?, amount = ?, notes = ?
+       WHERE id = ?`,
+      [date, description || '', type, amt, notes || '', id]
+    );
+
+    res.json({ success: true, message: 'Transaction updated successfully.' });
+  } catch (err) {
+    console.error('Error updating TT transaction:', err.message);
+    res.status(500).json({ error: 'Database error updating transaction.' });
+  }
+});
+
+// DELETE /api/tt/transactions/:id — Delete a ledger transaction
+app.delete('/api/tt/transactions/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    // Bypassed lock validation for Category B TT transactions
+
+    await db.run(`DELETE FROM tt_transactions WHERE id = ?`, [id]);
+    res.json({ success: true, message: 'Transaction deleted successfully.' });
+  } catch (err) {
+    console.error('Error deleting TT transaction:', err.message);
+    res.status(500).json({ error: 'Database error deleting transaction.' });
+  }
+});
+
+// GET /api/tt/average — Compute fuel efficiency stats (last 10 trips average & trip-wise listing)
+app.get('/api/tt/average', async (req, res) => {
+  try {
+    const last10 = await db.all(
+      `SELECT run_km, fuel_filled FROM tt_trips WHERE run_km > 0 AND fuel_filled > 0 ORDER BY date DESC, id DESC LIMIT 10`
+    );
+    let last10Run = 0;
+    let last10Fuel = 0;
+    last10.forEach(t => {
+      last10Run += t.run_km || 0;
+      last10Fuel += t.fuel_filled || 0;
+    });
+    const last10Average = last10Fuel > 0 ? (last10Run / last10Fuel) : 0;
+
+    const trips = await db.all(
+      `SELECT date, start_km, end_km, run_km, fuel_filled FROM tt_trips ORDER BY date DESC, id DESC`
+    );
+
+    res.json({
+      last10Average: last10Average,
+      trips: trips
+    });
+  } catch (err) {
+    console.error('Error fetching TT average:', err.message);
+    res.status(500).json({ error: 'Database error fetching average data.' });
   }
 });
 

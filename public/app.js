@@ -32,6 +32,33 @@ document.addEventListener('DOMContentLoaded', () => {
     select.value = currentVal;
   }
 
+  let globalEmployeesList = [];
+  async function fetchGlobalEmployeesList() {
+    try {
+      const res = await fetch('/api/employees');
+      if (res.ok) {
+        const data = await res.json();
+        globalEmployeesList = data.employees || [];
+      }
+    } catch (err) {
+      console.error('Failed to fetch global employees:', err);
+    }
+  }
+
+  function populateRowEmployeeSelect(select) {
+    const currentVal = select.value;
+    select.innerHTML = '<option value="">— Select Employee —</option>';
+    globalEmployeesList.forEach(e => {
+      if (e.is_active === 1) {
+        const opt = document.createElement('option');
+        opt.value = e.id;
+        opt.textContent = e.name;
+        select.appendChild(opt);
+      }
+    });
+    select.value = currentVal;
+  }
+
   // Dynamic row generation for non-cash payments
   function adjustNonCashRows(targetCount) {
     const container = document.getElementById('other-payments-rows');
@@ -63,6 +90,9 @@ document.addEventListener('DOMContentLoaded', () => {
             <select class="non-cash-debtor-select" style="display: none; width: 100%; padding: 0.4rem; font-size: 0.95rem; height: 38px; border-radius: 0.35rem; appearance: auto;">
               <option value="">— Select Debtor —</option>
             </select>
+            <select class="non-cash-employee-select" style="display: none; width: 100%; padding: 0.4rem; font-size: 0.95rem; height: 38px; border-radius: 0.35rem; appearance: auto;">
+              <option value="">— Select Employee —</option>
+            </select>
           </td>
           <td style="padding: 0.5rem;">
             <input type="number" class="non-cash-amount-input" placeholder="0.00" min="0" step="0.01" style="width: 100%; padding: 0.4rem 0.6rem; text-align: right; font-size: 0.95rem; height: 38px; font-weight: 600; border-radius: 0.35rem;">
@@ -73,15 +103,23 @@ document.addEventListener('DOMContentLoaded', () => {
         const typeSelect = row.querySelector('.non-cash-type-input');
         const descInput = row.querySelector('.non-cash-desc-input');
         const debtorSelect = row.querySelector('.non-cash-debtor-select');
+        const employeeSelect = row.querySelector('.non-cash-employee-select');
         
         typeSelect.addEventListener('change', () => {
           if (typeSelect.value === 'Old Credit') {
             descInput.style.display = 'none';
             debtorSelect.style.display = 'block';
+            employeeSelect.style.display = 'none';
             populateRowDebtorSelect(debtorSelect);
+          } else if (typeSelect.value === 'Employee') {
+            descInput.style.display = 'none';
+            debtorSelect.style.display = 'none';
+            employeeSelect.style.display = 'block';
+            populateRowEmployeeSelect(employeeSelect);
           } else {
             descInput.style.display = 'block';
             debtorSelect.style.display = 'none';
+            employeeSelect.style.display = 'none';
             if (typeSelect.value === 'Fresh Credit') {
               descInput.placeholder = "Enter new customer name (mandatory)";
             } else {
@@ -275,9 +313,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnDsrNext = document.getElementById('btn-dsr-next');
   const btnBackToDecantationOrTankFromDsr = document.getElementById('btn-back-to-decantation-or-tank-from-dsr');
 
+  window.showView = showView;
   function showView(viewName) {
     document.body.setAttribute('data-active-view', viewName);
-    const hasDecantation = document.querySelector('input[name="decantation-toggle"]:checked').value === 'yes';
+    const decantValObj = document.querySelector('input[name="decantation-toggle"]:checked');
+    const hasDecantation = decantValObj ? decantValObj.value === 'yes' : false;
 
     viewDuCalc.style.display = viewName === 'du' ? 'block' : 'none';
     viewNozzleTesting.style.display = viewName === 'testing' ? 'block' : 'none';
@@ -292,6 +332,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (viewGstData) viewGstData.style.display = viewName === 'gst' ? 'block' : 'none';
     const viewEmployeeManagement = document.getElementById('view-employee-management');
     if (viewEmployeeManagement) viewEmployeeManagement.style.display = viewName === 'employee-management' ? 'block' : 'none';
+    const viewEmployeeLedger = document.getElementById('view-employee-ledger');
+    if (viewEmployeeLedger) viewEmployeeLedger.style.display = viewName === 'employee-ledger' ? 'block' : 'none';
     
     const viewHpclTracker = document.getElementById('view-hpcl-tracker');
     if (viewHpclTracker) viewHpclTracker.style.display = viewName === 'hpcl' ? 'block' : 'none';
@@ -339,20 +381,58 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (viewName === 'tt-ledger') {
       loadTtLedger();
     } else if (viewName === 'other') {
-      fetchGlobalDebtorsList().then(() => {
+      const decantValObj = document.querySelector('input[name="decantation-toggle"]:checked');
+      const ownValObj = document.querySelector('input[name="tt-decantation-toggle"]:checked');
+      const decantYes = decantValObj ? decantValObj.value === 'yes' : false;
+      const ownYes = ownValObj ? ownValObj.value === 'yes' : false;
+
+      if (decantYes && ownYes) {
+        const typeInputs = document.querySelectorAll('.non-cash-type-input');
+        const descInputs = document.querySelectorAll('.non-cash-desc-input');
+        if (typeInputs.length > 1) {
+          const typeSelect = typeInputs[1];
+          const descInput = descInputs[1];
+          if (typeSelect) {
+            typeSelect.value = 'MH-19-CY-5682';
+            typeSelect.dispatchEvent(new Event('change'));
+            if (descInput && (!descInput.value || descInput.value.trim() === '')) {
+              descInput.value = 'MH-19-CY-5682';
+            }
+          }
+        }
+      }
+
+      Promise.all([fetchGlobalDebtorsList(), fetchGlobalEmployeesList()]).then(() => {
         document.querySelectorAll('#other-payments-rows tr').forEach(row => {
           const typeSelect = row.querySelector('.non-cash-type-input');
           const debtorSelect = row.querySelector('.non-cash-debtor-select');
+          const employeeSelect = row.querySelector('.non-cash-employee-select');
           const descInput = row.querySelector('.non-cash-desc-input');
-          if (typeSelect && typeSelect.value === 'Credit') {
-            if (descInput) descInput.style.display = 'none';
-            if (debtorSelect) {
-              debtorSelect.style.display = 'block';
-              populateRowDebtorSelect(debtorSelect);
+          if (typeSelect) {
+            if (typeSelect.value === 'Old Credit') {
+              if (descInput) descInput.style.display = 'none';
+              if (debtorSelect) {
+                debtorSelect.style.display = 'block';
+                populateRowDebtorSelect(debtorSelect);
+              }
+              if (employeeSelect) employeeSelect.style.display = 'none';
+            } else if (typeSelect.value === 'Employee') {
+              if (descInput) descInput.style.display = 'none';
+              if (debtorSelect) debtorSelect.style.display = 'none';
+              if (employeeSelect) {
+                employeeSelect.style.display = 'block';
+                populateRowEmployeeSelect(employeeSelect);
+              }
+            } else {
+              if (descInput) descInput.style.display = 'block';
+              if (debtorSelect) debtorSelect.style.display = 'none';
+              if (employeeSelect) employeeSelect.style.display = 'none';
             }
           }
         });
+        enforceFreezeState();
       });
+      updateOtherPaymentsCalculations();
     }
 
     // Submenu management
@@ -374,7 +454,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Update active nav
-    document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => item.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
     const navTankerCalc = document.getElementById('nav-tanker-calc');
     const navCashCalc = document.getElementById('nav-cash-calc');
     const navGst = document.getElementById('nav-gst');
@@ -580,6 +660,7 @@ document.addEventListener('DOMContentLoaded', () => {
           testInput.value = parseFloat(testQty).toFixed(3);
           testInput.disabled = false; // Keep Step 2 inputs editable
         });
+        updateTestingTotals();
       } else {
         // No saved readings for today: load opening readings from yesterday's closing
         if (openingData && openingData.length === 6) {
@@ -642,10 +723,12 @@ document.addEventListener('DOMContentLoaded', () => {
           opening_stock: t.opening_stock,
           closing_dip: t.closing_dip,
           closing_stock: t.closing_stock,
-          decantation_qty: t.decantation_qty || 0
+          decantation_qty: t.decantation_qty || 0,
+          tt_decantation: t.tt_decantation || 0
         }));
 
         let hasDecantation = false;
+        let ownDecantVal = 0;
         savedTanks.forEach(t => {
           const openingDipInput = document.getElementById(`tank-${t.tank_id}-opening-dip`);
           const openingStockInput = document.getElementById(`tank-${t.tank_id}-opening`);
@@ -667,6 +750,9 @@ document.addEventListener('DOMContentLoaded', () => {
           if (t.decantation_qty > 0) {
             hasDecantation = true;
           }
+          if (t.tt_decantation) {
+            ownDecantVal = t.tt_decantation;
+          }
           const loadInput = document.getElementById(`load-${t.product.toLowerCase()}`);
           if (loadInput) {
             loadInput.value = parseFloat(t.decantation_qty || 0).toFixed(0);
@@ -681,6 +767,32 @@ document.addEventListener('DOMContentLoaded', () => {
           document.querySelector('input[name="decantation-toggle"][value="no"]').checked = true;
           if (nextBtn) nextBtn.innerHTML = 'Next Step: DSR Reconciliation ➔';
         }
+
+        // Restore own decantation question (MH-19-CY-5682)
+        const ownTankerToggleVal = ownDecantVal === 1 ? 'yes' : (ownDecantVal === 0 && savedTanks && savedTanks.length > 0 ? 'no' : 'yes');
+        const ownTankerKmVal = localStorage.getItem('own_tanker_km_' + selectedDate) || '';
+        
+        const ttYesRadio = document.querySelector('input[name="tt-decantation-toggle"][value="yes"]');
+        const ttNoRadio = document.querySelector('input[name="tt-decantation-toggle"][value="no"]');
+        if (ownTankerToggleVal === 'yes') {
+          if (ttYesRadio) ttYesRadio.checked = true;
+        } else {
+          if (ttNoRadio) ttNoRadio.checked = true;
+        }
+        
+        const container = document.getElementById('own-tanker-km-container');
+        const kmInput = document.getElementById('own-tanker-km');
+        if (container && kmInput) {
+          if (ownTankerToggleVal === 'yes') {
+            container.style.display = 'flex';
+            kmInput.value = ownTankerKmVal;
+            kmInput.setAttribute('required', 'true');
+          } else {
+            container.style.display = 'none';
+            kmInput.value = '';
+            kmInput.removeAttribute('required');
+          }
+        }
       } else {
         // Reset decantation toggles
         document.querySelector('input[name="decantation-toggle"][value="no"]').checked = true;
@@ -690,6 +802,19 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('load-diesel').value = '0';
         document.getElementById('load-power').value = '0';
         currentDecantation = { Petrol: 0, Diesel: 0, poWer: 0 };
+
+        // Reset own decantation question to YES by default
+        const ttYesRadio = document.querySelector('input[name="tt-decantation-toggle"][value="yes"]');
+        if (ttYesRadio) ttYesRadio.checked = true;
+
+        // Reset Own Tanker KM container (shown by default since YES is checked)
+        const container = document.getElementById('own-tanker-km-container');
+        const kmInput = document.getElementById('own-tanker-km');
+        if (container && kmInput) {
+          container.style.display = 'flex';
+          kmInput.value = '';
+          kmInput.setAttribute('required', 'true');
+        }
         // No saved tank readings for today: load opening values from yesterday's closing
         if (openingTanks && openingTanks.length === 3) {
           openingTanks.forEach(t => {
@@ -778,7 +903,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Core detection: returns true if any tank's closing stock exceeds its opening by more than 500 L
+  // Core detection: returns true if any tank's closing stock exceeds its opening by more than 0 L
   function detectDecantationRequired() {
     for (let id = 1; id <= 3; id++) {
       const openingEl = document.getElementById(`tank-${id}-opening`);
@@ -786,7 +911,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (openingEl && closingEl && closingEl.value !== '') {
         const openingVal = parseFloat(openingEl.value) || 0;
         const closingVal = parseFloat(closingEl.value) || 0;
-        if (closingVal - openingVal > 500) {
+        if (closingVal - openingVal > 0) {
           return true;
         }
       }
@@ -801,6 +926,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (helperNote) {
       helperNote.style.display = required ? 'inline-block' : 'none';
     }
+  }
+
+  // Sync second question's visibility based on first question state
+  function updateSecondQuestionVisibility() {
+    // Moved to Step 5: no longer synced on Step 4
   }
 
   // Update the Next Step button label/style based on whether decantation is required or user-selected.
@@ -829,12 +959,13 @@ document.addEventListener('DOMContentLoaded', () => {
       nextBtn.style.cursor = '';
       if (isYes) {
         nextBtn.innerHTML = '🚚 Next Step: Record Tanker Entry ➔';
-        nextBtn.style.background = 'linear-gradient(135deg, #f43f5e, #e11d48)';
       } else {
         nextBtn.innerHTML = 'Next Step: DSR Reconciliation ➔';
-        nextBtn.style.background = '';
       }
+      nextBtn.style.background = '';
     }
+
+    updateSecondQuestionVisibility();
   }
 
   // Trigger auto-select: called live as closing stock values are typed
@@ -891,6 +1022,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
     }
+    updateTankVisuals();
+    triggerDecantationAutoSelect();
   }, 100);
 
   // Helper to calculate and show difference without triggering styling validation
@@ -914,6 +1047,40 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       diffEl.classList.add('zero');
     }
+  }
+
+  // Helper to calculate and show product wise testing totals
+  function updateTestingTotals() {
+    let petrolTotal = 0;
+    let dieselTotal = 0;
+    let powerTotal = 0;
+
+    // Nozzles N1, N2, N3 are Petrol
+    for (let id = 1; id <= 3; id++) {
+      const el = document.getElementById(`nozzle-${id}-test-qty`);
+      const val = el ? (parseFloat(el.value) || 0) : 0;
+      petrolTotal += val;
+    }
+
+    // Nozzles N4, N5 are Diesel
+    for (let id = 4; id <= 5; id++) {
+      const el = document.getElementById(`nozzle-${id}-test-qty`);
+      const val = el ? (parseFloat(el.value) || 0) : 0;
+      dieselTotal += val;
+    }
+
+    // Nozzle N6 is poWer
+    const powerEl = document.getElementById(`nozzle-6-test-qty`);
+    powerTotal = powerEl ? (parseFloat(powerEl.value) || 0) : 0;
+
+    // Update the labels in the summary cards
+    const petrolDisplay = document.getElementById('test-total-petrol');
+    const dieselDisplay = document.getElementById('test-total-diesel');
+    const powerDisplay = document.getElementById('test-total-power');
+
+    if (petrolDisplay) petrolDisplay.textContent = `${petrolTotal.toFixed(3)} L`;
+    if (dieselDisplay) dieselDisplay.textContent = `${dieselTotal.toFixed(3)} L`;
+    if (powerDisplay) powerDisplay.textContent = `${powerTotal.toFixed(3)} L`;
   }
 
   // Validate individual nozzle closing reading on blur (when user moves to next textbox)
@@ -999,6 +1166,15 @@ document.addEventListener('DOMContentLoaded', () => {
     closingEl.addEventListener('focus', () => clearNozzleValidation(id));
   }
 
+  // Listeners for live nozzle testing totals updates
+  for (let id = 1; id <= 6; id++) {
+    const testInput = document.getElementById(`nozzle-${id}-test-qty`);
+    if (testInput) {
+      testInput.addEventListener('input', updateTestingTotals);
+    }
+  }
+  updateTestingTotals();
+
   // Tank stock live validation listeners
   for (let id = 1; id <= 3; id++) {
     const openingEl = document.getElementById(`tank-${id}-opening`);
@@ -1068,6 +1244,27 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('input[name="decantation-toggle"]').forEach(radio => {
     radio.addEventListener('change', () => {
       updateDecantationGatingState();
+    });
+  });
+
+  // Second decantation question (TT / Own Tanker) toggle listener
+  document.querySelectorAll('input[name="tt-decantation-toggle"]').forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      enforceFreezeState();
+      const container = document.getElementById('own-tanker-km-container');
+      const kmInput = document.getElementById('own-tanker-km');
+      if (!container || !kmInput) return;
+      if (e.target.value === 'yes') {
+        container.style.display = 'flex';
+        kmInput.setAttribute('required', 'true');
+        if (!isDayClosed) {
+          kmInput.focus();
+        }
+      } else {
+        container.style.display = 'none';
+        kmInput.removeAttribute('required');
+        kmInput.value = '';
+      }
     });
   });
 
@@ -1150,6 +1347,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const defaultTestQty = diff >= 5 ? 5 : Math.max(0, diff);
         document.getElementById(`nozzle-${r.nozzle_id}-test-qty`).value = defaultTestQty.toFixed(3);
       });
+      updateTestingTotals();
 
       // Re-fetch opening readings (which will now lock today's values)
       await fetchOpeningReadings(dateInput.value);
@@ -1322,6 +1520,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (!hasValidationError) {
+        const ttDecantRadio = document.querySelector('input[name="tt-decantation-toggle"]:checked');
+        const ttDecantVal = ttDecantRadio ? (ttDecantRadio.value === 'yes' ? 1 : 0) : 0;
+
         tanks.push({
           tank_id: id,
           tank_name: tankName,
@@ -1331,7 +1532,8 @@ document.addEventListener('DOMContentLoaded', () => {
           opening_stock: openingVal,
           closing_dip: dipVal,
           closing_stock: closingVal,
-          decantation_qty: currentDecantation[product] || 0
+          decantation_qty: currentDecantation[product] || 0,
+          tt_decantation: ttDecantVal
         });
       }
     }
@@ -1379,6 +1581,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Transition to target view
       if (targetView) {
+        if (targetView === 'decantation') {
+          // Sync own-tanker-km-container visibility based on tt-decantation-toggle radio button
+          const ownRadioVal = document.querySelector('input[name="tt-decantation-toggle"]:checked');
+          const isOwn = ownRadioVal ? ownRadioVal.value === 'yes' : false;
+          const container = document.getElementById('own-tanker-km-container');
+          const kmInput = document.getElementById('own-tanker-km');
+          if (container && kmInput) {
+            container.style.display = isOwn ? 'flex' : 'none';
+            if (isOwn) {
+              kmInput.setAttribute('required', 'true');
+            } else {
+              kmInput.removeAttribute('required');
+            }
+          }
+        }
         setTimeout(() => {
           showView(targetView);
         }, 500);
@@ -1404,7 +1621,8 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const hasDecantation = document.querySelector('input[name="decantation-toggle"]:checked').value === 'yes';
+    const required = detectDecantationRequired();
+    const hasDecantation = required || (document.querySelector('input[name="decantation-toggle"]:checked').value === 'yes');
     if (hasDecantation) {
       // Route through decantation page (user selected or auto-detected)
       await saveTankStockData('decantation');
@@ -1454,12 +1672,80 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // Validate total load matches standard tanker capacities
+      // Check for each product if stock has increased and verify corresponding load is recorded (> 0)
+      const productsToCheck = [
+        { name: 'poWer', id: 1, val: powerVal, label: 'poWer' },
+        { name: 'Petrol', id: 2, val: petrolVal, label: 'Petrol' },
+        { name: 'Diesel', id: 3, val: dieselVal, label: 'Diesel' }
+      ];
+
+      for (const prod of productsToCheck) {
+        const openingEl = document.getElementById(`tank-${prod.id}-opening`);
+        const closingEl = document.getElementById(`tank-${prod.id}-closing`);
+        if (openingEl && closingEl) {
+          const openingVal = parseFloat(openingEl.value) || 0;
+          const closingVal = parseFloat(closingEl.value) || 0;
+          if (closingVal > openingVal && prod.val <= 0) {
+            showToast(`Stock increase detected for ${prod.label}. Please record a received load for this product.`, 'error');
+            return;
+          }
+        }
+      }
+
       const totalDecantation = petrolVal + dieselVal + powerVal;
-      const allowedTotals = [12000, 14000, 18000, 20000];
-      if (!allowedTotals.includes(totalDecantation)) {
-        showToast('Total decantation must be exactly 12,000, 14,000, 18,000, or 20,000 liters.', 'error');
-        return;
+      const ownRadioVal = document.querySelector('input[name="tt-decantation-toggle"]:checked');
+      const isOwnTanker = ownRadioVal ? ownRadioVal.value === 'yes' : false;
+
+      if (isOwnTanker) {
+        // Validation check for own tanker
+        if (totalDecantation !== 14000) {
+          showToast('घरचे टँकर (Own Tanker) साठी एकूण भार नक्कीच १४,००० लिटर असावा.', 'error');
+          return;
+        }
+        
+        const kmReadingStr = document.getElementById('own-tanker-km').value.trim();
+        const kmReading = parseInt(kmReadingStr, 10);
+        if (kmReadingStr === '' || isNaN(kmReading) || kmReading < 0) {
+          showToast('किलोमीटर रीडिंग आवश्यक आहे आणि ती वैध असावी.', 'error');
+          const kmInput = document.getElementById('own-tanker-km');
+          if (kmInput) kmInput.focus();
+          return;
+        }
+
+        // Save state
+        localStorage.setItem('own_tanker_toggle_' + dateInput.value, 'yes');
+        localStorage.setItem('own_tanker_km_' + dateInput.value, kmReadingStr);
+
+        // Auto-log tanker trip
+        try {
+          const res = await fetch('/api/tt/trips/decant-log', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              date: dateInput.value,
+              km_reading: kmReading
+            })
+          });
+          if (!res.ok) {
+            const errData = await res.json();
+            throw new Error(errData.error || 'Failed to auto-log decantation trip.');
+          }
+        } catch (tripErr) {
+          console.error('Error auto-logging TT trip:', tripErr);
+          showToast('Error logging decantation trip: ' + tripErr.message, 'error');
+          return;
+        }
+      } else {
+        // Standard tanker validation
+        const allowedTotals = [12000, 14000, 18000, 20000];
+        if (!allowedTotals.includes(totalDecantation)) {
+          showToast('Total decantation must be exactly 12,000, 14,000, 18,000, or 20,000 liters.', 'error');
+          return;
+        }
+
+        // Save state
+        localStorage.setItem('own_tanker_toggle_' + dateInput.value, 'no');
+        localStorage.removeItem('own_tanker_km_' + dateInput.value);
       }
 
       currentDecantation.Petrol = petrolVal;
@@ -1860,6 +2146,14 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
           description = `debtor_id:${debtorSelect.value}`;
         }
+      } else if (type === 'Employee' && amount > 0) {
+        const employeeSelect = row.querySelector('.non-cash-employee-select');
+        if (!employeeSelect || !employeeSelect.value) {
+          hasValidationError = true;
+          showToast(`Row ${idx + 1}: Please select an employee for the Employee transaction.`, 'error');
+        } else {
+          description = `employee_id:${employeeSelect.value}`;
+        }
       } else if (type === 'Fresh Credit' && amount > 0) {
         const customerName = description.trim();
         if (!customerName) {
@@ -1915,6 +2209,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const totalNonCash = nonCashPayments.reduce((sum, p) => sum + p.amount, 0);
     const shortfall    = totalSalesValue - (totalCashReceived + totalNonCash);
 
+    const decantValObj = document.querySelector('input[name="decantation-toggle"]:checked');
+    const ownValObj = document.querySelector('input[name="tt-decantation-toggle"]:checked');
+    const decantYes = decantValObj ? decantValObj.value === 'yes' : false;
+    const ownYes = ownValObj ? ownValObj.value === 'yes' : false;
+
+    let ownTankerAmount = 0;
+    if (rows.length > 1) {
+      const row2Type = rows[1].querySelector('.non-cash-type-input').value;
+      if (row2Type === 'MH-19-CY-5682') {
+        ownTankerAmount = parseFloat(rows[1].querySelector('.non-cash-amount-input').value) || 0;
+      }
+    }
+
     const payload = {
       date: dateInput.value,
       total_sales_value: totalSalesValue,
@@ -1924,7 +2231,10 @@ document.addEventListener('DOMContentLoaded', () => {
       notes_50: notes50,   notes_20: notes20,   notes_10: notes10,
       coins: totalCoins,
       coins_20: coins20, coins_10: coins10, coins_5: coins5, coins_2: coins2, coins_1: coins1,
-      non_cash_payments: nonCashPayments
+      non_cash_payments: nonCashPayments,
+      decantation_yes: decantYes,
+      own_tanker_yes: ownYes,
+      own_tanker_amount: ownTankerAmount
     };
 
     try {
@@ -2008,10 +2318,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const descInputs = document.querySelectorAll('.non-cash-desc-input');
         const typeInputs = document.querySelectorAll('.non-cash-type-input');
         const amountInputs = document.querySelectorAll('.non-cash-amount-input');
+        const debtorSelects = document.querySelectorAll('.non-cash-debtor-select');
+        const employeeSelects = document.querySelectorAll('.non-cash-employee-select');
 
         descInputs.forEach(input => input.value = '');
-        typeInputs.forEach(input => input.value = 'UPI');
+        typeInputs.forEach((input, idx) => {
+          input.value = idx === 0 ? 'UPI' : '';
+        });
         amountInputs.forEach(input => input.value = '');
+        debtorSelects.forEach(sel => {
+          sel.value = '';
+          sel.style.display = 'none';
+        });
+        employeeSelects.forEach(sel => {
+          sel.value = '';
+          sel.style.display = 'none';
+        });
 
         nonCashPayments.forEach((p, idx) => {
           if (idx < targetCount) {
@@ -2019,11 +2341,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const descInput = descInputs[idx];
             const row = typeSelect ? typeSelect.closest('tr') : null;
             const debtorSelect = row ? row.querySelector('.non-cash-debtor-select') : null;
+            const employeeSelect = row ? row.querySelector('.non-cash-employee-select') : null;
 
             if (typeSelect) typeSelect.value = p.type;
             if (amountInputs[idx]) amountInputs[idx].value = parseFloat(p.amount) || '';
 
-            if (p.type === 'Credit' && p.description && p.description.startsWith('debtor_id:')) {
+            if ((p.type === 'Credit' || p.type === 'Old Credit') && p.description && p.description.startsWith('debtor_id:')) {
               const debtorId = p.description.split(':')[1];
               if (descInput) {
                 descInput.value = p.description;
@@ -2034,6 +2357,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 populateRowDebtorSelect(debtorSelect);
                 debtorSelect.value = debtorId;
               }
+              if (employeeSelect) {
+                employeeSelect.style.display = 'none';
+              }
+            } else if (p.type === 'Employee' && p.description && p.description.startsWith('employee_id:')) {
+              const employeeId = p.description.split(':')[1];
+              if (descInput) {
+                descInput.value = p.description;
+                descInput.style.display = 'none';
+              }
+              if (debtorSelect) {
+                debtorSelect.style.display = 'none';
+              }
+              if (employeeSelect) {
+                employeeSelect.style.display = 'block';
+                populateRowEmployeeSelect(employeeSelect);
+                employeeSelect.value = employeeId;
+              }
             } else {
               if (descInput) {
                 descInput.value = p.description || '';
@@ -2042,6 +2382,9 @@ document.addEventListener('DOMContentLoaded', () => {
               if (debtorSelect) {
                 debtorSelect.style.display = 'none';
               }
+              if (employeeSelect) {
+                employeeSelect.style.display = 'none';
+              }
             }
           }
         });
@@ -2049,6 +2392,30 @@ document.addEventListener('DOMContentLoaded', () => {
         currentCashData = null;
         clearCashInputs();
       }
+
+      // Prefill second row (index 1) with MH-19-CY-5682 if Question 1 & 2 are both yes and it's not already set
+      const decantValObj = document.querySelector('input[name="decantation-toggle"]:checked');
+      const ownValObj = document.querySelector('input[name="tt-decantation-toggle"]:checked');
+      const decantYes = decantValObj ? decantValObj.value === 'yes' : false;
+      const ownYes = ownValObj ? ownValObj.value === 'yes' : false;
+
+      if (decantYes && ownYes) {
+        const typeInputs = document.querySelectorAll('.non-cash-type-input');
+        const descInputs = document.querySelectorAll('.non-cash-desc-input');
+        if (typeInputs.length > 1) {
+          const typeSelect = typeInputs[1];
+          const descInput = descInputs[1];
+          if (typeSelect) {
+            typeSelect.value = 'MH-19-CY-5682';
+            typeSelect.dispatchEvent(new Event('change'));
+            if (descInput && (!descInput.value || descInput.value.trim() === '')) {
+              descInput.value = 'MH-19-CY-5682';
+              descInput.style.display = 'block';
+            }
+          }
+        }
+      }
+
       isDayClosed = (selectedDate !== activeDate);
       updateCashCalculations();
       enforceFreezeState();
@@ -2087,7 +2454,9 @@ document.addEventListener('DOMContentLoaded', () => {
             input.classList.contains('non-cash-desc-input') ||
             input.classList.contains('non-cash-amount-input') ||
             input.id === 'coins-amount' ||
-            input.name === 'decantation-toggle'
+            input.name === 'decantation-toggle' ||
+            input.name === 'tt-decantation-toggle' ||
+            input.id === 'own-tanker-km'
           ) {
             input.disabled = false;
           }
@@ -2109,6 +2478,27 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnEditReadings) {
       btnEditReadings.innerHTML = isDayClosed ? '🔍 Review Steps' : '✍ Edit readings';
     }
+
+    if (!isDayClosed) {
+      const decantValObj = document.querySelector('input[name="decantation-toggle"]:checked');
+      const ownValObj = document.querySelector('input[name="tt-decantation-toggle"]:checked');
+      const decantYes = decantValObj ? decantValObj.value === 'yes' : false;
+      const ownYes = ownValObj ? ownValObj.value === 'yes' : false;
+      if (decantYes && ownYes) {
+        const typeInputs = document.querySelectorAll('.non-cash-type-input');
+        if (typeInputs.length > 1) {
+          typeInputs[1].disabled = true;
+        }
+      }
+    }
+
+    // Freeze TT actions on closed days - Category B remains editable
+    const btnTtManualEntry = document.getElementById('btn-tt-manual-entry');
+    const btnTtRecordSettlement = document.getElementById('btn-tt-record-settlement');
+    const btnTtAddTrip = document.getElementById('btn-tt-add-trip');
+    if (btnTtManualEntry) btnTtManualEntry.disabled = false;
+    if (btnTtRecordSettlement) btnTtRecordSettlement.disabled = false;
+    if (btnTtAddTrip) btnTtAddTrip.disabled = false;
   }
 
   function clearCashInputs() {
@@ -2142,10 +2532,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectInputs = document.querySelectorAll('.non-cash-type-input');
     const descInputs = document.querySelectorAll('.non-cash-desc-input');
     const amountInputs = document.querySelectorAll('.non-cash-amount-input');
+    const debtorSelects = document.querySelectorAll('.non-cash-debtor-select');
+    const employeeSelects = document.querySelectorAll('.non-cash-employee-select');
 
-    selectInputs.forEach(input => input.value = 'UPI');
+    selectInputs.forEach((input, idx) => {
+      input.value = idx === 0 ? 'UPI' : '';
+    });
     descInputs.forEach(input => input.value = '');
     amountInputs.forEach(input => input.value = '');
+    debtorSelects.forEach(sel => {
+      sel.value = '';
+      sel.style.display = 'none';
+    });
+    employeeSelects.forEach(sel => {
+      sel.value = '';
+      sel.style.display = 'none';
+    });
   }
 
   function calculateTotalSalesValue() {
@@ -2521,6 +2923,14 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnPreviewConfirm) {
     btnPreviewConfirm.addEventListener('click', async () => {
       await confirmAndCloseDay();
+    });
+  }
+
+  // Finish: Back to Preview — returns to Step 8 (Preview)
+  const btnFinishBack = document.getElementById('btn-finish-back');
+  if (btnFinishBack) {
+    btnFinishBack.addEventListener('click', () => {
+      showView('preview');
     });
   }
 
@@ -3623,7 +4033,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const outstandingStyle = outstandingVal > 0 ? 'color: var(--danger); font-weight: 700;' : 'color: var(--text-muted);';
         
         tr.innerHTML = `
-          <td style="padding: 0.45rem 0.75rem; font-weight: 600; color: var(--text-main);">${d.debtor_name}</td>
+          <td style="padding: 0.45rem 0.75rem;">
+            <span class="debtor-ledger-link" 
+                  data-id="${d.id}" 
+                  style="font-weight: 600; color: var(--accent); cursor: pointer; text-decoration: none; transition: all 0.2s;"
+                  onmouseover="this.style.textDecoration='underline'; this.style.opacity='0.85';"
+                  onmouseout="this.style.textDecoration='none'; this.style.opacity='1';">${d.debtor_name}</span>
+          </td>
           <td style="padding: 0.45rem 0.75rem;">${d.mobile || '—'}</td>
           <td style="padding: 0.45rem 0.75rem;">${d.address || '—'}</td>
           <td style="padding: 0.45rem 0.75rem; text-align: right; ${outstandingStyle}">${outstandingFormatted}</td>
@@ -3637,6 +4053,19 @@ document.addEventListener('DOMContentLoaded', () => {
           </td>
         `;
         udhariMasterTableBody.appendChild(tr);
+      });
+      
+      // Wire debtor ledger links
+      udhariMasterTableBody.querySelectorAll('.debtor-ledger-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          const debtorId = link.getAttribute('data-id');
+          if (udhariLedgerDebtor) {
+            udhariLedgerDebtor.value = debtorId;
+            showView('udhari-ledger');
+            loadIndividualLedger();
+          }
+        });
       });
       
       // Wire edit buttons
@@ -3783,11 +4212,30 @@ document.addEventListener('DOMContentLoaded', () => {
         const outstandingStyle = outstandingVal > 0 ? 'color: var(--danger); font-weight: 700;' : 'color: var(--text-muted);';
         
         tr.innerHTML = `
-          <td style="padding: 0.45rem 0.75rem; font-weight: 600; color: var(--text-main);">${d.debtor_name}</td>
+          <td style="padding: 0.45rem 0.75rem;">
+            <span class="debtor-ledger-link" 
+                  data-id="${d.id}" 
+                  style="font-weight: 600; color: var(--accent); cursor: pointer; text-decoration: none; transition: all 0.2s;"
+                  onmouseover="this.style.textDecoration='underline'; this.style.opacity='0.85';"
+                  onmouseout="this.style.textDecoration='none'; this.style.opacity='1';">${d.debtor_name}</span>
+          </td>
           <td style="padding: 0.45rem 0.75rem;">${d.mobile || '—'}</td>
           <td style="padding: 0.45rem 0.75rem; text-align: right; ${outstandingStyle}">${outstandingFormatted}</td>
         `;
         udhariActiveTableBody.appendChild(tr);
+      });
+
+      // Wire debtor ledger links for active/inactive debtors
+      udhariActiveTableBody.querySelectorAll('.debtor-ledger-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          const debtorId = link.getAttribute('data-id');
+          if (udhariLedgerDebtor) {
+            udhariLedgerDebtor.value = debtorId;
+            showView('udhari-ledger');
+            loadIndividualLedger();
+          }
+        });
       });
     } catch (err) {
       console.error(err);
@@ -3856,10 +4304,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       
-      if (isDayClosed || date < activeDate) {
-        showToast('This date is locked/frozen. Credit sales cannot be added.', 'error');
-        return;
-      }
+      // Bypassed lock validation for Category B debtor transactions
       
       // Auto-construct description
       let desc = product;
@@ -3927,10 +4372,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       
-      if (isDayClosed || date < activeDate) {
-        showToast('This date is locked/frozen. Payments cannot be added.', 'error');
-        return;
-      }
+      // Bypassed lock validation for Category B debtor transactions
       
       const desc = remarks || 'Cash Received';
       
@@ -4037,11 +4479,93 @@ document.addEventListener('DOMContentLoaded', () => {
     loadIndividualLedger();
   }
 
+  function parseInputDate(str) {
+    if (!str) return null;
+    const d = new Date(str);
+    if (!isNaN(d.getTime())) {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+    return null;
+  }
+
+  async function saveLedgerRow(tr) {
+    const txnId = tr.dataset.id;
+    if (!txnId) return;
+
+    const dateEl = tr.querySelector('.cell-date');
+    const partEl = tr.querySelector('.cell-particulars');
+    const debitEl = tr.querySelector('.cell-debit');
+    const creditEl = tr.querySelector('.cell-credit');
+    const remarksEl = tr.querySelector('.cell-remarks');
+
+    const dateVal = parseInputDate(dateEl.textContent.trim());
+    const description = partEl.textContent.trim();
+    const debit = parseFloat(debitEl.textContent.replace(/[^\d.-]/g, '')) || 0;
+    const credit = parseFloat(creditEl.textContent.replace(/[^\d.-]/g, '')) || 0;
+    const remarks = remarksEl.textContent.trim();
+
+    if (!dateVal) {
+      showToast('Please enter a valid date.', 'error');
+      loadIndividualLedger();
+      return;
+    }
+
+    // Check if anything actually changed
+    const originalDate = tr.dataset.date;
+    const originalDesc = tr.dataset.description;
+    const originalDebit = parseFloat(tr.dataset.debit) || 0;
+    const originalCredit = parseFloat(tr.dataset.credit) || 0;
+    const originalRemarks = tr.dataset.remarks || '';
+
+    if (
+      dateVal === originalDate &&
+      description === originalDesc &&
+      Math.abs(debit - originalDebit) < 0.005 &&
+      Math.abs(credit - originalCredit) < 0.005 &&
+      remarks === originalRemarks
+    ) {
+      return; // No change
+    }
+
+    const payload = {
+      transaction_date: dateVal,
+      description: description,
+      debit_amount: debit,
+      credit_amount: credit,
+      remarks: remarks
+    };
+
+    try {
+      const res = await fetch(`/api/debtor-transactions/${txnId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result.error || 'Failed to update transaction');
+      }
+
+      showToast('Transaction updated successfully!', 'success');
+      loadIndividualLedger();
+    } catch (err) {
+      console.error(err);
+      showToast(err.message || 'Error updating transaction.', 'error');
+      loadIndividualLedger();
+    }
+  }
+
   async function loadIndividualLedger() {
     if (!udhariLedgerDebtor || !udhariLedgerBody) return;
     const id = udhariLedgerDebtor.value;
     if (!id) {
-      udhariLedgerBody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 3rem; color: var(--text-muted);">Select a debtor to view their ledger.</td></tr>`;
+      udhariLedgerBody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 3rem; color: var(--text-muted);">Select a debtor to view their ledger.</td></tr>`;
       return;
     }
     
@@ -4052,26 +4576,45 @@ document.addEventListener('DOMContentLoaded', () => {
       
       udhariLedgerBody.innerHTML = '';
       if (data.transactions.length === 0) {
-        udhariLedgerBody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 3rem; color: var(--text-muted);">No transactions recorded for this debtor yet.</td></tr>`;
+        udhariLedgerBody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 3rem; color: var(--text-muted);">No transactions recorded for this debtor yet.</td></tr>`;
         return;
       }
       
       data.transactions.forEach(tx => {
         const tr = document.createElement('tr');
         tr.style.borderBottom = '1px solid rgba(255,255,255,0.03)';
+        tr.dataset.id = tx.id;
+        tr.dataset.date = tx.transaction_date;
+        tr.dataset.description = tx.description || '';
+        tr.dataset.debit = tx.debit_amount || 0;
+        tr.dataset.credit = tx.credit_amount || 0;
+        tr.dataset.balance = tx.running_balance || 0;
+        tr.dataset.remarks = tx.remarks || '';
         
-        const debitText = tx.debit_amount > 0 ? `₹ ${tx.debit_amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—';
-        const creditText = tx.credit_amount > 0 ? `₹ ${tx.credit_amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—';
         const balVal = parseFloat(tx.running_balance || 0);
         const balStyle = balVal > 0 ? 'color: var(--danger); font-weight: 700;' : 'color: var(--text-muted);';
         
+        const isEditable = true; // Category B debtor transactions are always editable
         tr.innerHTML = `
-          <td style="padding: 0.45rem 0.75rem; font-weight: 600;">${formatDate(tx.transaction_date)}</td>
-          <td style="padding: 0.45rem 0.75rem;">${tx.description || '—'}</td>
-          <td style="padding: 0.45rem 0.75rem; text-align: right; color: var(--danger);">${debitText}</td>
-          <td style="padding: 0.45rem 0.75rem; text-align: right; color: var(--success);">${creditText}</td>
-          <td style="padding: 0.45rem 0.75rem; text-align: right; ${balStyle}">₹ ${balVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td class="${isEditable ? 'editable-cell' : ''} cell-date" ${isEditable ? 'contenteditable="true"' : ''} style="padding: 0.45rem 0.75rem; font-weight: 600; white-space: nowrap;">${formatDate(tx.transaction_date)}</td>
+          <td class="${isEditable ? 'editable-cell' : ''} cell-particulars" ${isEditable ? 'contenteditable="true"' : ''} style="padding: 0.45rem 0.75rem; white-space: nowrap;">${tx.description || ''}</td>
+          <td class="${isEditable ? 'editable-cell' : ''} cell-debit" ${isEditable ? 'contenteditable="true"' : ''} style="padding: 0.45rem 0.75rem; text-align: right; color: var(--danger); white-space: nowrap;">${tx.debit_amount > 0 ? tx.debit_amount.toFixed(2) : ''}</td>
+          <td class="${isEditable ? 'editable-cell' : ''} cell-credit" ${isEditable ? 'contenteditable="true"' : ''} style="padding: 0.45rem 0.75rem; text-align: right; color: var(--success); white-space: nowrap;">${tx.credit_amount > 0 ? tx.credit_amount.toFixed(2) : ''}</td>
+          <td class="cell-balance" style="padding: 0.45rem 0.75rem; text-align: right; white-space: nowrap; ${balStyle}">${balVal.toFixed(2)}</td>
+          <td class="${isEditable ? 'editable-cell' : ''} cell-remarks" ${isEditable ? 'contenteditable="true"' : ''} style="padding: 0.45rem 0.75rem;">${tx.remarks || ''}</td>
         `;
+
+        tr.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            e.target.blur();
+          }
+        });
+
+        tr.querySelectorAll('.editable-cell').forEach(cell => {
+          cell.addEventListener('blur', () => saveLedgerRow(tr));
+        });
+
         udhariLedgerBody.appendChild(tr);
       });
     } catch (err) {
@@ -4214,10 +4757,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await res.json();
         
         let csv = `Debtor Ledger: ${data.debtor_name}\n\n`;
-        csv += 'Date,Particulars,Debit (₹),Credit (₹),Running Balance (₹)\n';
+        csv += 'Date,Particulars,Debit (₹),Credit (₹),Running Balance (₹),Remarks\n';
         
         data.transactions.forEach(tx => {
-          csv += `"${formatDate(tx.transaction_date)}","${tx.description || ''}",${(tx.debit_amount || 0).toFixed(2)},${(tx.credit_amount || 0).toFixed(2)},${tx.running_balance.toFixed(2)}\n`;
+          csv += `"${formatDate(tx.transaction_date)}","${tx.description || ''}",${(tx.debit_amount || 0).toFixed(2)},${(tx.credit_amount || 0).toFixed(2)},${tx.running_balance.toFixed(2)},"${tx.remarks || ''}"\n`;
         });
         
         downloadCSV(csv, `Debtor_Ledger_${data.debtor_name.replace(/\s+/g, '_')}.csv`);
@@ -4269,6 +4812,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initializeDefaultDate();
   updateGlobalOutstandingCard();
   fetchGlobalDebtorsList();
+  fetchGlobalEmployeesList();
 
   // ── EMPLOYEE MANAGEMENT ──────────────────────────────────────────────────────
 
@@ -4308,6 +4852,14 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       showView('employee-management');
       renderEmpMonthTabs();
+      fetchEmployees();
+    });
+  }
+
+  const btnBackToEmployees = document.getElementById('btn-back-to-employees');
+  if (btnBackToEmployees) {
+    btnBackToEmployees.addEventListener('click', () => {
+      showView('employee-management');
       fetchEmployees();
     });
   }
@@ -4408,10 +4960,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       if (!date.startsWith(empActiveMonth)) {
         showToast(`Date must be within ${empMonthLabel(empActiveMonth)}.`, 'warning'); return;
-      }
-      if (isDayClosed || date < activeDate) {
-        showToast('This date is locked/frozen. Employee transactions cannot be added.', 'error');
-        return;
       }
       try {
         const res = await fetch(`/api/employees/${id}/transactions`, {
@@ -4555,10 +5103,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!date.startsWith(empActiveMonth)) {
         showToast(`Date must be within ${empMonthLabel(empActiveMonth)}.`, 'warning'); return;
       }
-      if (isDayClosed || date < activeDate) {
-        showToast('Cannot modify transactions belonging to a locked/frozen date.', 'error');
-        return;
-      }
 
       try {
         const res = await fetch(`/api/employees/transactions/${txnId}`, {
@@ -4577,11 +5121,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Delete Transaction
-  window.deleteEmployeeTxn = async function(txnId, empId, empName, txnDate) {
-    if (isDayClosed || (txnDate && txnDate < activeDate)) {
-      showToast('Cannot delete transaction from a locked/frozen date.', 'error');
-      return;
-    }
+  window.deleteEmployeeTxn = async function(txnId, empId, empName) {
     if (!confirm('Are you sure you want to delete this transaction?')) return;
     try {
       const res = await fetch(`/api/employees/transactions/${txnId}`, {
@@ -4597,13 +5137,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Open Ledger Modal — filtered to active month only, with opening balance carried forward
   window.openEmployeeLedger = async function(id, name) {
-    const nameEl = document.getElementById('ledger-emp-name');
-    const monthEl = document.getElementById('ledger-emp-month');
-    const tbody = document.getElementById('employee-ledger-tbody');
+    const nameEl = document.getElementById('view-ledger-emp-name') || document.getElementById('ledger-emp-name');
+    const monthEl = document.getElementById('view-ledger-emp-month') || document.getElementById('ledger-emp-month');
+    const tbody = document.getElementById('view-employee-ledger-tbody') || document.getElementById('employee-ledger-tbody');
     if (nameEl) nameEl.textContent = name;
     if (monthEl) monthEl.textContent = empMonthLabel(empActiveMonth);
     if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:2rem;">Loading...</td></tr>';
-    if (modalEmployeeLedger) modalEmployeeLedger.style.display = 'flex';
+    
+    const viewLedger = document.getElementById('view-employee-ledger');
+    if (viewLedger) {
+      showView('employee-ledger');
+    } else if (modalEmployeeLedger) {
+      modalEmployeeLedger.style.display = 'flex';
+    }
 
     try {
       const res = await fetch(`/api/employees/${id}/transactions?month=${empActiveMonth}`);
@@ -4657,7 +5203,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <td style="padding:0.45rem 0.75rem; text-align:right; ${balStyle}">&#8377; ${bal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
           <td style="padding:0.45rem 0.75rem; text-align:center;">
             <button class="btn btn-secondary" style="padding:0.15rem 0.45rem; font-size:0.75rem; margin-right:0.25rem;" onclick="openEditEmployeeTxn(${tx.id}, ${id}, '${safeName}', '${tx.transaction_date}', '${tx.transaction_type}', ${amt}, '${safeDesc}')">Edit</button>
-            <button style="padding:0.15rem 0.45rem; font-size:0.75rem; background:var(--danger); color:#fff; border:none; border-radius:0.4rem; cursor:pointer;" onclick="deleteEmployeeTxn(${tx.id}, ${id}, '${safeName}', '${tx.transaction_date}')">Del</button>
+            <button style="padding:0.15rem 0.45rem; font-size:0.75rem; background:var(--danger); color:#fff; border:none; border-radius:0.4rem; cursor:pointer;" onclick="deleteEmployeeTxn(${tx.id}, ${id}, '${safeName}')">Del</button>
           </td>
         `;
         tbody.appendChild(tr);
@@ -4671,49 +5217,232 @@ document.addEventListener('DOMContentLoaded', () => {
   // ── END EMPLOYEE MANAGEMENT ───────────────────────────────────────────────────
 
 
-  // ── TT (MH-19-CY-5682) LEDGER ──────────────────────────────────────────────────
+
+
+
+
+
+  // ── TT (MH-19-CY-5682) LEDGER & TRIPS ──────────────────────────────────────────
 
   const navTtLedger = document.getElementById('nav-tt-ledger');
-  const ttMonthSelect = document.getElementById('tt-month-select');
-  const ttStatementBody = document.getElementById('tt-statement-body');
-  const modalTtManual = document.getElementById('modal-tt-manual');
-  const modalTtSettlement = document.getElementById('modal-tt-settlement');
-  const formTtManual = document.getElementById('form-tt-manual');
-  const formTtSettlement = document.getElementById('form-tt-settlement');
   const btnTtManualEntry = document.getElementById('btn-tt-manual-entry');
   const btnTtRecordSettlement = document.getElementById('btn-tt-record-settlement');
   
+  const ttStatementBody = document.getElementById('tt-statement-body');
   const ttStatOpening = document.getElementById('tt-stat-opening');
   const ttStatDebits = document.getElementById('tt-stat-debits');
   const ttStatCredits = document.getElementById('tt-stat-credits');
   const ttStatClosing = document.getElementById('tt-stat-closing');
 
+  // ── Load TT Ledger (Expenses) ────────────────────────────────────────────
+  async function loadTtLedger() {
+    if (!ttStatementBody) return;
+    const selectors = document.querySelectorAll('.tt-month-select-shared');
+    const month = selectors.length > 0 ? selectors[0].value : '';
+    if (!month) {
+      ttStatementBody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted);">Select a month to view TT ledger.</td></tr>';
+      return;
+    }
+    try {
+      const res = await fetch(`/api/tt/transactions?month=${month}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load');
+      const txns = data.transactions || [];
+      if (txns.length === 0) {
+        ttStatementBody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted);">No transactions for this month.</td></tr>';
+        return;
+      }
+      let html = '';
+      txns.forEach(tx => {
+        const d = tx.date || '';
+        const p1 = tx.particular1 || '';
+        const p2 = tx.description || '';
+        const debit = tx.type === 'DEBIT' ? `₹ ${parseFloat(tx.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '';
+        const credit = tx.type === 'CREDIT' ? `₹ ${parseFloat(tx.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '';
+        const bal = parseFloat(tx.running_balance);
+        const balColor = bal >= 0 ? 'var(--success)' : 'var(--danger)';
+        const balStr = `₹ ${Math.abs(bal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+        html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+          <td style="padding:0.6rem 0.85rem;font-size:0.85rem;">${d}</td>
+          <td style="padding:0.6rem 0.85rem;font-size:0.85rem;">${p1}</td>
+          <td style="padding:0.6rem 0.85rem;font-size:0.85rem;">${p2}</td>
+          <td style="padding:0.6rem 0.85rem;text-align:right;font-size:0.85rem;color:var(--danger);font-weight:600;">${debit}</td>
+          <td style="padding:0.6rem 0.85rem;text-align:right;font-size:0.85rem;color:var(--success);font-weight:600;">${credit}</td>
+          <td style="padding:0.6rem 0.85rem;text-align:right;font-size:0.85rem;color:${balColor};font-weight:600;">${balStr}</td>
+          <td style="padding:0.6rem 0.85rem;text-align:center;">
+            <button class="btn-icon" title="Delete" onclick="deleteTtTransaction(${tx.id})" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:0.9rem;">🗑️</button>
+          </td>
+        </tr>`;
+      });
+      ttStatementBody.innerHTML = html;
+    } catch (err) {
+      console.error('Error loading TT ledger:', err);
+      ttStatementBody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--danger);">Error loading ledger data.</td></tr>';
+    }
+  }
+
+  // Global function for inline onclick delete buttons
+  window.deleteTtTransaction = async function(id) {
+    if (!confirm('Are you sure you want to delete this transaction?')) return;
+    try {
+      const res = await fetch(`/api/tt/transactions/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (res.ok) {
+        showToast(data.message || 'Transaction deleted.', 'success');
+        loadTtLedger();
+      } else {
+        showToast(data.error || 'Failed to delete.', 'error');
+      }
+    } catch (err) {
+      console.error('Error deleting TT transaction:', err);
+      showToast('Network error deleting transaction.', 'error');
+    }
+  };
+
+  const modalTtManual = document.getElementById('modal-tt-manual');
+  const modalTtSettlement = document.getElementById('modal-tt-settlement');
+  const formTtManual = document.getElementById('form-tt-manual');
+  const formTtSettlement = document.getElementById('form-tt-settlement');
+
+
+  // TT Nav Click
   if (navTtLedger) {
     navTtLedger.addEventListener('click', (e) => {
       e.preventDefault();
       showView('tt-ledger');
+      initializeAllTtMonthSelectors();
+      
+      // Default to selected month
+      const activeDateVal = dateInput.value || activeDate;
+      const defaultMonth = activeDateVal.substring(0, 7);
+      document.querySelectorAll('.tt-month-select-shared').forEach(sel => {
+        if (!sel.value) sel.value = defaultMonth;
+      });
+
+      // Switch to default sub-tab
+      switchTtTab('tab-tt-expenses');
     });
   }
 
-  if (ttMonthSelect) {
-    ttMonthSelect.addEventListener('change', () => {
+  // TT Tabs Switch Controller
+  function switchTtTab(tabId) {
+    const tabs = ['tab-tt-expenses', 'tab-tt-average', 'tab-tt-trips'];
+    const panes = {
+      'tab-tt-expenses': 'tt-pane-expenses',
+      'tab-tt-average': 'tt-pane-average',
+      'tab-tt-trips': 'tt-pane-trips'
+    };
+
+    tabs.forEach(tId => {
+      const btn = document.getElementById(tId);
+      const pane = document.getElementById(panes[tId]);
+      if (tId === tabId) {
+        if (btn) {
+          btn.classList.add('active');
+          btn.style.borderBottom = '2px solid var(--accent)';
+          btn.style.color = 'var(--text-main)';
+          btn.style.fontWeight = '700';
+        }
+        if (pane) pane.style.display = 'flex';
+      } else {
+        if (btn) {
+          btn.classList.remove('active');
+          btn.style.borderBottom = '2px solid transparent';
+          btn.style.color = 'var(--text-muted)';
+          btn.style.fontWeight = '600';
+        }
+        if (pane) pane.style.display = 'none';
+      }
+    });
+
+    if (tabId === 'tab-tt-trips') {
+      loadTtTrips();
+    } else if (tabId === 'tab-tt-average') {
+      loadTtAverage();
+    } else if (tabId === 'tab-tt-expenses') {
       loadTtLedger();
+    }
+  }
+
+  // Register Tab Click Listeners
+  ['tab-tt-expenses', 'tab-tt-average', 'tab-tt-trips'].forEach(tabId => {
+    const btn = document.getElementById(tabId);
+    if (btn) {
+      btn.addEventListener('click', () => switchTtTab(tabId));
+    }
+  });
+
+  // Initialize all shared TT month selectors
+  function initializeAllTtMonthSelectors() {
+    const selectors = document.querySelectorAll('.tt-month-select-shared');
+    if (selectors.length === 0) return;
+    if (selectors[0].children.length > 0) return; // Already initialized
+
+    const startYear = 2026;
+    const startMonth = 4; // May (0-indexed is 4)
+    
+    const activeDateObj = new Date((dateInput.value || activeDate) + 'T00:00:00');
+    const endYear = activeDateObj.getFullYear();
+    const endMonth = activeDateObj.getMonth();
+
+    const optionsHtml = [];
+    let curYear = endYear;
+    let curMonth = endMonth;
+
+    while (curYear > startYear || (curYear === startYear && curMonth >= startMonth)) {
+      const monthVal = `${curYear}-${String(curMonth + 1).padStart(2, '0')}`;
+      const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      const label = `${months[curMonth]} ${curYear}`;
+      optionsHtml.push(`<option value="${monthVal}">${label}</option>`);
+
+      curMonth--;
+      if (curMonth < 0) {
+        curMonth = 11;
+        curYear--;
+      }
+    }
+
+    selectors.forEach(sel => {
+      sel.innerHTML = optionsHtml.join('');
     });
   }
 
+  // Synchronize month selectors across panes
+  document.querySelectorAll('.tt-month-select-shared').forEach(sel => {
+    sel.addEventListener('change', (e) => {
+      const val = e.target.value;
+      document.querySelectorAll('.tt-month-select-shared').forEach(otherSel => {
+        if (otherSel.value !== val) {
+          otherSel.value = val;
+        }
+      });
+      // Refresh current pane data
+      const activeTabBtn = document.querySelector('.tab-btn.active');
+      const activeTabId = activeTabBtn ? activeTabBtn.id : 'tab-tt-expenses';
+      if (activeTabId === 'tab-tt-trips') {
+        loadTtTrips();
+      } else {
+        loadTtLedger();
+      }
+    });
+  });
+
+  // Add Manual Entry button click
   if (btnTtManualEntry) {
     btnTtManualEntry.addEventListener('click', () => {
       document.getElementById('tt-manual-date').value = dateInput.value || new Date().toISOString().split('T')[0];
       document.getElementById('tt-manual-amount').value = '';
       document.getElementById('tt-manual-notes').value = '';
       document.getElementById('tt-manual-type').value = 'DEBIT';
-      modalTtManual.style.display = 'flex';
+      if (modalTtManual) modalTtManual.style.display = 'flex';
     });
   }
 
+  // Add Record Settlement button click
   if (btnTtRecordSettlement) {
     btnTtRecordSettlement.addEventListener('click', () => {
-      const monthVal = ttMonthSelect.value;
+      const selectors = document.querySelectorAll('.tt-month-select-shared');
+      const monthVal = selectors.length > 0 ? selectors[0].value : '';
       if (!monthVal) {
         showToast('Please select a month first.', 'warning');
         return;
@@ -4724,10 +5453,11 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('tt-settlement-target-month').textContent = `Recording settlement for ${monthName} ${year}`;
       document.getElementById('tt-settlement-date').value = new Date().toISOString().split('T')[0];
       document.getElementById('tt-settlement-amount').value = '';
-      modalTtSettlement.style.display = 'flex';
+      if (modalTtSettlement) modalTtSettlement.style.display = 'flex';
     });
   }
 
+  // Submit Manual Entry Form
   if (formTtManual) {
     formTtManual.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -4741,10 +5471,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      if (isDayClosed || date < activeDate) {
-        showToast('This date is locked/frozen. TT transactions cannot be added.', 'error');
-        return;
-      }
+      // Bypassed lock validation for Category B TT transactions
 
       try {
         const res = await fetch('/api/tt/transactions/manual', {
@@ -4755,7 +5482,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await res.json();
         if (res.ok) {
           showToast(data.message || 'Manual entry saved.', 'success');
-          modalTtManual.style.display = 'none';
+          if (modalTtManual) modalTtManual.style.display = 'none';
           loadTtLedger();
         } else {
           showToast(data.error || 'Failed to save entry.', 'error');
@@ -4767,10 +5494,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Submit Settlement Form
   if (formTtSettlement) {
     formTtSettlement.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const settlement_month = ttMonthSelect.value;
+      const selectors = document.querySelectorAll('.tt-month-select-shared');
+      const settlement_month = selectors.length > 0 ? selectors[0].value : '';
       const date = document.getElementById('tt-settlement-date').value;
       const amount = parseFloat(document.getElementById('tt-settlement-amount').value);
 
@@ -4779,10 +5508,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      if (isDayClosed || date < activeDate) {
-        showToast('This date is locked/frozen. TT settlements cannot be added/modified.', 'error');
-        return;
-      }
+      // Bypassed lock validation for Category B TT settlements
 
       async function sendSettlement(overwrite = false) {
         try {
@@ -4804,7 +5530,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const data = await res.json();
           if (res.ok) {
             showToast(data.message || 'Settlement recorded.', 'success');
-            modalTtSettlement.style.display = 'none';
+            if (modalTtSettlement) modalTtSettlement.style.display = 'none';
             loadTtLedger();
           } else {
             showToast(data.error || 'Failed to save settlement.', 'error');
@@ -4819,67 +5545,451 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function initializeTtMonthSelector() {
-    if (!ttMonthSelect) return;
-    if (ttMonthSelect.children.length > 0) return;
+  // ── TRIPS LOGIC ──────────────────────────────────────────────────────────────
 
-    const startYear = 2026;
-    const startMonth = 4; // May (0-indexed is 4)
-    
-    const activeDateObj = new Date((dateInput.value || activeDate) + 'T00:00:00');
-    const endYear = activeDateObj.getFullYear();
-    const endMonth = activeDateObj.getMonth();
+  const btnTtAddTrip = document.getElementById('btn-tt-add-trip');
+  const modalTtAddTrip = document.getElementById('modal-tt-add-trip');
+  const formTtAddTrip = document.getElementById('form-tt-add-trip');
+  const btnCancelTtTrip = document.getElementById('btn-cancel-tt-trip');
 
-    ttMonthSelect.innerHTML = '';
+  if (btnTtAddTrip) {
+    btnTtAddTrip.addEventListener('click', () => {
+      document.getElementById('tt-trip-date').value = dateInput.value || new Date().toISOString().split('T')[0];
+      document.getElementById('tt-trip-for').value = 'Pimpalgaon';
+      document.getElementById('tt-entry-given').value = 'Yes';
+      document.getElementById('tt-trip-remark1').value = '';
+      document.getElementById('tt-trip-remark2').value = '';
 
-    let curYear = endYear;
-    let curMonth = endMonth;
+      if (modalTtAddTrip) modalTtAddTrip.style.display = 'flex';
+    });
+  }
 
-    while (curYear > startYear || (curYear === startYear && curMonth >= startMonth)) {
-      const monthVal = `${curYear}-${String(curMonth + 1).padStart(2, '0')}`;
-      const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-      const label = `${months[curMonth]} ${curYear}`;
-      
-      const opt = document.createElement('option');
-      opt.value = monthVal;
-      opt.textContent = label;
-      ttMonthSelect.appendChild(opt);
+  if (btnCancelTtTrip) {
+    btnCancelTtTrip.addEventListener('click', () => {
+      if (modalTtAddTrip) modalTtAddTrip.style.display = 'none';
+    });
+  }
 
-      curMonth--;
-      if (curMonth < 0) {
-        curMonth = 11;
-        curYear--;
+  if (formTtAddTrip) {
+    formTtAddTrip.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const date = document.getElementById('tt-trip-date').value;
+      const trip_for = document.getElementById('tt-trip-for').value;
+      const entry_given = document.getElementById('tt-entry-given').value;
+      const remark1 = document.getElementById('tt-trip-remark1').value.trim();
+      const remark2 = document.getElementById('tt-trip-remark2').value.trim();
+
+      if (!date || !trip_for || !entry_given) {
+        showToast('Please fill in Date, Trip For, and Entry Given.', 'error');
+        return;
       }
+
+      // Bypassed lock validation for Category B TT entries
+
+      try {
+        const res = await fetch('/api/tt/entries', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            date,
+            trip_for,
+            entry_given,
+            remark1,
+            remark2
+          })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showToast(data.message || 'Entry added successfully.', 'success');
+          if (modalTtAddTrip) modalTtAddTrip.style.display = 'none';
+          loadTtTrips();
+        } else {
+          showToast(data.error || 'Failed to add entry.', 'error');
+        }
+      } catch (err) {
+        console.error('Error adding entry:', err);
+        showToast('Network error adding entry.', 'error');
+      }
+    });
+  }
+
+  // Load Trips / Entries data
+  async function loadTtTrips() {
+    initializeAllTtMonthSelectors();
+    const selectors = document.querySelectorAll('.tt-month-select-shared');
+    const selectedMonth = selectors.length > 0 ? selectors[0].value : (dateInput.value || activeDate).substring(0, 7);
+    
+    const tbody = document.getElementById('tt-trips-table-body');
+    if (tbody) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Loading...</td></tr>';
+    }
+
+    try {
+      const res = await fetch(`/api/tt/entries?month=${selectedMonth}`);
+      if (!res.ok) throw new Error('Failed to fetch entries.');
+      const data = await res.json();
+
+      if (tbody) {
+        if (!data.entries || data.entries.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:1.5rem; color:var(--text-muted); font-style:italic;">No entries recorded for this month.</td></tr>';
+          return;
+        }
+
+        let html = '';
+        data.entries.forEach(tr => {
+          const isEditable = true; // Category B TT entries are always editable
+          const tripForHtml = `
+            <select class="cell-trip-for-select" ${isEditable ? '' : 'disabled'} style="font-size: 0.85rem; padding: 0.2rem 0.4rem; border-radius: 0.25rem; cursor: pointer; width: 100%;">
+              <option value="Pimpalgaon" ${tr.trip_for === 'Pimpalgaon' ? 'selected' : ''}>Pimpalgaon</option>
+              <option value="Wakod" ${tr.trip_for === 'Wakod' ? 'selected' : ''}>Wakod</option>
+              <option value="Other" ${tr.trip_for === 'Other' ? 'selected' : ''}>Other</option>
+            </select>
+          `;
+          const entryGivenHtml = `
+            <select class="cell-entry-given-select" ${isEditable ? '' : 'disabled'} style="font-size: 0.85rem; padding: 0.2rem 0.4rem; border-radius: 0.25rem; cursor: pointer; width: 100%;">
+              <option value="Yes" ${tr.entry_given === 'Yes' ? 'selected' : ''}>Yes</option>
+              <option value="No" ${tr.entry_given === 'No' ? 'selected' : ''}>No</option>
+            </select>
+          `;
+          const deleteButton = isEditable ? `<button style="padding:0.15rem 0.45rem; font-size:0.75rem; background:var(--danger); color:#fff; border:none; border-radius:0.4rem; cursor:pointer;" onclick="deleteTtEntry(${tr.id})">Del</button>` : '';
+
+          html += `
+            <tr style="border-bottom:1px solid rgba(255,255,255,0.03);" 
+                data-id="${tr.id}"
+                data-date="${tr.date}"
+                data-trip-for="${tr.trip_for}"
+                data-entry-given="${tr.entry_given}"
+                data-remark1="${tr.remark1 || ''}"
+                data-remark2="${tr.remark2 || ''}">
+              <td class="${isEditable ? 'editable-cell' : ''} cell-trip-date" ${isEditable ? 'contenteditable="true"' : ''} style="padding:0.65rem 0.85rem; font-weight:600; white-space:nowrap;">${formatDate(tr.date)}</td>
+              <td style="padding:0.65rem 0.85rem;">${tripForHtml}</td>
+              <td style="padding:0.65rem 0.85rem;">${entryGivenHtml}</td>
+              <td class="${isEditable ? 'editable-cell' : ''} cell-trip-remark1" ${isEditable ? 'contenteditable="true"' : ''} style="padding:0.65rem 0.85rem;">${escapeHtml(tr.remark1 || '')}</td>
+              <td class="${isEditable ? 'editable-cell' : ''} cell-trip-remark2" ${isEditable ? 'contenteditable="true"' : ''} style="padding:0.65rem 0.85rem;">${escapeHtml(tr.remark2 || '')}</td>
+              <td style="padding:0.65rem 0.85rem; text-align:center;">
+                ${deleteButton}
+              </td>
+            </tr>
+          `;
+        });
+        tbody.innerHTML = html;
+
+        // Register event listeners
+        tbody.querySelectorAll('tr').forEach(trRow => {
+          trRow.querySelectorAll('.editable-cell').forEach(cell => {
+            cell.addEventListener('keydown', (evt) => {
+              if (evt.key === 'Enter') {
+                evt.preventDefault();
+                evt.target.blur();
+              }
+            });
+            cell.addEventListener('blur', () => handleEntryCellEdit(trRow, cell));
+          });
+          trRow.querySelectorAll('select').forEach(sel => {
+            sel.addEventListener('change', () => handleEntryCellEdit(trRow, sel));
+          });
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Error loading entries: ' + err.message, 'error');
+      if (tbody) tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--danger);">${err.message}</td></tr>`;
     }
   }
 
-  async function loadTtLedger() {
-    initializeTtMonthSelector();
-    if (!ttMonthSelect.value) {
-      const activeDateVal = dateInput.value || activeDate;
-      ttMonthSelect.value = activeDateVal.substring(0, 7);
-    }
-    
-    const selectedMonth = ttMonthSelect.value;
-    if (!selectedMonth) return;
+  // Handle inline entries editing
+  async function handleEntryCellEdit(trRow, triggeredElement) {
+    const entryId = trRow.dataset.id;
+    if (!entryId) return;
 
+    const dateEl = trRow.querySelector('.cell-trip-date');
+    const tripForSel = trRow.querySelector('.cell-trip-for-select');
+    const entryGivenSel = trRow.querySelector('.cell-entry-given-select');
+    const remark1El = trRow.querySelector('.cell-trip-remark1');
+    const remark2El = trRow.querySelector('.cell-trip-remark2');
+
+    const dateVal = parseInputDate(dateEl.textContent.trim());
+    const tripForVal = tripForSel.value;
+    const entryGivenVal = entryGivenSel.value;
+    const remark1Val = remark1El.textContent.trim();
+    const remark2Val = remark2El.textContent.trim();
+
+    if (!dateVal) {
+      showToast('Please enter a valid date.', 'error');
+      loadTtTrips();
+      return;
+    }
+
+    // Check if anything actually changed
+    const oldDate = trRow.dataset.date;
+    const oldTripFor = trRow.dataset.tripFor;
+    const oldEntryGiven = trRow.dataset.entryGiven;
+    const oldRemark1 = trRow.dataset.remark1 || '';
+    const oldRemark2 = trRow.dataset.remark2 || '';
+
+    if (
+      dateVal === oldDate &&
+      tripForVal === oldTripFor &&
+      entryGivenVal === oldEntryGiven &&
+      remark1Val === oldRemark1 &&
+      remark2Val === oldRemark2
+    ) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/tt/entries/${entryId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: dateVal,
+          trip_for: tripForVal,
+          entry_given: entryGivenVal,
+          remark1: remark1Val,
+          remark2: remark2Val
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update entry.');
+      
+      // Sync attributes
+      trRow.dataset.date = dateVal;
+      trRow.dataset.tripFor = tripForVal;
+      trRow.dataset.entryGiven = entryGivenVal;
+      trRow.dataset.remark1 = remark1Val;
+      trRow.dataset.remark2 = remark2Val;
+
+      showToast('Entry updated successfully.', 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+      loadTtTrips();
+    }
+  }
+
+  // Delete Entry
+  window.deleteTtEntry = async function(id) {
+    if (!confirm('Are you sure you want to delete this entry?')) return;
+
+    try {
+      const res = await fetch(`/api/tt/entries/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (res.ok) {
+        showToast(data.message || 'Entry deleted.', 'success');
+        loadTtTrips();
+      } else {
+        showToast(data.error || 'Failed to delete entry.', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Network error deleting entry.', 'error');
+    }
+  };
+
+  // ── AVERAGE LOGIC ─────────────────────────────────────────────────────────────
+
+  async function loadTtAverage() {
+    const tbody = document.getElementById('tt-average-table-body');
+    if (tbody) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Loading...</td></tr>';
+    }
+
+    try {
+      const res = await fetch('/api/tt/average');
+      if (!res.ok) throw new Error('Failed to fetch averages.');
+      const data = await res.json();
+
+      const last10Avg = data.last10Average || 0;
+      const lifetimeAvgCard = document.getElementById('tt-avg-lifetime');
+      if (lifetimeAvgCard) {
+        lifetimeAvgCard.innerHTML = `${last10Avg.toFixed(2)} <span style="font-size: 1rem; font-weight: 600; color: var(--text-muted);">KM/L</span>`;
+      }
+
+      if (tbody) {
+        if (!data.trips || data.trips.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:1.5rem; color:var(--text-muted); font-style:italic;">No trip data available yet.</td></tr>';
+          return;
+        }
+
+        let html = '';
+        data.trips.forEach(t => {
+          const fuelAvg = t.fuel_filled > 0 ? (t.run_km / t.fuel_filled).toFixed(2) : '0.00';
+          const isEditable = true; // Category B TT trips are always editable
+          html += `
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);"
+                data-id="${t.id}"
+                data-date="${t.date}"
+                data-start-km="${t.start_km}"
+                data-end-km="${t.end_km}"
+                data-fuel-filled="${t.fuel_filled || 0}"
+                data-load-qty="${t.load_qty || 0}"
+                data-driver-name="${t.driver_name || ''}"
+                data-notes="${t.notes || ''}">
+              <td style="padding:0.65rem 0.85rem; font-weight:600; color:var(--text-main);">${formatDate(t.date)}</td>
+              <td style="padding:0.65rem 0.85rem; text-align:right;">${t.start_km}</td>
+              <td style="padding:0.65rem 0.85rem; text-align:right;">${t.end_km}</td>
+              <td style="padding:0.65rem 0.85rem; text-align:right; font-weight:700; color:var(--accent);">${t.run_km.toLocaleString('en-IN')} KM</td>
+              <td style="padding:0.65rem 0.85rem; text-align:right; font-weight:700; color:var(--accent);">${t.fuel_filled || '0'}</td>
+              <td style="padding:0.65rem 0.85rem; text-align:right; font-weight:700; color:var(--success);">${fuelAvg} KM/L</td>
+              <td style="padding:0.65rem 0.85rem; text-align:center;">
+                ${isEditable ? `<button class="btn btn-secondary btn-icon" title="Edit" onclick="openEditTripModal(${t.id}, '${t.date}', ${t.start_km}, ${t.end_km}, ${t.fuel_filled || 0})" style="padding: 0.15rem 0.45rem; font-size: 0.75rem; border: none; border-radius: 0.4rem; cursor: pointer; background: var(--accent); color: var(--bg-main);">Edit</button>` : ''}
+              </td>
+            </tr>
+          `;
+        });
+        tbody.innerHTML = html;
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Error loading average data: ' + err.message, 'error');
+      if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--danger);">${err.message}</td></tr>`;
+    }
+  }
+
+  async function handleAverageFuelEdit(trRow, cell) {
+    const tripId = trRow.dataset.id;
+    if (!tripId) return;
+
+    const fuelVal = parseFloat(cell.textContent.trim()) || 0;
+    const oldFuel = parseFloat(trRow.dataset.fuelFilled) || 0;
+
+    if (fuelVal === oldFuel) return;
+
+    // Recalculate average online in the row
+    const runKm = parseFloat(trRow.dataset.startKm) ? (parseFloat(trRow.dataset.endKm) - parseFloat(trRow.dataset.startKm)) : 0;
+    const fuelAvg = fuelVal > 0 ? (runKm / fuelVal).toFixed(2) : '0.00';
+    const avgCell = trRow.querySelector('td:nth-child(6)');
+    if (avgCell) {
+      avgCell.innerHTML = `<span style="font-weight:700; color:var(--success);">${fuelAvg} KM/L</span>`;
+    }
+
+    try {
+      const res = await fetch(`/api/tt/trips/${tripId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: trRow.dataset.date,
+          start_km: parseFloat(trRow.dataset.startKm),
+          end_km: parseFloat(trRow.dataset.endKm),
+          fuel_filled: fuelVal,
+          load_qty: parseFloat(trRow.dataset.loadQty),
+          driver_name: trRow.dataset.driverName,
+          notes: trRow.dataset.notes
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update average fuel.');
+
+      trRow.dataset.fuelFilled = fuelVal;
+      showToast('Fuel filled updated successfully.', 'success');
+      
+      // Reload overall average stat card
+      loadTtAverageCardOnly();
+    } catch (err) {
+      showToast(err.message, 'error');
+      loadTtAverage();
+    }
+  }
+
+  async function loadTtAverageCardOnly() {
+    try {
+      const res = await fetch('/api/tt/average');
+      if (res.ok) {
+        const data = await res.json();
+        const last10Avg = data.last10Average || 0;
+        const lifetimeAvgCard = document.getElementById('tt-avg-lifetime');
+        if (lifetimeAvgCard) {
+          lifetimeAvgCard.innerHTML = `${last10Avg.toFixed(2)} <span style="font-size: 1rem; font-weight: 600; color: var(--text-muted);">KM/L</span>`;
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function loadTtAverage() {
+    const tbody = document.getElementById('tt-average-table-body');
+    if (tbody) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Loading...</td></tr>';
+    }
+
+    try {
+      const res = await fetch('/api/tt/average');
+      if (!res.ok) throw new Error('Failed to fetch averages.');
+      const data = await res.json();
+
+      const last10Avg = data.last10Average || 0;
+      const lifetimeAvgCard = document.getElementById('tt-avg-lifetime');
+      if (lifetimeAvgCard) {
+        lifetimeAvgCard.innerHTML = `${last10Avg.toFixed(2)} <span style="font-size: 1rem; font-weight: 600; color: var(--text-muted);">KM/L</span>`;
+      }
+
+      if (tbody) {
+        if (!data.trips || data.trips.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:1.5rem; color:var(--text-muted); font-style:italic;">No trip data available yet.</td></tr>';
+          return;
+        }
+
+        let html = '';
+        data.trips.forEach(t => {
+          const fuelAvg = t.fuel_filled > 0 ? (t.run_km / t.fuel_filled).toFixed(2) : '0.00';
+          const isEditable = true; // Category B TT trips are always editable
+          html += `
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);"
+                data-id="${t.id}"
+                data-date="${t.date}"
+                data-start-km="${t.start_km}"
+                data-end-km="${t.end_km}"
+                data-fuel-filled="${t.fuel_filled || 0}"
+                data-load-qty="${t.load_qty || 0}"
+                data-driver-name="${t.driver_name || ''}"
+                data-notes="${t.notes || ''}">
+              <td style="padding:0.65rem 0.85rem; font-weight:600; color:var(--text-main);">${formatDate(t.date)}</td>
+              <td style="padding:0.65rem 0.85rem; text-align:right;">${t.start_km}</td>
+              <td style="padding:0.65rem 0.85rem; text-align:right;">${t.end_km}</td>
+              <td style="padding:0.65rem 0.85rem; text-align:right; font-weight:700; color:var(--accent);">${t.run_km.toLocaleString('en-IN')} KM</td>
+              <td style="padding:0.65rem 0.85rem; text-align:right; font-weight:700; color:var(--accent);">${t.fuel_filled || '0'}</td>
+              <td style="padding:0.65rem 0.85rem; text-align:right; font-weight:700; color:var(--success);">${fuelAvg} KM/L</td>
+              <td style="padding:0.65rem 0.85rem; text-align:center;">
+                ${isEditable ? `<button class="btn btn-secondary btn-icon" title="Edit" onclick="openEditTripModal(${t.id}, '${t.date}', ${t.start_km}, ${t.end_km}, ${t.fuel_filled || 0})" style="padding: 0.15rem 0.45rem; font-size: 0.75rem; border: none; border-radius: 0.4rem; cursor: pointer; background: var(--accent); color: var(--bg-main);">Edit</button>` : ''}
+              </td>
+            </tr>
+          `;
+        });
+        tbody.innerHTML = html;
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Error loading average data: ' + err.message, 'error');
+      if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--danger);">${err.message}</td></tr>`;
+    }
+  }
+
+  // ── EXPENSES (LEDGER) LOGIC ───────────────────────────────────────────────────
+
+  async function loadTtLedger() {
+    initializeAllTtMonthSelectors();
+    const selectors = document.querySelectorAll('.tt-month-select-shared');
+    const selectedMonth = selectors.length > 0 ? selectors[0].value : (dateInput.value || activeDate).substring(0, 7);
+    
     if (ttStatementBody) {
-      ttStatementBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Loading...</td></tr>';
+      ttStatementBody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Loading...</td></tr>';
     }
 
     try {
       const res = await fetch(`/api/tt/transactions?month=${selectedMonth}`);
-      if (!res.ok) {
-        throw new Error('Failed to fetch ledger transactions');
-      }
+      if (!res.ok) throw new Error('Failed to fetch ledger transactions.');
       const data = await res.json();
       const transactions = data.transactions || [];
       const openingBalance = parseFloat(data.openingBalance || 0);
 
+      if (ttStatementBody) {
+        ttStatementBody.dataset.openingBalance = openingBalance;
+      }
+
       let totalDebits = 0;
       let totalCredits = 0;
       transactions.forEach(t => {
-        const amt = parseFloat(t.amount);
+        const amt = parseFloat(t.amount) || 0;
         if (t.type === 'DEBIT') {
           totalDebits += amt;
         } else {
@@ -4896,53 +6006,261 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (ttStatementBody) {
         if (transactions.length === 0) {
-          ttStatementBody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 1.5rem; color:var(--text-muted); font-style:italic;">No transactions recorded for this month.</td></tr>`;
+          ttStatementBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 1.5rem; color:var(--text-muted); font-style:italic;">No transactions recorded for this month.</td></tr>`;
           return;
         }
 
         let currentBal = openingBalance;
         let html = '';
         transactions.forEach(t => {
-          const amt = parseFloat(t.amount);
-          let debitStr = '';
-          let creditStr = '';
+          const amt = parseFloat(t.amount) || 0;
+          let debitVal = '';
+          let creditVal = '';
           if (t.type === 'DEBIT') {
             currentBal -= amt;
-            debitStr = `₹ ${Math.round(amt).toLocaleString('en-IN')}`;
+            debitVal = amt > 0 ? amt.toFixed(2) : '';
           } else {
             currentBal += amt;
-            creditStr = `₹ ${Math.round(amt).toLocaleString('en-IN')}`;
+            creditVal = amt > 0 ? amt.toFixed(2) : '';
           }
 
-          let desc = t.description;
-          if (t.source === 'SETTLEMENT' && t.profit !== null) {
-            desc = `Settlement Received (Profit: ₹${Math.round(t.profit).toLocaleString('en-IN')})`;
-          }
-
-          if (t.notes) {
-            desc += `<div style="font-size:0.75rem; color:var(--text-muted); font-style:italic; margin-top:0.15rem;">Note: ${escapeHtml(t.notes)}</div>`;
-          }
+          let desc = t.description || '';
+          let notesStr = t.notes || '';
+          const isEditable = true; // Category B TT transactions are always editable
+          const deleteButton = isEditable ? `<button style="padding:0.15rem 0.45rem; font-size:0.75rem; background:var(--danger); color:#fff; border:none; border-radius:0.4rem; cursor:pointer;" onclick="deleteTtTxn(${t.id})">Del</button>` : '';
 
           html += `
-            <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.03);">
-              <td style="padding: 0.65rem 0.85rem;">${formatDate(t.date)}</td>
-              <td style="padding: 0.65rem 0.85rem;">${desc}</td>
-              <td class="text-right" style="padding: 0.65rem 0.85rem; text-align:right; color:var(--danger); font-weight:600;">${debitStr}</td>
-              <td class="text-right" style="padding: 0.65rem 0.85rem; text-align:right; color:var(--success); font-weight:600;">${creditStr}</td>
-              <td class="text-right" style="padding: 0.65rem 0.85rem; text-align:right; font-weight:700; color:var(--text-main);">₹ ${Math.round(currentBal).toLocaleString('en-IN')}</td>
+            <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.03);"
+                data-id="${t.id}"
+                data-date="${t.date}"
+                data-description="${desc}"
+                data-notes="${notesStr}"
+                data-type="${t.type}"
+                data-amount="${amt}">
+              <td class="${isEditable ? 'editable-cell' : ''} cell-txn-date" ${isEditable ? 'contenteditable="true"' : ''} style="padding: 0.65rem 0.85rem; font-weight:600; white-space:nowrap;">${formatDate(t.date)}</td>
+              <td class="${isEditable ? 'editable-cell' : ''} cell-txn-particulars" ${isEditable ? 'contenteditable="true"' : ''} style="padding: 0.65rem 0.85rem;">
+                ${desc}
+                ${notesStr ? `<div style="font-size:0.75rem; color:var(--text-muted); font-style:italic; margin-top:0.15rem;">Note: ${escapeHtml(notesStr)}</div>` : ''}
+              </td>
+              <td style="padding: 0.65rem 0.85rem; color: var(--text-muted);"></td>
+              <td class="${isEditable ? 'editable-cell' : ''} cell-txn-debit text-right" ${isEditable ? 'contenteditable="true"' : ''} style="padding: 0.65rem 0.85rem; text-align:right; color:var(--danger); font-weight:600;">${debitVal}</td>
+              <td class="${isEditable ? 'editable-cell' : ''} cell-txn-credit text-right" ${isEditable ? 'contenteditable="true"' : ''} style="padding: 0.65rem 0.85rem; text-align:right; color:var(--success); font-weight:600;">${creditVal}</td>
+              <td class="cell-txn-balance text-right" style="padding: 0.65rem 0.85rem; text-align:right; font-weight:700; color:var(--text-main);">₹ ${Math.round(currentBal).toLocaleString('en-IN')}</td>
+              <td style="padding: 0.65rem 0.85rem; text-align:center;">
+                ${deleteButton}
+              </td>
             </tr>
           `;
         });
         ttStatementBody.innerHTML = html;
+
+        // Register edit handlers
+        ttStatementBody.querySelectorAll('tr').forEach(trRow => {
+          trRow.querySelectorAll('.editable-cell').forEach(cell => {
+            cell.addEventListener('keydown', (evt) => {
+              if (evt.key === 'Enter') {
+                evt.preventDefault();
+                evt.target.blur();
+              }
+            });
+            cell.addEventListener('blur', () => handleLedgerCellEdit(trRow, cell));
+          });
+        });
       }
     } catch (err) {
       console.error(err);
       showToast('Error loading ledger: ' + err.message, 'error');
       if (ttStatementBody) {
-        ttStatementBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--danger);">${err.message}</td></tr>`;
+        ttStatementBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--danger);">${err.message}</td></tr>`;
       }
     }
   }
+
+  // Handle inline ledger cell editing
+  async function handleLedgerCellEdit(trRow, cell) {
+    const txnId = trRow.dataset.id;
+    if (!txnId) return;
+
+    const dateEl = trRow.querySelector('.cell-txn-date');
+    const partEl = trRow.querySelector('.cell-txn-particulars');
+    const debitEl = trRow.querySelector('.cell-txn-debit');
+    const creditEl = trRow.querySelector('.cell-txn-credit');
+
+    const dateVal = parseInputDate(dateEl.textContent.trim());
+    
+    // Extract particulars description without notes preview div
+    const partClone = partEl.cloneNode(true);
+    const notesDiv = partClone.querySelector('div');
+    if (notesDiv) notesDiv.remove();
+    const description = partClone.textContent.trim();
+
+    let debitVal = parseFloat(debitEl.textContent.replace(/[^\d.-]/g, '')) || 0;
+    let creditVal = parseFloat(creditEl.textContent.replace(/[^\d.-]/g, '')) || 0;
+
+    const oldType = trRow.dataset.type;
+    const oldAmount = parseFloat(trRow.dataset.amount) || 0;
+
+    let type = oldType;
+    let amount = oldAmount;
+
+    if (cell.classList.contains('cell-txn-debit')) {
+      if (debitVal > 0) {
+        type = 'DEBIT';
+        amount = debitVal;
+        creditEl.textContent = ''; 
+      } else if (creditVal > 0) {
+        type = 'CREDIT';
+        amount = creditVal;
+      } else {
+        showToast('Amount must be positive.', 'error');
+        loadTtLedger();
+        return;
+      }
+    } else if (cell.classList.contains('cell-txn-credit')) {
+      if (creditVal > 0) {
+        type = 'CREDIT';
+        amount = creditVal;
+        debitEl.textContent = ''; 
+      } else if (debitVal > 0) {
+        type = 'DEBIT';
+        amount = debitVal;
+      } else {
+        showToast('Amount must be positive.', 'error');
+        loadTtLedger();
+        return;
+      }
+    } else {
+      // Date or Particulars was edited
+      if (debitVal > 0 && creditVal === 0) {
+        type = 'DEBIT';
+        amount = debitVal;
+      } else if (creditVal > 0 && debitVal === 0) {
+        type = 'CREDIT';
+        amount = creditVal;
+      } else if (debitVal > 0 && creditVal > 0) {
+        if (type === 'DEBIT') {
+          amount = debitVal;
+          creditEl.textContent = '';
+        } else {
+          amount = creditVal;
+          debitEl.textContent = '';
+        }
+      }
+    }
+
+    if (!dateVal) {
+      showToast('Please enter a valid date.', 'error');
+      loadTtLedger();
+      return;
+    }
+
+    // Recalculate balances dynamically in UI
+    recalculateLedgerBalancesOnline();
+
+    // Check if changed
+    const oldDate = trRow.dataset.date;
+    const oldDesc = trRow.dataset.description;
+    const oldNotes = trRow.dataset.notes || '';
+
+    if (
+      dateVal === oldDate &&
+      description === oldDesc &&
+      type === oldType &&
+      amount === oldAmount
+    ) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/tt/transactions/${txnId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: dateVal,
+          description: description,
+          type: type,
+          amount: amount,
+          notes: oldNotes
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update transaction.');
+      
+      // Update data attributes
+      trRow.dataset.date = dateVal;
+      trRow.dataset.description = description;
+      trRow.dataset.type = type;
+      trRow.dataset.amount = amount;
+
+      showToast('Transaction updated successfully.', 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+      loadTtLedger();
+    }
+  }
+
+  // Recalculate Ledger Running Balances locally
+  function recalculateLedgerBalancesOnline() {
+    const tbody = document.getElementById('tt-statement-body');
+    if (!tbody) return;
+    const openingBalance = parseFloat(tbody.dataset.openingBalance || 0);
+
+    const rows = tbody.querySelectorAll('tr[data-id]');
+    let currentBal = openingBalance;
+    let totalDebits = 0;
+    let totalCredits = 0;
+
+    rows.forEach(trRow => {
+      const debitEl = trRow.querySelector('.cell-txn-debit');
+      const creditEl = trRow.querySelector('.cell-txn-credit');
+      const balEl = trRow.querySelector('.cell-txn-balance');
+
+      const debit = parseFloat(debitEl.textContent.replace(/[^\d.-]/g, '')) || 0;
+      const credit = parseFloat(creditEl.textContent.replace(/[^\d.-]/g, '')) || 0;
+
+      if (debit > 0) {
+        currentBal -= debit;
+        totalDebits += debit;
+        trRow.dataset.type = 'DEBIT';
+        trRow.dataset.amount = debit;
+      } else if (credit > 0) {
+        currentBal += credit;
+        totalCredits += credit;
+        trRow.dataset.type = 'CREDIT';
+        trRow.dataset.amount = credit;
+      }
+
+      if (balEl) {
+        balEl.textContent = `₹ ${Math.round(currentBal).toLocaleString('en-IN')}`;
+      }
+    });
+
+    const closingBalance = openingBalance + totalCredits - totalDebits;
+
+    if (ttStatOpening) ttStatOpening.textContent = `₹ ${Math.round(openingBalance).toLocaleString('en-IN')}`;
+    if (ttStatDebits) ttStatDebits.textContent = `₹ ${Math.round(totalDebits).toLocaleString('en-IN')}`;
+    if (ttStatCredits) ttStatCredits.textContent = `₹ ${Math.round(totalCredits).toLocaleString('en-IN')}`;
+    if (ttStatClosing) ttStatClosing.textContent = `₹ ${Math.round(closingBalance).toLocaleString('en-IN')}`;
+  }
+
+  // Delete ledger entry
+  window.deleteTtTxn = async function(id) {
+    if (!confirm('Are you sure you want to delete this transaction?')) return;
+
+    try {
+      const res = await fetch(`/api/tt/transactions/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (res.ok) {
+        showToast(data.message || 'Transaction deleted.', 'success');
+        loadTtLedger();
+      } else {
+        showToast(data.error || 'Failed to delete transaction.', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Network error deleting transaction.', 'error');
+    }
+  };
 
   function escapeHtml(text) {
     if (!text) return '';
@@ -4952,6 +6270,179 @@ document.addEventListener('DOMContentLoaded', () => {
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
+  }
+
+  // Edit trip modal handler
+  window.openEditTripModal = function(id, date, startKm, endKm, fuelFilled) {
+    const trRow = document.querySelector(`tr[data-id="${id}"]`);
+    document.getElementById('edit-trip-id').value = id;
+    document.getElementById('edit-trip-date').value = formatDate(date);
+    document.getElementById('edit-trip-date').dataset.rawDate = date;
+    document.getElementById('edit-trip-start-km').value = startKm;
+    document.getElementById('edit-trip-end-km').value = endKm;
+    document.getElementById('edit-trip-fuel').value = fuelFilled;
+    
+    if (trRow) {
+      document.getElementById('edit-trip-id').dataset.loadQty = trRow.dataset.loadQty || '0';
+      document.getElementById('edit-trip-id').dataset.driverName = trRow.dataset.driverName || '';
+      document.getElementById('edit-trip-id').dataset.notes = trRow.dataset.notes || '';
+    } else {
+      document.getElementById('edit-trip-id').dataset.loadQty = '0';
+      document.getElementById('edit-trip-id').dataset.driverName = '';
+      document.getElementById('edit-trip-id').dataset.notes = '';
+    }
+
+    const modal = document.getElementById('modal-tt-edit-trip');
+    if (modal) modal.style.display = 'flex';
+  };
+
+  const formTtEditTrip = document.getElementById('form-tt-edit-trip');
+  if (formTtEditTrip) {
+    formTtEditTrip.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('edit-trip-id').value;
+      const date = document.getElementById('edit-trip-date').dataset.rawDate;
+      const startKm = parseFloat(document.getElementById('edit-trip-start-km').value);
+      const endKm = parseFloat(document.getElementById('edit-trip-end-km').value);
+      const fuelFilled = parseFloat(document.getElementById('edit-trip-fuel').value);
+
+      const loadQty = parseFloat(document.getElementById('edit-trip-id').dataset.loadQty) || 0;
+      const driverName = document.getElementById('edit-trip-id').dataset.driverName || '';
+      const notes = document.getElementById('edit-trip-id').dataset.notes || '';
+
+      if (isNaN(startKm) || isNaN(endKm) || isNaN(fuelFilled)) {
+        showToast('Valid readings and fuel filled are required.', 'error');
+        return;
+      }
+      if (endKm < startKm) {
+        showToast('Closing Reading must be greater than or equal to Opening Reading.', 'error');
+        return;
+      }
+      if (fuelFilled < 0) {
+        showToast('Fuel Filled cannot be negative.', 'error');
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/tt/trips/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            date,
+            start_km: startKm,
+            end_km: endKm,
+            fuel_filled: fuelFilled,
+            load_qty: loadQty,
+            driver_name: driverName,
+            notes: notes
+          })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showToast('Trip updated successfully.', 'success');
+          document.getElementById('modal-tt-edit-trip').style.display = 'none';
+          loadTtAverage();
+        } else {
+          showToast(data.error || 'Failed to update trip.', 'error');
+        }
+      } catch (err) {
+        console.error('Error updating trip:', err);
+        showToast('Network error updating trip.', 'error');
+      }
+    });
+  }
+
+  // Manual Trip creation handler
+  const btnTtAddNewTrip = document.getElementById('btn-tt-add-new-trip');
+  const btnTtAverageManualEntry = document.getElementById('btn-tt-average-manual-entry');
+  const modalTtAddNewTrip = document.getElementById('modal-tt-add-new-trip');
+  const formTtAddNewTrip = document.getElementById('form-tt-add-new-trip');
+
+  async function openManualTripModal() {
+    document.getElementById('new-trip-date').value = dateInput.value || new Date().toISOString().split('T')[0];
+    document.getElementById('new-trip-fuel').value = '0';
+    document.getElementById('new-trip-remarks').value = '';
+    document.getElementById('new-trip-end-km').value = '';
+
+    try {
+      const res = await fetch('/api/tt/average');
+      if (res.ok) {
+        const data = await res.json();
+        const trips = data.trips || [];
+        if (trips.length > 0) {
+          document.getElementById('new-trip-start-km').value = trips[0].end_km;
+        } else {
+          document.getElementById('new-trip-start-km').value = '0';
+        }
+      } else {
+        document.getElementById('new-trip-start-km').value = '0';
+      }
+    } catch (err) {
+      console.error('Error fetching latest trip for opening reading auto-fill:', err);
+      document.getElementById('new-trip-start-km').value = '0';
+    }
+
+    if (modalTtAddNewTrip) modalTtAddNewTrip.style.display = 'flex';
+  }
+
+  if (btnTtAddNewTrip) {
+    btnTtAddNewTrip.addEventListener('click', openManualTripModal);
+  }
+  if (btnTtAverageManualEntry) {
+    btnTtAverageManualEntry.addEventListener('click', openManualTripModal);
+  }
+
+  if (formTtAddNewTrip) {
+    formTtAddNewTrip.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const date = document.getElementById('new-trip-date').value;
+      const startKm = parseFloat(document.getElementById('new-trip-start-km').value);
+      const endKm = parseFloat(document.getElementById('new-trip-end-km').value);
+      const fuelFilled = parseFloat(document.getElementById('new-trip-fuel').value);
+      const remarks = document.getElementById('new-trip-remarks').value.trim();
+
+      if (!date || isNaN(startKm) || isNaN(endKm) || isNaN(fuelFilled)) {
+        showToast('Please fill in Date, Readings, and Fuel Filled.', 'error');
+        return;
+      }
+      if (endKm < startKm) {
+        showToast('Closing Reading must be greater than or equal to Opening Reading.', 'error');
+        return;
+      }
+      if (fuelFilled < 0) {
+        showToast('Fuel Filled cannot be negative.', 'error');
+        return;
+      }
+
+      // Bypassed lock validation for Category B TT trips
+
+      try {
+        const res = await fetch('/api/tt/trips', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            date,
+            start_km: startKm,
+            end_km: endKm,
+            fuel_filled: fuelFilled,
+            load_qty: 0,
+            driver_name: '',
+            notes: remarks
+          })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showToast('Trip added successfully.', 'success');
+          if (modalTtAddNewTrip) modalTtAddNewTrip.style.display = 'none';
+          loadTtAverage();
+        } else {
+          showToast(data.error || 'Failed to add trip.', 'error');
+        }
+      } catch (err) {
+        console.error('Error adding trip:', err);
+        showToast('Network error adding trip.', 'error');
+      }
+    });
   }
 
 });

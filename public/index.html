@@ -368,7 +368,6 @@
                     <input type="number" id="nozzle-5-test-qty" class="testing-qty-input" step="0.001" min="0" placeholder="5.000">
                   </div>
                 </div>
-
                 <!-- Nozzle 6 Row -->
                 <div class="testing-table-row product-power" data-nozzle="6">
                   <div class="col-nozzle">
@@ -380,6 +379,25 @@
                   <div class="col-input">
                     <input type="number" id="nozzle-6-test-qty" class="testing-qty-input" step="0.001" min="0" placeholder="5.000">
                   </div>
+                </div>
+              </div>
+
+              <!-- Product-wise Testing Summary -->
+              <div class="testing-summary-container" style="display: flex; flex-direction: row; flex-wrap: wrap; gap: 0.75rem; margin: 1.5rem auto; width: 100%; max-width: 580px; justify-content: center; align-items: center;">
+                <!-- poWer Testing Box -->
+                <div class="summary-mini-card power" style="text-align: center; padding: 1rem 0.75rem; border-radius: 0.5rem; flex: 1; min-width: 170px; display: flex; align-items: center; justify-content: center; white-space: nowrap;">
+                  <span style="font-size: 1.15rem; font-weight: 700;">poWer Testing:&nbsp;</span>
+                  <span id="test-total-power" style="font-size: 0.95rem; font-weight: 600; opacity: 0.9;">0.000 L</span>
+                </div>
+                <!-- Petrol Testing Box -->
+                <div class="summary-mini-card petrol" style="text-align: center; padding: 1rem 0.75rem; border-radius: 0.5rem; flex: 1; min-width: 170px; display: flex; align-items: center; justify-content: center; white-space: nowrap;">
+                  <span style="font-size: 1.15rem; font-weight: 700;">Petrol Testing:&nbsp;</span>
+                  <span id="test-total-petrol" style="font-size: 0.95rem; font-weight: 600; opacity: 0.9;">0.000 L</span>
+                </div>
+                <!-- Diesel Testing Box -->
+                <div class="summary-mini-card diesel" style="text-align: center; padding: 1rem 0.75rem; border-radius: 0.5rem; flex: 1; min-width: 170px; display: flex; align-items: center; justify-content: center; white-space: nowrap;">
+                  <span style="font-size: 1.15rem; font-weight: 700;">Diesel Testing:&nbsp;</span>
+                  <span id="test-total-diesel" style="font-size: 0.95rem; font-weight: 600; opacity: 0.9;">0.000 L</span>
                 </div>
               </div>
 
@@ -576,6 +594,8 @@
                 <span id="decantation-helper-note" style="display: none; font-size: 0.75rem; color: #f43f5e; font-weight: 600;">⚠️ 500+ ली. वाढ — नोंद अनिवार्य</span>
               </div>
 
+
+
               <!-- Standard form-actions-row for uniform button size -->
               <div class="form-actions-row">
                 <button type="button" id="btn-back-to-rates" class="btn btn-secondary">
@@ -620,6 +640,26 @@
                   <label for="load-diesel" style="margin-bottom: 0;">Diesel Load (L)</label>
                   <input type="number" id="load-diesel" min="0" placeholder="0" value="0" step="1000" style="text-align: right; font-size: 1.15rem; font-weight: 700; color: var(--diesel-color); max-width: 140px; width: 100%; margin-left: auto;" oninput="if(this.value.length > 7) this.value = this.value.slice(0, 7);">
                 </div>
+
+                <!-- Own Tanker Toggle Question (MH-19-CY-5682) -->
+                <div id="tt-decantation-question-container" class="form-group" style="padding: 0.75rem 1rem; border-radius: 0.75rem; border: 1px solid rgba(255, 255, 255, 0.1); display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 1rem;">
+                  <label style="margin-bottom: 0; font-weight: 600;">घरचा टँकर (MH-19-CY-5682) होता का?</label>
+                  <div class="radio-group" style="margin: 0;">
+                    <label class="radio-label">
+                      <input type="radio" name="tt-decantation-toggle" value="no"> No
+                    </label>
+                    <label class="radio-label">
+                      <input type="radio" name="tt-decantation-toggle" value="yes" checked> Yes
+                    </label>
+                  </div>
+                </div>
+
+                <!-- KM Reading for Own Tanker -->
+                <div id="own-tanker-km-container" class="form-group" style="display: none; padding: 0.75rem 1rem; border-radius: 0.75rem; border: 1px solid rgba(255, 255, 255, 0.1); flex-direction: row; align-items: center; justify-content: space-between; gap: 1rem;">
+                  <label for="own-tanker-km" style="margin-bottom: 0; font-weight: 600;">टँकर किलोमीटर (KM) रीडिंग:</label>
+                  <input type="number" id="own-tanker-km" placeholder="Enter KM Reading" style="text-align: right; font-size: 1.1rem; font-weight: 700; max-width: 160px; width: 100%; padding: 0.4rem 0.6rem; border-radius: 0.35rem; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.15); color: #fff;">
+                </div>
+              </div>
               <div class="form-actions-row">
                 <button type="button" id="btn-back-to-tank" class="btn btn-secondary">
                   ⬅ Back to Tank Stock
@@ -970,97 +1010,97 @@
           <section class="card finish-card">
 
             <!-- Preview Warning Banner -->
-            <div class="preview-warning-banner" style="border-radius: 0.75rem; padding: 0.65rem 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0;">
-              <span style="font-size: 1.3rem;">👁️</span>
+            <div class="preview-warning-banner" style="border-radius: 0.5rem; padding: 0.4rem 0.75rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.6rem; flex-shrink: 0;">
+              <span style="font-size: 1.1rem;">👁️</span>
               <div>
-                <p style="font-weight: 700; font-size: 0.85rem; color: var(--warning); margin: 0;">Preview Mode — Day is NOT yet closed</p>
-                <p style="font-size: 0.72rem; color: var(--text-muted); margin: 0.1rem 0 0;">Review all figures carefully. Click <strong style="color:var(--accent);">← Back to Edit</strong> to make corrections, or <strong style="color:#22c55e;">✓ Confirm &amp; Close Day</strong> to finalize.</p>
+                <p style="font-weight: 700; font-size: 0.8rem; color: var(--warning); margin: 0;">Preview Mode — Day is NOT yet closed</p>
+                <p style="font-size: 0.68rem; color: var(--text-muted); margin: 0.05rem 0 0;">Review all figures carefully. Click <strong style="color:var(--accent);">← Back to Edit</strong> to make corrections, or <strong style="color:var(--accent);">✓ Confirm &amp; Close Day</strong> to finalize.</p>
               </div>
             </div>
 
-            <div class="card-header">
+            <div class="card-header" style="margin-bottom: 0.35rem;">
               <div style="display: flex; align-items: center; gap: 0.6rem;">
-                <span style="font-size: 1.25rem;">📋</span>
-                <h2>Day Summary for <strong id="preview-date">—</strong></h2>
+                <span style="font-size: 1.1rem;">📋</span>
+                <h2 style="font-size: 1.05rem; margin-bottom: 0.05rem;">Day Summary for <strong id="preview-date">—</strong></h2>
               </div>
-              <p>Please verify all entries below before confirming the day close.</p>
+              <p style="font-size: 0.7rem; margin: 0;">Please verify all entries below before confirming the day close.</p>
             </div>
 
-            <div class="summary-section" style="display: flex; flex-direction: row; gap: 1.5rem; overflow-y: hidden; flex: 1;">
+            <div class="summary-section" style="display: flex; flex-direction: row; gap: 0.75rem; overflow-y: hidden; flex: 1;">
               
               <!-- LEFT COLUMN: Sales & Settlement -->
-              <div class="preview-left-column" style="flex: 1; display: flex; flex-direction: column; gap: 1rem; overflow-y: auto; padding-right: 0.5rem;">
+              <div class="preview-left-column" style="flex: 1; display: flex; flex-direction: column; gap: 0.5rem; overflow-y: auto; overflow-x: hidden; padding-right: 0.25rem;">
                 
                 <!-- Product Volume Cards -->
-                <div class="product-summary-cards" style="gap: 0.75rem;">
-                  <div class="summary-mini-card petrol" style="padding: 0.75rem;">
-                    <span class="label" style="font-size: 0.75rem;">Total Petrol</span>
-                    <span class="value" id="preview-total-petrol" style="font-size: 1.25rem;">0.000 L</span>
-                    <span class="pct-label" id="preview-pct-petrol" style="font-size: 0.75rem; font-weight: 600; opacity: 0.85; margin-top: 0.2rem;">0.00% Sale</span>
+                <div class="product-summary-cards" style="gap: 0.5rem;">
+                  <div class="summary-mini-card petrol" style="padding: 0.4rem 0.6rem; gap: 0.02rem;">
+                    <span class="label" style="font-size: 0.62rem;">Total Petrol</span>
+                    <span class="value" id="preview-total-petrol" style="font-size: 1.05rem;">0.000 L</span>
+                    <span class="pct-label" id="preview-pct-petrol" style="font-size: 0.62rem; font-weight: 600; opacity: 0.85; margin-top: 0.05rem;">0.00% Sale</span>
                   </div>
-                  <div class="summary-mini-card diesel" style="padding: 0.75rem;">
-                    <span class="label" style="font-size: 0.75rem;">Total Diesel</span>
-                    <span class="value" id="preview-total-diesel" style="font-size: 1.25rem;">0.000 L</span>
-                    <span class="pct-label" id="preview-pct-diesel" style="font-size: 0.75rem; font-weight: 600; opacity: 0.85; margin-top: 0.2rem;">0.00% Sale</span>
+                  <div class="summary-mini-card diesel" style="padding: 0.4rem 0.6rem; gap: 0.02rem;">
+                    <span class="label" style="font-size: 0.62rem;">Total Diesel</span>
+                    <span class="value" id="preview-total-diesel" style="font-size: 1.05rem;">0.000 L</span>
+                    <span class="pct-label" id="preview-pct-diesel" style="font-size: 0.62rem; font-weight: 600; opacity: 0.85; margin-top: 0.05rem;">0.00% Sale</span>
                   </div>
-                  <div class="summary-mini-card power" style="padding: 0.75rem;">
-                    <span class="label" style="font-size: 0.75rem;">Total poWer</span>
-                    <span class="value" id="preview-total-power" style="font-size: 1.25rem;">0.000 L</span>
-                    <span class="pct-label" id="preview-pct-power" style="font-size: 0.75rem; font-weight: 600; opacity: 0.85; margin-top: 0.2rem;">0.00% Sale</span>
+                  <div class="summary-mini-card power" style="padding: 0.4rem 0.6rem; gap: 0.02rem;">
+                    <span class="label" style="font-size: 0.62rem;">Total poWer</span>
+                    <span class="value" id="preview-total-power" style="font-size: 1.05rem;">0.000 L</span>
+                    <span class="pct-label" id="preview-pct-power" style="font-size: 0.62rem; font-weight: 600; opacity: 0.85; margin-top: 0.05rem;">0.00% Sale</span>
                   </div>
                 </div>
 
                 <!-- Product Rates Summary -->
-                <div class="product-summary-cards" style="gap: 0.75rem;">
-                  <div class="summary-mini-card petrol" style="padding: 0.5rem 0.75rem; background: rgba(16,185,129,0.02); border: 1px solid rgba(16,185,129,0.08); display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
-                    <span class="label" style="font-size: 0.7rem; margin-bottom: 0; text-transform: uppercase; font-weight: 700; color: var(--text-muted); letter-spacing: 0.03em;">Petrol Rate</span>
-                    <span class="value" id="preview-rate-petrol" style="font-size: 1.1rem; font-weight: 700; color: var(--petrol-color);">₹ 0.00/L</span>
+                <div class="product-summary-cards" style="gap: 0.5rem;">
+                  <div class="summary-mini-card petrol" style="padding: 0.35rem 0.5rem; background: rgba(16,185,129,0.02); border: 1px solid rgba(16,185,129,0.08); display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                    <span class="label" style="font-size: 0.62rem; margin-bottom: 0; text-transform: uppercase; font-weight: 700; color: var(--text-muted); letter-spacing: 0.03em;">Petrol Rate</span>
+                    <span class="value" id="preview-rate-petrol" style="font-size: 0.95rem; font-weight: 700; color: var(--petrol-color);">₹ 0.00/L</span>
                   </div>
-                  <div class="summary-mini-card diesel" style="padding: 0.5rem 0.75rem; background: rgba(59,130,246,0.02); border: 1px solid rgba(59,130,246,0.08); display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
-                    <span class="label" style="font-size: 0.7rem; margin-bottom: 0; text-transform: uppercase; font-weight: 700; color: var(--text-muted); letter-spacing: 0.03em;">Diesel Rate</span>
-                    <span class="value" id="preview-rate-diesel" style="font-size: 1.1rem; font-weight: 700; color: var(--diesel-color);">₹ 0.00/L</span>
+                  <div class="summary-mini-card diesel" style="padding: 0.35rem 0.5rem; background: rgba(59,130,246,0.02); border: 1px solid rgba(59,130,246,0.08); display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                    <span class="label" style="font-size: 0.62rem; margin-bottom: 0; text-transform: uppercase; font-weight: 700; color: var(--text-muted); letter-spacing: 0.03em;">Diesel Rate</span>
+                    <span class="value" id="preview-rate-diesel" style="font-size: 0.95rem; font-weight: 700; color: var(--diesel-color);">₹ 0.00/L</span>
                   </div>
-                  <div class="summary-mini-card power" style="padding: 0.5rem 0.75rem; background: rgba(244,63,94,0.02); border: 1px solid rgba(244,63,94,0.08); display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
-                    <span class="label" style="font-size: 0.7rem; margin-bottom: 0; text-transform: uppercase; font-weight: 700; color: var(--text-muted); letter-spacing: 0.03em;">poWer Rate</span>
-                    <span class="value" id="preview-rate-power" style="font-size: 1.1rem; font-weight: 700; color: var(--power-color);">₹ 0.00/L</span>
+                  <div class="summary-mini-card power" style="padding: 0.35rem 0.5rem; background: rgba(244,63,94,0.02); border: 1px solid rgba(244,63,94,0.08); display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                    <span class="label" style="font-size: 0.62rem; margin-bottom: 0; text-transform: uppercase; font-weight: 700; color: var(--text-muted); letter-spacing: 0.03em;">poWer Rate</span>
+                    <span class="value" id="preview-rate-power" style="font-size: 0.95rem; font-weight: 700; color: var(--power-color);">₹ 0.00/L</span>
                   </div>
                 </div>
 
                 <!-- Cash & Settlement Summary Card -->
-                <div class="summary-cash-card" style="padding: 1rem; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 0.75rem; display: flex; flex-direction: column; gap: 0.75rem; flex-shrink: 0;">
-                  <h3 style="font-family: var(--font-header); font-size: 0.9rem; font-weight: 700; text-transform: uppercase; color: var(--accent); letter-spacing: 0.03em; margin-bottom: 0.2rem;">Settlement Summary</h3>
-                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
-                    <div class="preview-mini-card" style="padding: 0.5rem; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); border-radius: 0.5rem; display: flex; flex-direction: column;">
-                      <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Calculated Sales</span>
-                      <span id="preview-calc-sales" style="font-size: 1.15rem; font-weight: 700; margin-top: 0.2rem;">₹ 0</span>
+                <div class="summary-cash-card" style="padding: 0.65rem 0.8rem; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 0.5rem; display: flex; flex-direction: column; gap: 0.5rem; flex-shrink: 0;">
+                  <h3 style="font-family: var(--font-header); font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--accent); letter-spacing: 0.03em; margin: 0 0 0.1rem;">Settlement Summary</h3>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                    <div class="preview-mini-card" style="padding: 0.35rem 0.5rem; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); border-radius: 0.4rem; display: flex; flex-direction: column;">
+                      <span style="font-size: 0.62rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Calculated Sales</span>
+                      <span id="preview-calc-sales" style="font-size: 0.95rem; font-weight: 700; margin-top: 0.1rem;">₹ 0</span>
                     </div>
-                    <div class="preview-mini-card" style="padding: 0.5rem; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); border-radius: 0.5rem; display: flex; flex-direction: column;">
-                      <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Cash Received</span>
-                      <span id="preview-cash-received" style="font-size: 1.15rem; font-weight: 700; color: var(--success); margin-top: 0.2rem;">₹ 0</span>
+                    <div class="preview-mini-card" style="padding: 0.35rem 0.5rem; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); border-radius: 0.4rem; display: flex; flex-direction: column;">
+                      <span style="font-size: 0.62rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Cash Received</span>
+                      <span id="preview-cash-received" style="font-size: 0.95rem; font-weight: 700; color: var(--success); margin-top: 0.1rem;">₹ 0</span>
                     </div>
-                    <div class="preview-mini-card" style="padding: 0.5rem; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); border-radius: 0.5rem; display: flex; flex-direction: column;">
-                      <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">UPI &amp; Credit</span>
-                      <span id="preview-other-received" style="font-size: 1.15rem; font-weight: 700; color: var(--accent); margin-top: 0.2rem;">₹ 0</span>
+                    <div class="preview-mini-card" style="padding: 0.35rem 0.5rem; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); border-radius: 0.4rem; display: flex; flex-direction: column;">
+                      <span style="font-size: 0.62rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">UPI &amp; Credit</span>
+                      <span id="preview-other-received" style="font-size: 0.95rem; font-weight: 700; color: var(--accent); margin-top: 0.1rem;">₹ 0</span>
                     </div>
-                    <div id="preview-shortfall-card" style="background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); padding: 0.5rem; border-radius: 0.5rem; display: flex; flex-direction: column;">
-                      <span style="font-size: 0.7rem; color: var(--danger); font-weight: 700; text-transform: uppercase;" id="preview-shortfall-lbl">Shortfall / Deficit</span>
-                      <span id="preview-cash-shortfall" style="font-size: 1.15rem; font-weight: 800; color: var(--danger); margin-top: 0.2rem;">₹ 0</span>
+                    <div id="preview-shortfall-card" style="background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); padding: 0.35rem 0.5rem; border-radius: 0.4rem; display: flex; flex-direction: column;">
+                      <span style="font-size: 0.62rem; color: var(--danger); font-weight: 700; text-transform: uppercase;" id="preview-shortfall-lbl">Shortfall / Deficit</span>
+                      <span id="preview-cash-shortfall" style="font-size: 0.95rem; font-weight: 800; color: var(--danger); margin-top: 0.1rem;">₹ 0</span>
                     </div>
                   </div>
                   <!-- Denomination breakdown -->
-                  <div id="preview-denominations" style="font-size: 0.85rem; color: var(--text-main); border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.75rem; display: flex; flex-wrap: wrap; gap: 0.75rem; line-height: 1.4;"></div>
+                  <div id="preview-denominations" style="font-size: 0.75rem; color: var(--text-main); border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem; line-height: 1.4; word-break: break-word; overflow-wrap: anywhere;"></div>
                   <!-- UPI/Credit list -->
-                  <div id="preview-other-payments-list" style="font-size: 0.85rem; color: var(--text-main); border-top: 1px dotted rgba(255,255,255,0.08); padding-top: 0.75rem; display: flex; flex-direction: column; gap: 0.4rem; line-height: 1.4;"></div>
+                  <div id="preview-other-payments-list" style="font-size: 0.75rem; color: var(--text-main); border-top: 1px dotted rgba(255,255,255,0.08); padding-top: 0.5rem; display: flex; flex-direction: column; gap: 0.3rem; line-height: 1.4; word-break: break-word; overflow-wrap: anywhere;"></div>
                 </div>
 
               </div>
 
               <!-- RIGHT COLUMN: Tables -->
-              <div class="preview-right-column" style="flex: 1.3; display: flex; flex-direction: column; gap: 1.5rem; overflow-y: auto; padding-left: 0.5rem;">
+              <div class="preview-right-column" style="flex: 1.3; display: flex; flex-direction: column; gap: 0.75rem; overflow-y: auto; overflow-x: hidden; padding-left: 0.25rem;">
                 
                 <!-- Nozzle Summary Table -->
-                <div class="summary-nozzle-table" style="font-size: 0.9rem;">
-                  <div class="summary-table-header" style="padding: 0.6rem 0.5rem;">
+                <div class="summary-nozzle-table" style="font-size: 0.75rem;">
+                  <div class="summary-table-header" style="padding: 0.4rem 0.5rem;">
                     <div>Nozzle</div>
                     <div>Product</div>
                     <div class="text-right">Opening</div>
@@ -1073,8 +1113,8 @@
                 </div>
 
                 <!-- Tank Stock Summary Table -->
-                <div class="summary-nozzle-table" style="font-size: 0.9rem;">
-                  <div class="summary-table-header summary-tank-grid" style="padding: 0.6rem 0.5rem;">
+                <div class="summary-nozzle-table" style="font-size: 0.75rem;">
+                  <div class="summary-table-header summary-tank-grid" style="padding: 0.4rem 0.5rem;">
                     <div>Tank</div>
                     <div>Product</div>
                     <div class="text-right">Op. DIP</div>
@@ -1090,11 +1130,11 @@
             </div>
 
             <!-- Action Buttons -->
-            <div class="form-actions-row" style="margin-top: 1rem;">
+            <div class="form-actions-row" style="margin-top: 0.75rem;">
               <button type="button" id="btn-preview-back" class="btn btn-secondary">
                 ⬅ Back to Edit
               </button>
-              <button type="button" id="btn-preview-confirm" class="btn btn-primary" style="background: linear-gradient(135deg,#22c55e,#16a34a); border-color: #22c55e; color: #fff;">
+              <button type="button" id="btn-preview-confirm" class="btn btn-primary">
                 ✓ Confirm &amp; Close Day
               </button>
             </div>
@@ -1113,115 +1153,52 @@
 
         <main class="content-body">
           <section class="card finish-card">
-            <div class="card-header">
-              <div class="success-badge-wrapper">
-                <span class="success-icon">✓</span>
-                <h2>Day Closed Successfully!</h2>
+            <div class="card-header" style="text-align: center; border-bottom: none; padding-bottom: 0.5rem;">
+              <div class="success-badge-wrapper" style="display: flex; align-items: center; justify-content: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+                <span class="success-icon" style="font-size: 1.5rem; width: 3rem; height: 3rem; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;">✓</span>
               </div>
-              <p>Below is the summary of calculations recorded for <strong id="summary-date">04-06-2026</strong>.</p>
+              <h2 style="font-size: 1.35rem; font-weight: 700; color: #fff; margin-bottom: 0.25rem;">Day Closed Successfully!</h2>
+              <p style="font-size: 0.9rem; color: var(--text-muted);">The calculations and records have been finalized for <strong id="summary-date">04-06-2026</strong>.</p>
             </div>
 
-            <!-- Summary Table of Sales -->
-            <div class="summary-section" style="display: flex; flex-direction: column; gap: 0.5rem; overflow-y: auto; flex: 1;">
-              <div class="product-summary-cards">
-                <div class="summary-mini-card petrol">
-                  <span class="label">Total Petrol</span>
-                  <span class="value" id="summary-total-petrol">0.000 L</span>
-                  <span class="pct-label" id="summary-pct-petrol" style="font-size: 0.65rem; font-weight: 600; opacity: 0.85; margin-top: 0.05rem;">0.00% Sale</span>
-                </div>
-                <div class="summary-mini-card diesel">
-                  <span class="label">Total Diesel</span>
-                  <span class="value" id="summary-total-diesel">0.000 L</span>
-                  <span class="pct-label" id="summary-pct-diesel" style="font-size: 0.65rem; font-weight: 600; opacity: 0.85; margin-top: 0.05rem;">0.00% Sale</span>
-                </div>
-                <div class="summary-mini-card power">
-                  <span class="label">Total poWer</span>
-                  <span class="value" id="summary-total-power">0.000 L</span>
-                  <span class="pct-label" id="summary-pct-power" style="font-size: 0.65rem; font-weight: 600; opacity: 0.85; margin-top: 0.05rem;">0.00% Sale</span>
-                </div>
-              </div>
-
-              <!-- Product Rates Summary -->
-              <div class="product-summary-cards" style="margin-top: -0.25rem;">
-                <div class="summary-mini-card petrol" style="padding: 0.25rem 0.4rem; background: rgba(16, 185, 129, 0.02); border: 1px solid rgba(16, 185, 129, 0.08); display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
-                  <span class="label" style="font-size: 0.55rem; margin-bottom: 0; text-transform: uppercase; font-weight: 700; color: var(--text-muted); letter-spacing: 0.03em;">Petrol Rate</span>
-                  <span class="value" id="summary-rate-petrol" style="font-size: 0.85rem; font-weight: 700; color: var(--petrol-color);">₹ 0.00/L</span>
-                </div>
-                <div class="summary-mini-card diesel" style="padding: 0.25rem 0.4rem; background: rgba(59, 130, 246, 0.02); border: 1px solid rgba(59, 130, 246, 0.08); display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
-                  <span class="label" style="font-size: 0.55rem; margin-bottom: 0; text-transform: uppercase; font-weight: 700; color: var(--text-muted); letter-spacing: 0.03em;">Diesel Rate</span>
-                  <span class="value" id="summary-rate-diesel" style="font-size: 0.85rem; font-weight: 700; color: var(--diesel-color);">₹ 0.00/L</span>
-                </div>
-                <div class="summary-mini-card power" style="padding: 0.25rem 0.4rem; background: rgba(244, 63, 94, 0.02); border: 1px solid rgba(244, 63, 94, 0.08); display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
-                  <span class="label" style="font-size: 0.55rem; margin-bottom: 0; text-transform: uppercase; font-weight: 700; color: var(--text-muted); letter-spacing: 0.03em;">poWer Rate</span>
-                  <span class="value" id="summary-rate-power" style="font-size: 0.85rem; font-weight: 700; color: var(--power-color);">₹ 0.00/L</span>
-                </div>
-              </div>
-
-              <!-- Cash & Settlement Summary Card -->
-              <div class="summary-cash-card" style="padding: 0.4rem 0.75rem; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.04); border-radius: 0.75rem; display: flex; flex-direction: column; gap: 0.35rem; flex-shrink: 0;">
-                <h3 style="font-family: var(--font-header); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--accent); letter-spacing: 0.03em; margin-bottom: 0.1rem;">Settlement Summary</h3>
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 0.5rem;">
-                  <div style="background: rgba(8,12,22,0.4); border: 1px solid rgba(255,255,255,0.02); padding: 0.25rem 0.4rem; border-radius: 0.5rem; display: flex; flex-direction: column;">
-                    <span style="font-size: 0.52rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Calculated Sales</span>
-                    <span id="summary-calc-sales" style="font-size: 0.85rem; font-weight: 700;">₹ 0</span>
-                  </div>
-                  <div style="background: rgba(8,12,22,0.4); border: 1px solid rgba(255,255,255,0.02); padding: 0.25rem 0.4rem; border-radius: 0.5rem; display: flex; flex-direction: column;">
-                    <span style="font-size: 0.52rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Cash Received</span>
-                    <span id="summary-cash-received" style="font-size: 0.85rem; font-weight: 700; color: var(--success);">₹ 0</span>
-                  </div>
-                  <div style="background: rgba(8,12,22,0.4); border: 1px solid rgba(255,255,255,0.02); padding: 0.25rem 0.4rem; border-radius: 0.5rem; display: flex; flex-direction: column;">
-                    <span style="font-size: 0.52rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">UPI & Credit</span>
-                    <span id="summary-other-received" style="font-size: 0.85rem; font-weight: 700; color: var(--accent);">₹ 0</span>
-                  </div>
-                  <div id="summary-shortfall-card" style="background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.12); padding: 0.25rem 0.4rem; border-radius: 0.5rem; display: flex; flex-direction: column;">
-                    <span style="font-size: 0.52rem; color: var(--danger); font-weight: 700; text-transform: uppercase;" id="summary-shortfall-lbl">Shortfall / Deficit</span>
-                    <span id="summary-cash-shortfall" style="font-size: 0.85rem; font-weight: 800; color: var(--danger);">₹ 0</span>
-                  </div>
-                </div>
-                <!-- Denomination breakdown -->
-                <div id="summary-denominations" style="font-size: 0.62rem; color: var(--text-muted); border-top: 1px solid rgba(255,255,255,0.04); padding-top: 0.25rem; display: flex; flex-wrap: wrap; gap: 0.5rem; line-height: 1.3;">
-                  <!-- Dynamically populated -->
-                </div>
-                <!-- UPI/Credit list summary -->
-                <div id="summary-other-payments-list" style="font-size: 0.62rem; color: var(--text-muted); border-top: 1px dotted rgba(255,255,255,0.04); padding-top: 0.25rem; display: flex; flex-direction: column; gap: 0.2rem; line-height: 1.3;">
-                  <!-- Dynamically populated -->
-                </div>
-              </div>
-
-              <div class="summary-nozzle-table">
-                <div class="summary-table-header">
-                  <div>Nozzle</div>
-                  <div>Product</div>
-                  <div class="text-right">Opening Reading</div>
-                  <div class="text-right">Closing Reading</div>
-                  <div class="text-right">Difference</div>
-                  <div class="text-right">Testing (L)</div>
-                  <div class="text-right">Net Sales (L)</div>
-                </div>
-                <div id="summary-table-body" class="summary-table-body">
-                  <!-- Dynamically populated rows -->
-                </div>
-              </div>
-
-              <!-- Tank Stock Summary Table -->
-              <div class="summary-nozzle-table" style="margin-top: 0.5rem;">
-                <div class="summary-table-header summary-tank-grid">
-                  <div>Tank</div>
-                  <div>Product</div>
-                  <div class="text-right">Opening DIP (cm)</div>
-                  <div class="text-right">Opening Stock (L)</div>
-                  <div class="text-right">Decantation (L)</div>
-                  <div class="text-right">Closing DIP (cm)</div>
-                  <div class="text-right">Closing Stock (L)</div>
-                </div>
-                <div id="summary-tank-body" class="summary-table-body">
-                  <!-- Dynamically populated rows -->
-                </div>
+            <!-- Lock/Freeze confirmation message -->
+            <div class="lock-confirmation-wrapper" style="margin: 1rem 0; padding: 1rem; background: rgba(239, 68, 68, 0.06); border: 1px solid rgba(239, 68, 68, 0.15); border-radius: 0.75rem; display: flex; align-items: center; gap: 0.75rem;">
+              <span class="lock-icon" style="font-size: 1.5rem;">🔒</span>
+              <div style="text-align: left;">
+                <h4 style="margin: 0; font-size: 0.85rem; font-weight: 700; color: var(--danger); text-transform: uppercase; letter-spacing: 0.05em;">Data Locked &amp; Frozen</h4>
+                <p style="margin: 0.1rem 0 0 0; font-size: 0.8rem; color: var(--text-muted); line-height: 1.3;">Editing transactions or stock values for this date is now restricted.</p>
               </div>
             </div>
 
-            <div class="form-actions-row" style="justify-content: center;">
-              <!-- Jump to Cash Calculator for bank deposit -->
+            <!-- Hidden duplicate summaries to keep DOM queries from breaking in app.js -->
+            <div style="display: none;">
+              <span id="summary-total-petrol">0.000 L</span>
+              <span id="summary-pct-petrol">0.00% Sale</span>
+              <span id="summary-total-diesel">0.000 L</span>
+              <span id="summary-pct-diesel">0.00% Sale</span>
+              <span id="summary-total-power">0.000 L</span>
+              <span id="summary-pct-power">0.00% Sale</span>
+              <span id="summary-rate-petrol">₹ 0.00/L</span>
+              <span id="summary-rate-diesel">₹ 0.00/L</span>
+              <span id="summary-rate-power">₹ 0.00/L</span>
+              <span id="summary-calc-sales">₹ 0</span>
+              <span id="summary-cash-received">₹ 0</span>
+              <span id="summary-other-received">₹ 0</span>
+              <div id="summary-shortfall-card">
+                <span id="summary-shortfall-lbl">Shortfall / Deficit</span>
+                <span id="summary-cash-shortfall">₹ 0</span>
+              </div>
+              <div id="summary-denominations"></div>
+              <div id="summary-other-payments-list"></div>
+              <div id="summary-table-body"></div>
+              <div id="summary-tank-body"></div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="form-actions-row">
+              <button type="button" id="btn-finish-back" class="btn btn-secondary">
+                ⬅ Back to Preview
+              </button>
               <button type="button" id="btn-goto-cash-calc-from-finish" class="btn btn-primary">
                 🏦 Bank Deposit Calculator
               </button>
@@ -2063,9 +2040,21 @@
           <p class="subtitle">Manage employees and track advance salaries</p>
         </header>
 
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; max-width: 960px; margin-inline: auto;">
-          <h2 style="font-size: 1.2rem; color: var(--text-main);">Employee Advance Register</h2>
+        <!-- Month Filter Tabs & Add Employee Button Row -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; max-width: 960px; margin-inline: auto; flex-wrap: wrap; gap: 1rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <div id="emp-month-tabs" style="display: flex; align-items: center;"></div>
+          </div>
           <button type="button" class="btn btn-primary" id="btn-add-employee" style="padding: 0.5rem 1rem; font-size: 0.85rem;">+ Add Employee</button>
+        </div>
+
+        <!-- Month Summary Totals Bar -->
+        <div id="emp-month-summary" style="display: flex; align-items: center; justify-content: flex-start; margin-bottom: 1rem; max-width: 960px; margin-inline: auto; background: var(--panel-bg); border: 1px solid var(--panel-border); padding: 0.75rem 1.25rem; border-radius: 0.75rem; font-size: 0.9rem; flex-wrap: wrap; gap: 0.5rem;">
+          <!-- Dynamically populated totals -->
+        </div>
+
+        <div style="margin-bottom: 1rem; max-width: 960px; margin-inline: auto;">
+          <h2 id="emp-month-title" style="font-size: 1.2rem; color: var(--text-main);">Employee Advance Register</h2>
         </div>
 
         <section class="card" style="max-width: 960px; width: 100%; margin: auto; padding: 1rem;">
@@ -2086,79 +2075,188 @@
           </div>
         </section>
       </div>
-<!-- VIEW: TT (MH-19-CY-5682) Ledger -->
+
+      <!-- VIEW: Employee Ledger -->
+      <div id="view-employee-ledger" class="view-pane" style="display: none;">
+        <header class="content-header" style="max-width: 960px; margin-inline: auto; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <h1>Employee Ledger</h1>
+            <p class="subtitle" id="view-ledger-emp-name" style="margin: 0; color: var(--accent); font-weight: 700; font-size: 1.1rem;"></p>
+          </div>
+          <button type="button" id="btn-back-to-employees" class="btn btn-secondary" style="padding: 0.5rem 1rem;">Back to Employee Management</button>
+        </header>
+
+        <div style="margin-bottom: 1rem; max-width: 960px; margin-inline: auto;">
+          <h2 id="view-ledger-emp-month" style="font-size: 1.2rem; color: var(--text-main);">Month Ledger</h2>
+        </div>
+
+        <section class="card" style="max-width: 960px; width: 100%; margin: auto; padding: 1rem;">
+          <div style="overflow-x: auto;">
+            <table class="table" style="width: 100%; font-size: 0.85rem;">
+              <thead>
+                <tr>
+                  <th style="text-align: left;">Date</th>
+                  <th style="text-align: left;">Type</th>
+                  <th style="text-align: right;">Given (-)</th>
+                  <th style="text-align: right;">Settled (+)</th>
+                  <th style="text-align: right;">Balance</th>
+                  <th style="text-align: center;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="view-employee-ledger-tbody">
+                <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+<!-- VIEW: TT (MH-19-CY-5682) Ledger & Trips Restructured -->
       <div id="view-tt-ledger" class="view-pane" style="display: none;">
         <header class="content-header">
           <div class="header-title-wrapper">
-            <h1>TT Ledger (MH-19-CY-5682)</h1>
-            <p class="subtitle">Record manual entries and track monthly settlements & profit</p>
+            <h1>TT Management (MH-19-CY-5682)</h1>
+            <p class="subtitle">Record journeys, track fuel efficiency, and monitor maintenance & operational expenses</p>
           </div>
         </header>
 
+        <!-- TT Navigation Tabs -->
+        <div class="tab-container" style="display: flex; gap: 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.08); margin-bottom: 0.75rem; padding: 0.2rem 1.25rem 0 1.25rem; width: 100%;">
+          <button type="button" class="tab-btn active" id="tab-tt-expenses" style="background: none; border: none; border-bottom: 2px solid var(--accent); color: var(--text-main); font-weight: 700; padding: 0.5rem 1rem; cursor: pointer; font-size: 0.95rem; transition: all 0.2s;">Expenses (Ledger)</button>
+          <button type="button" class="tab-btn" id="tab-tt-average" style="background: none; border: none; border-bottom: 2px solid transparent; color: var(--text-muted); font-weight: 600; padding: 0.5rem 1rem; cursor: pointer; font-size: 0.95rem; transition: all 0.2s;">Average</button>
+          <button type="button" class="tab-btn" id="tab-tt-trips" style="background: none; border: none; border-bottom: 2px solid transparent; color: var(--text-muted); font-weight: 600; padding: 0.5rem 1rem; cursor: pointer; font-size: 0.95rem; transition: all 0.2s;">Trips / Entry</button>
+        </div>
+
         <main class="content-body" style="flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 0.75rem; width: 100%;">
-          <!-- Stat Cards Row -->
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 0.5rem; max-width: 960px; width: 100%; margin-inline: auto;">
-            <!-- Opening Balance -->
-            <div class="card" style="padding: 0.75rem 1rem; border-left: 4px solid var(--text-muted); background: rgba(255,255,255,0.01); display: flex; flex-direction: column; justify-content: center;">
-              <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.02em;">Opening Balance</span>
-              <span id="tt-stat-opening" style="font-size: 1.2rem; font-weight: 700; color: var(--text-main); margin-top: 0.15rem;">₹ 0</span>
-            </div>
-            <!-- Total Debits -->
-            <div class="card" style="padding: 0.75rem 1rem; border-left: 4px solid var(--danger); background: rgba(239, 68, 68, 0.02); display: flex; flex-direction: column; justify-content: center;">
-              <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.02em;">Total Debits</span>
-              <span id="tt-stat-debits" style="font-size: 1.2rem; font-weight: 700; color: var(--danger); margin-top: 0.15rem;">₹ 0</span>
-            </div>
-            <!-- Total Credits -->
-            <div class="card" style="padding: 0.75rem 1rem; border-left: 4px solid var(--success); background: rgba(16, 185, 129, 0.02); display: flex; flex-direction: column; justify-content: center;">
-              <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.02em;">Total Credits</span>
-              <span id="tt-stat-credits" style="font-size: 1.2rem; font-weight: 700; color: var(--success); margin-top: 0.15rem;">₹ 0</span>
-            </div>
-            <!-- Closing Balance -->
-            <div class="card" style="padding: 0.75rem 1rem; border-left: 4px solid var(--accent); background: rgba(6, 182, 212, 0.02); display: flex; flex-direction: column; justify-content: center;">
-              <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.02em;">Closing Balance</span>
-              <span id="tt-stat-closing" style="font-size: 1.2rem; font-weight: 700; color: var(--accent); margin-top: 0.15rem;">₹ 0</span>
-            </div>
+          
+          <!-- SUB-PANE: Trips / Entry -->
+          <div id="tt-pane-trips" class="tt-sub-pane" style="display: none; flex-direction: column; gap: 0.75rem; width: 100%;">
+            <!-- Month Selector & Actions Row -->
+            <section class="card filter-card" style="margin-bottom: 0.5rem; padding: 0.75rem 1.25rem; width: 100%;">
+              <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <label for="tt-trip-month-select" style="margin-bottom: 0; font-weight: 600; font-size: 0.9rem; color: var(--text-muted);">Select Month</label>
+                  <select id="tt-trip-month-select" class="tt-month-select-shared" style="padding: 0.4rem 0.85rem; border-radius: 0.5rem; font-weight: 600; font-size: 0.9rem; cursor: pointer; height: auto;">
+                  </select>
+                </div>
+                <div style="display: flex; gap: 0.75rem; align-items: center;">
+                  <button type="button" id="btn-tt-add-trip" class="btn btn-secondary" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.85rem; font-size: 0.85rem; min-height: auto;">
+                    <span>🚚</span> Add Trip Entry
+                  </button>
+                  <button type="button" id="btn-tt-add-new-trip" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.85rem; font-size: 0.85rem; min-height: auto;">
+                    <span>➕</span> Add New Trip
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <!-- Trips Table -->
+            <section class="card" style="width: 100%; padding: 0; display: flex; flex-direction: column; overflow: hidden; flex: 1; min-height: 0;">
+              <div style="overflow-y: auto; flex: 1;">
+                <table class="table" style="width: 100%; border-collapse: collapse;">
+                  <thead>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.015);">
+                      <th style="padding: 0.75rem 0.85rem; text-align: left; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); width: 110px;">Date</th>
+                      <th style="padding: 0.75rem 0.85rem; text-align: left; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); width: 130px;">Trip For</th>
+                      <th style="padding: 0.75rem 0.85rem; text-align: left; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); width: 110px;">Entry Given</th>
+                      <th style="padding: 0.75rem 0.85rem; text-align: left; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Remark 1</th>
+                      <th style="padding: 0.75rem 0.85rem; text-align: left; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Remark 2</th>
+                      <th style="padding: 0.75rem 0.85rem; text-align: center; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); width: 60px;">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tt-trips-table-body">
+                    <tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);">Select a month to view entries.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
           </div>
 
-          <!-- Month Selector & Action Buttons Filter Row -->
-          <section class="card filter-card" style="margin-bottom: 0.5rem; padding: 0.75rem 1.25rem; max-width: 960px; width: 100%; margin-inline: auto;">
-            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem;">
-              <div style="display: flex; align-items: center; gap: 0.75rem;">
-                <label for="tt-month-select" style="margin-bottom: 0; font-weight: 600; font-size: 0.9rem; color: var(--text-muted);">Select Month</label>
-                <select id="tt-month-select" style="padding: 0.4rem 0.85rem; border-radius: 0.5rem; background: rgba(8,12,22,0.8); border: 1px solid rgba(255,255,255,0.1); color: var(--text-main); font-weight: 600; font-size: 0.9rem; cursor: pointer; height: auto;">
-                  <!-- Automatically populated -->
-                </select>
+          <!-- SUB-PANE: Average -->
+          <div id="tt-pane-average" class="tt-sub-pane" style="display: none; flex-direction: column; gap: 0.75rem; width: 100%;">
+            <!-- Big Visual Cards -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 0.5rem; width: 100%;">
+              <div class="card" style="padding: 1rem; border-left: 4px solid var(--accent); background: rgba(6, 182, 212, 0.03); display: flex; flex-direction: column; justify-content: center; text-align: center;">
+                <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em;">Fuel Average (Last 10 Trips)</span>
+                <span id="tt-avg-lifetime" style="font-size: 2.2rem; font-weight: 800; color: var(--accent); margin-top: 0.3rem;">0.00 <span style="font-size: 1rem; font-weight: 600; color: var(--text-muted);">KM/L</span></span>
               </div>
-              <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-                <button type="button" id="btn-tt-manual-entry" class="btn btn-secondary" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.85rem; font-size: 0.85rem; min-height: auto;">
-                  <span>✏️</span> Manual Entry
-                </button>
-                <button type="button" id="btn-tt-record-settlement" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.85rem; font-size: 0.85rem; min-height: auto;">
-                  <span>📥</span> Record Settlement
-                </button>
-              </div>
+              <div></div>
+              <div></div>
             </div>
-          </section>
 
-          <!-- Ledger Table -->
-          <section class="card" style="max-width: 960px; width: 100%; margin-inline: auto; padding: 0; display: flex; flex-direction: column; overflow: hidden; flex: 1; min-height: 0;">
-            <div style="overflow-y: auto; flex: 1;">
-              <table class="table" style="width: 100%; border-collapse: collapse;">
-                <thead>
-                  <tr style="border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.01);">
-                    <th style="padding: 0.75rem 0.85rem; text-align: left; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Date</th>
-                    <th style="padding: 0.75rem 0.85rem; text-align: left; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Particulars</th>
-                    <th style="padding: 0.75rem 0.85rem; text-align: right; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Debit (₹)</th>
-                    <th style="padding: 0.75rem 0.85rem; text-align: right; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Credit (₹)</th>
-                    <th style="padding: 0.75rem 0.85rem; text-align: right; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Running Balance (₹)</th>
-                  </tr>
-                </thead>
-                <tbody id="tt-statement-body">
-                  <tr><td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-muted);">Select a month to view TT ledger.</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
+            <!-- Historical Trends table -->
+            <section class="card" style="width: 100%; padding: 0; display: flex; flex-direction: column; overflow: hidden; flex: 1; min-height: 0;">
+              <div class="card-header" style="padding: 0.75rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.015); display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="font-size: 0.95rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; margin: 0; color: var(--accent);">Trip-Wise Fuel Average</h3>
+                <button type="button" id="btn-tt-average-manual-entry" class="btn btn-primary" style="padding: 0.4rem 0.85rem; font-size: 0.85rem; min-height: auto;">
+                  <span>➕</span> Manual Entry
+                </button>
+              </div>
+              <div style="overflow-y: auto; flex: 1;">
+                <table class="table" style="width: 100%; border-collapse: collapse;">
+                  <thead>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.01);">
+                      <th style="padding: 0.75rem 0.85rem; text-align: left; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Date</th>
+                      <th style="padding: 0.75rem 0.85rem; text-align: right; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Opening Reading</th>
+                      <th style="padding: 0.75rem 0.85rem; text-align: right; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Closing Reading</th>
+                      <th style="padding: 0.75rem 0.85rem; text-align: right; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Difference (Total Run (KM))</th>
+                      <th style="padding: 0.75rem 0.85rem; text-align: right; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Fuel Filled (L)</th>
+                      <th style="padding: 0.75rem 0.85rem; text-align: right; font-size: 0.85rem; font-weight: 600; color: var(--accent); font-weight: 700;">Fuel Average (KM/L)</th>
+                      <th style="padding: 0.75rem 0.85rem; text-align: center; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); width: 80px;">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tt-average-table-body">
+                    <tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">Loading trends...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+
+          <!-- SUB-PANE: Expenses (Ledger) -->
+          <div id="tt-pane-expenses" class="tt-sub-pane" style="display: flex; flex-direction: column; gap: 0.75rem; width: 100%;">
+
+            <!-- Month Selector & Action Buttons Filter Row -->
+            <section class="card filter-card" style="margin-bottom: 0.5rem; padding: 0.75rem 1.25rem; width: 100%;">
+              <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <label for="tt-month-select" style="margin-bottom: 0; font-weight: 600; font-size: 0.9rem; color: var(--text-muted);">Select Month</label>
+                  <select id="tt-month-select" class="tt-month-select-shared" style="padding: 0.4rem 0.85rem; border-radius: 0.5rem; font-weight: 600; font-size: 0.9rem; cursor: pointer; height: auto;">
+                  </select>
+                </div>
+                <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                  <button type="button" id="btn-tt-manual-entry" class="btn btn-secondary" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.85rem; font-size: 0.85rem; min-height: auto;">
+                    <span>✏️</span> Manual Entry
+                  </button>
+                  <button type="button" id="btn-tt-record-settlement" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.85rem; font-size: 0.85rem; min-height: auto;">
+                    <span>📥</span> Record Settlement
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <!-- Ledger Table -->
+            <section class="card" style="width: 100%; padding: 0; display: flex; flex-direction: column; overflow: hidden; flex: 1; min-height: 0;">
+              <div style="overflow-y: auto; flex: 1;">
+                <table class="table" style="width: 100%; border-collapse: collapse;">
+                  <thead>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.01);">
+                      <th style="padding: 0.75rem 0.85rem; text-align: left; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Date</th>
+                      <th style="padding: 0.75rem 0.85rem; text-align: left; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Particular 1</th>
+                      <th style="padding: 0.75rem 0.85rem; text-align: left; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Particular 2</th>
+                      <th style="padding: 0.75rem 0.85rem; text-align: right; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Debit (₹)</th>
+                      <th style="padding: 0.75rem 0.85rem; text-align: right; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Credit (₹)</th>
+                      <th style="padding: 0.75rem 0.85rem; text-align: right; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Running Balance (₹)</th>
+                      <th style="padding: 0.75rem 0.85rem; text-align: center; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); width: 60px;">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tt-statement-body">
+                    <tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">Select a month to view TT ledger.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </div>
         </main>
       </div>
 
@@ -2181,6 +2279,28 @@
             <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem;">
               <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-add-employee').style.display='none'">Cancel</button>
               <button type="submit" class="btn btn-primary">Save Employee</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Employee Modal: Edit Employee -->
+      <div id="modal-edit-employee" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); z-index: 100; align-items: center; justify-content: center;">
+        <div class="modal-content card" style="width: 90%; max-width: 400px; padding: 1.5rem;">
+          <h2 style="margin-top: 0; margin-bottom: 1rem; font-size: 1.2rem;">Edit Employee</h2>
+          <form id="form-edit-employee" style="display: flex; flex-direction: column; gap: 1rem;">
+            <input type="hidden" id="edit-emp-id">
+            <div class="form-group">
+              <label>Employee Name</label>
+              <input type="text" id="edit-emp-name" class="form-control" required placeholder="e.g. Ramesh">
+            </div>
+            <div class="form-group">
+              <label>Mobile Number (Optional)</label>
+              <input type="text" id="edit-emp-mobile" class="form-control" placeholder="10 digit number">
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem;">
+              <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-edit-employee').style.display='none'">Cancel</button>
+              <button type="submit" class="btn btn-primary">Update Employee</button>
             </div>
           </form>
         </div>
@@ -2220,33 +2340,38 @@
         </div>
       </div>
 
-      <!-- Employee Modal: View Ledger -->
-      <div id="modal-employee-ledger" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); z-index: 100; align-items: center; justify-content: center;">
-        <div class="modal-content card" style="width: 95%; max-width: 800px; padding: 1.5rem; max-height: 90vh; display: flex; flex-direction: column;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-            <div>
-              <h2 style="margin: 0; font-size: 1.2rem;">Employee Ledger</h2>
-              <p id="ledger-emp-name" style="margin: 0; color: var(--accent); font-weight: 700;"></p>
+      <!-- Employee Modal: Edit Transaction -->
+      <div id="modal-employee-edit-txn" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); z-index: 100; align-items: center; justify-content: center;">
+        <div class="modal-content card" style="width: 90%; max-width: 400px; padding: 1.5rem;">
+          <h2 style="margin-top: 0; margin-bottom: 0.2rem; font-size: 1.2rem;">Edit Transaction</h2>
+          <p id="edit-txn-emp-name" style="margin-bottom: 1rem; color: var(--accent); font-weight: 700;"></p>
+          <form id="form-employee-edit-txn" style="display: flex; flex-direction: column; gap: 1rem;">
+            <input type="hidden" id="edit-txn-id">
+            <input type="hidden" id="edit-txn-emp-id">
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" id="edit-txn-date" class="form-control" required>
             </div>
-            <button type="button" class="btn btn-secondary" style="padding: 0.3rem 0.6rem;" onclick="document.getElementById('modal-employee-ledger').style.display='none'">Close ✖</button>
-          </div>
-          
-          <div style="overflow-y: auto; flex: 1; border: 1px solid rgba(255,255,255,0.08); border-radius: 0.5rem;">
-            <table class="table" style="width: 100%; font-size: 0.85rem;">
-              <thead style="position: sticky; top: 0; background: var(--bg-card); z-index: 1;">
-                <tr>
-                  <th style="text-align: left;">Date</th>
-                  <th style="text-align: left;">Type</th>
-                  <th style="text-align: right;">Given (-)</th>
-                  <th style="text-align: right;">Settled (+)</th>
-                  <th style="text-align: right;">Balance</th>
-                </tr>
-              </thead>
-              <tbody id="employee-ledger-tbody">
-                <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Loading...</td></tr>
-              </tbody>
-            </table>
-          </div>
+            <div class="form-group">
+              <label>Transaction Type</label>
+              <select id="edit-txn-type" class="form-control" required>
+                <option value="Advance Given">Give Advance (-)</option>
+                <option value="Advance Settled">Settle Advance (+)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Amount (₹)</label>
+              <input type="number" id="edit-txn-amount" class="form-control" required min="1" step="1">
+            </div>
+            <div class="form-group">
+              <label>Description (Optional)</label>
+              <input type="text" id="edit-txn-desc" class="form-control" placeholder="e.g. Weekly advance">
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem;">
+              <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-employee-edit-txn').style.display='none'">Cancel</button>
+              <button type="submit" class="btn btn-primary">Update Transaction</button>
+            </div>
+          </form>
         </div>
       </div>
 
@@ -2309,7 +2434,112 @@
     </div>
   </div>
 
+  <!-- TT Modal: Add Trip -->
+  <div id="modal-tt-add-trip" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); z-index: 100; align-items: center; justify-content: center;">
+    <div class="modal-content card" style="width: 90%; max-width: 450px; padding: 1.5rem;">
+      <h2 style="margin-top: 0; margin-bottom: 1rem; font-size: 1.2rem; color: var(--accent);">Add New Trip Entry</h2>
+      <form id="form-tt-add-trip" style="display: flex; flex-direction: column; gap: 0.75rem;">
+        <div class="form-group" style="display: flex; flex-direction: column; gap: 0.25rem;">
+          <label for="tt-trip-date" style="font-size: 0.85rem; font-weight: 600;">Trip Date</label>
+          <input type="date" id="tt-trip-date" required style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 0.35rem; color: #fff; padding: 0.4rem 0.6rem; font-size: 0.9rem;">
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div class="form-group" style="display: flex; flex-direction: column; gap: 0.25rem;">
+            <label for="tt-trip-for" style="font-size: 0.85rem; font-weight: 600;">Trip For</label>
+            <select id="tt-trip-for" required style="border-radius: 0.35rem; padding: 0.4rem 0.6rem; font-size: 0.9rem; cursor: pointer;">
+              <option value="Pimpalgaon">Pimpalgaon</option>
+              <option value="Wakod">Wakod</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="form-group" style="display: flex; flex-direction: column; gap: 0.25rem;">
+            <label for="tt-entry-given" style="font-size: 0.85rem; font-weight: 600;">Entry Given</label>
+            <select id="tt-entry-given" required style="border-radius: 0.35rem; padding: 0.4rem 0.6rem; font-size: 0.9rem; cursor: pointer;">
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group" style="display: flex; flex-direction: column; gap: 0.25rem;">
+          <label for="tt-trip-remark1" style="font-size: 0.85rem; font-weight: 600;">Remark 1</label>
+          <input type="text" id="tt-trip-remark1" placeholder="Enter Remark 1" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 0.35rem; color: #fff; padding: 0.4rem 0.6rem; font-size: 0.9rem;">
+        </div>
+        <div class="form-group" style="display: flex; flex-direction: column; gap: 0.25rem;">
+          <label for="tt-trip-remark2" style="font-size: 0.85rem; font-weight: 600;">Remark 2</label>
+          <input type="text" id="tt-trip-remark2" placeholder="Enter Remark 2" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 0.35rem; color: #fff; padding: 0.4rem 0.6rem; font-size: 0.9rem;">
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+          <button type="button" id="btn-cancel-tt-trip" class="btn btn-secondary" style="padding: 0.4rem 0.85rem; font-size: 0.85rem; min-height: auto;">Cancel</button>
+          <button type="submit" class="btn btn-primary" style="padding: 0.4rem 0.85rem; font-size: 0.85rem; min-height: auto;">Save Entry</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TT Modal: Edit Trip -->
+  <div id="modal-tt-edit-trip" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); z-index: 100; align-items: center; justify-content: center;">
+    <div class="modal-content card" style="width: 90%; max-width: 400px; padding: 1.5rem;">
+      <h2 style="margin-top: 0; margin-bottom: 1rem; font-size: 1.2rem; font-family: var(--font-header);">Edit Tanker Trip</h2>
+      <form id="form-tt-edit-trip" style="display: flex; flex-direction: column; gap: 1rem;">
+        <input type="hidden" id="edit-trip-id">
+        <div class="form-group">
+          <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;">Trip Date</label>
+          <input type="text" id="edit-trip-date" class="form-control" readonly style="width: 100%; padding: 0.5rem; height: 38px; background: rgba(255,255,255,0.05); color: var(--text-muted);">
+        </div>
+        <div class="form-group">
+          <label for="edit-trip-start-km" style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;">Opening Reading</label>
+          <input type="number" id="edit-trip-start-km" class="form-control" required style="width: 100%; padding: 0.5rem; height: 38px;">
+        </div>
+        <div class="form-group">
+          <label for="edit-trip-end-km" style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;">Closing Reading</label>
+          <input type="number" id="edit-trip-end-km" class="form-control" required style="width: 100%; padding: 0.5rem; height: 38px;">
+        </div>
+        <div class="form-group">
+          <label for="edit-trip-fuel" style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;">Fuel Filled (L)</label>
+          <input type="number" id="edit-trip-fuel" class="form-control" required step="0.01" min="0" placeholder="0.00" style="width: 100%; padding: 0.5rem; height: 38px;">
+        </div>
+        <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 0.5rem;">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-tt-edit-trip').style.display='none'">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TT Modal: Add New Trip -->
+  <div id="modal-tt-add-new-trip" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); z-index: 100; align-items: center; justify-content: center;">
+    <div class="modal-content card" style="width: 90%; max-width: 400px; padding: 1.5rem;">
+      <h2 style="margin-top: 0; margin-bottom: 1rem; font-size: 1.2rem; font-family: var(--font-header);">Add New Trip</h2>
+      <form id="form-tt-add-new-trip" style="display: flex; flex-direction: column; gap: 1rem;">
+        <div class="form-group">
+          <label for="new-trip-date" style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;">Trip Date</label>
+          <input type="date" id="new-trip-date" class="form-control" required style="width: 100%; padding: 0.5rem; height: 38px;">
+        </div>
+        <div class="form-group">
+          <label for="new-trip-start-km" style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;">Opening Reading</label>
+          <input type="number" id="new-trip-start-km" class="form-control" required style="width: 100%; padding: 0.5rem; height: 38px;">
+        </div>
+        <div class="form-group">
+          <label for="new-trip-end-km" style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;">Closing Reading</label>
+          <input type="number" id="new-trip-end-km" class="form-control" required style="width: 100%; padding: 0.5rem; height: 38px;">
+        </div>
+        <div class="form-group">
+          <label for="new-trip-fuel" style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;">Fuel Filled (L)</label>
+          <input type="number" id="new-trip-fuel" class="form-control" required step="0.01" min="0" placeholder="0.00" style="width: 100%; padding: 0.5rem; height: 38px;">
+        </div>
+        <div class="form-group">
+          <label for="new-trip-remarks" style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;">Remarks</label>
+          <input type="text" id="new-trip-remarks" class="form-control" placeholder="e.g. Wakod trip" style="width: 100%; padding: 0.5rem; height: 38px;">
+        </div>
+        <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 0.5rem;">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-tt-add-new-trip').style.display='none'">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Trip</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- JS Logic -->
-  <script src="app.js?v=1.6.5"></script>
+  <script src="app.js?v=1.6.10"></script>
 </body>
 </html>

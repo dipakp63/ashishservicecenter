@@ -1,0 +1,440 @@
+﻿diff --git a/public/index.html b/public/index.html
+index 3c9f408..c9d1689 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -46,22 +46,6 @@
+               <span class="nav-icon">≡ƒÆ╡</span>
+               <span class="nav-text">Cash Calculator</span>
+             </a>
+-          </li>
+-          <li>
+-            <a href="#" class="nav-item" id="nav-hpcl-tracker">
+-              <span class="nav-icon">≡ƒôè</span>
+-              <span class="nav-text">HPCL Portal Balance</span>
+-            </a>
+-          </li>
+-          <li>
+-            <a href="#" class="nav-item" id="nav-tt-tracker" onclick="alert('Feature coming soon!')">
+-              <span class="nav-icon">≡ƒÜ¢</span>
+-              <span class="nav-text">TT (MH-19-CY-5682)</span>
+-            </a>
+-          </li>
+-          <li>
+-            <a href="#" class="nav-item" id="nav-other-toggle">
+-              <span class="nav-icon">≡ƒôü</span>
+               <span class="nav-text">Other</span>
+             </a>
+           </li>
+@@ -2052,11 +2036,6 @@
+           </div>
+         </div>
+       </div>
+-
+-    </div>
+-  </div>
+-
+-  
+       <!-- VIEW: Employee Management -->
+       <div id="view-employee-management" class="view-pane" style="display: none;">
+         <header class="content-header">
+@@ -2064,11 +2043,23 @@
+           <p class="subtitle">Manage employees and track advance salaries</p>
+         </header>
+ 
+-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; max-width: 960px; margin-inline: auto;">
+-          <h2 style="font-size: 1.2rem; color: var(--text-main);">Employee Advance Register</h2>
++        <!-- Month Filter Tabs & Add Employee Button Row -->
++        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; max-width: 960px; margin-inline: auto; flex-wrap: wrap; gap: 1rem;">
++          <div style="display: flex; align-items: center; gap: 0.5rem;">
++            <div id="emp-month-tabs" style="display: flex; align-items: center;"></div>
++          </div>
+           <button type="button" class="btn btn-primary" id="btn-add-employee" style="padding: 0.5rem 1rem; font-size: 0.85rem;">+ Add Employee</button>
+         </div>
+ 
++        <!-- Month Summary Totals Bar -->
++        <div id="emp-month-summary" style="display: flex; align-items: center; justify-content: flex-start; margin-bottom: 1rem; max-width: 960px; margin-inline: auto; background: var(--panel-bg); border: 1px solid var(--panel-border); padding: 0.75rem 1.25rem; border-radius: 0.75rem; font-size: 0.9rem; flex-wrap: wrap; gap: 0.5rem;">
++          <!-- Dynamically populated totals -->
++        </div>
++
++        <div style="margin-bottom: 1rem; max-width: 960px; margin-inline: auto;">
++          <h2 id="emp-month-title" style="font-size: 1.2rem; color: var(--text-main);">Employee Advance Register</h2>
++        </div>
++
+         <section class="card" style="max-width: 960px; width: 100%; margin: auto; padding: 1rem;">
+           <div style="overflow-x: auto;">
+             <table class="table" style="width: 100%;">
+@@ -2076,103 +2067,298 @@
+                 <tr>
+                   <th style="text-align: left;">Employee Name</th>
+                   <th style="text-align: left;">Mobile</th>
+-                  <th style="text-align: right;">Advance Balance</th>
++                  <th style="text-align: right;">Opening Bal (Γé╣)</th>
++                  <th style="text-align: right;">Given (Γé╣)</th>
++                  <th style="text-align: right;">Settled (Γé╣)</th>
++                  <th style="text-align: right;">Closing Bal (Γé╣)</th>
+                   <th style="text-align: center;">Actions</th>
+                 </tr>
+               </thead>
+               <tbody id="employee-list-tbody">
+-                <tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Loading...</td></tr>
++                <tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">Loading...</td></tr>
+               </tbody>
+             </table>
+           </div>
+         </section>
+       </div>
+ 
+-      <!-- Employee Modal: Add Employee -->
+-      <div id="modal-add-employee" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); z-index: 100; align-items: center; justify-content: center;">
+-        <div class="modal-content card" style="width: 90%; max-width: 400px; padding: 1.5rem;">
+-          <h2 style="margin-top: 0; margin-bottom: 1rem; font-size: 1.2rem;">Add New Employee</h2>
+-          <form id="form-add-employee" style="display: flex; flex-direction: column; gap: 1rem;">
+-            <div class="form-group">
+-              <label>Employee Name</label>
+-              <input type="text" id="new-emp-name" class="form-control" required placeholder="e.g. Ramesh">
+-            </div>
+-            <div class="form-group">
+-              <label>Mobile Number (Optional)</label>
+-              <input type="text" id="new-emp-mobile" class="form-control" placeholder="10 digit number">
+-            </div>
+-            <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem;">
+-              <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-add-employee').style.display='none'">Cancel</button>
+-              <button type="submit" class="btn btn-primary">Save Employee</button>
+-            </div>
+-          </form>
+-        </div>
+-      </div>
++      <!-- VIEW: TT (MH-19-CY-5682) Ledger -->
++      <div id="view-tt-ledger" class="view-pane" style="display: none;">
++        <header class="content-header">
++          <div class="header-title-wrapper">
++            <h1>TT Ledger (MH-19-CY-5682)</h1>
++            <p class="subtitle">Record manual entries and track monthly settlements & profit</p>
++          </div>
++        </header>
+ 
+-      <!-- Employee Modal: Add Transaction -->
+-      <div id="modal-employee-txn" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); z-index: 100; align-items: center; justify-content: center;">
+-        <div class="modal-content card" style="width: 90%; max-width: 400px; padding: 1.5rem;">
+-          <h2 style="margin-top: 0; margin-bottom: 0.2rem; font-size: 1.2rem;">Add Transaction</h2>
+-          <p id="txn-emp-name" style="margin-bottom: 1rem; color: var(--accent); font-weight: 700;"></p>
+-          <form id="form-employee-txn" style="display: flex; flex-direction: column; gap: 1rem;">
+-            <input type="hidden" id="txn-emp-id">
+-            <div class="form-group">
+-              <label>Date</label>
+-              <input type="date" id="txn-emp-date" class="form-control" required>
++        <main class="content-body" style="flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 0.75rem; width: 100%;">
++          <!-- Stat Cards Row -->
++          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 0.5rem; max-width: 960px; width: 100%; margin-inline: auto;">
++            <!-- Opening Balance -->
++            <div class="card" style="padding: 0.75rem 1rem; border-left: 4px solid var(--text-muted); background: rgba(255,255,255,0.01); display: flex; flex-direction: column; justify-content: center;">
++              <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.02em;">Opening Balance</span>
++              <span id="tt-stat-opening" style="font-size: 1.2rem; font-weight: 700; color: var(--text-main); margin-top: 0.15rem;">Γé╣ 0</span>
+             </div>
+-            <div class="form-group">
+-              <label>Transaction Type</label>
+-              <select id="txn-emp-type" class="form-control" required>
+-                <option value="Advance Given">Give Advance (-)</option>
+-                <option value="Advance Settled">Settle Advance (+)</option>
+-              </select>
++            <!-- Total Debits -->
++            <div class="card" style="padding: 0.75rem 1rem; border-left: 4px solid var(--danger); background: rgba(239, 68, 68, 0.02); display: flex; flex-direction: column; justify-content: center;">
++              <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.02em;">Total Debits</span>
++              <span id="tt-stat-debits" style="font-size: 1.2rem; font-weight: 700; color: var(--danger); margin-top: 0.15rem;">Γé╣ 0</span>
+             </div>
+-            <div class="form-group">
+-              <label>Amount (Γé╣)</label>
+-              <input type="number" id="txn-emp-amount" class="form-control" required min="1" step="1">
++            <!-- Total Credits -->
++            <div class="card" style="padding: 0.75rem 1rem; border-left: 4px solid var(--success); background: rgba(16, 185, 129, 0.02); display: flex; flex-direction: column; justify-content: center;">
++              <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.02em;">Total Credits</span>
++              <span id="tt-stat-credits" style="font-size: 1.2rem; font-weight: 700; color: var(--success); margin-top: 0.15rem;">Γé╣ 0</span>
+             </div>
+-            <div class="form-group">
+-              <label>Description (Optional)</label>
+-              <input type="text" id="txn-emp-desc" class="form-control" placeholder="e.g. Weekly advance">
++            <!-- Closing Balance -->
++            <div class="card" style="padding: 0.75rem 1rem; border-left: 4px solid var(--accent); background: rgba(6, 182, 212, 0.02); display: flex; flex-direction: column; justify-content: center;">
++              <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.02em;">Closing Balance</span>
++              <span id="tt-stat-closing" style="font-size: 1.2rem; font-weight: 700; color: var(--accent); margin-top: 0.15rem;">Γé╣ 0</span>
+             </div>
+-            <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem;">
+-              <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-employee-txn').style.display='none'">Cancel</button>
+-              <button type="submit" class="btn btn-primary">Save Transaction</button>
++          </div>
++
++          <!-- Month Selector & Action Buttons Filter Row -->
++          <section class="card filter-card" style="margin-bottom: 0.5rem; padding: 0.75rem 1.25rem; max-width: 960px; width: 100%; margin-inline: auto;">
++            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem;">
++              <div style="display: flex; align-items: center; gap: 0.75rem;">
++                <label for="tt-month-select" style="margin-bottom: 0; font-weight: 600; font-size: 0.9rem; color: var(--text-muted);">Select Month</label>
++                <select id="tt-month-select" style="padding: 0.4rem 0.85rem; border-radius: 0.5rem; background: rgba(8,12,22,0.8); border: 1px solid rgba(255,255,255,0.1); color: var(--text-main); font-weight: 600; font-size: 0.9rem; cursor: pointer; height: auto;">
++                  <!-- Automatically populated -->
++                </select>
++              </div>
++              <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
++                <button type="button" id="btn-tt-manual-entry" class="btn btn-secondary" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.85rem; font-size: 0.85rem; min-height: auto;">
++                  <span>Γ£Å∩╕Å</span> Manual Entry
++                </button>
++                <button type="button" id="btn-tt-record-settlement" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.85rem; font-size: 0.85rem; min-height: auto;">
++                  <span>≡ƒôÑ</span> Record Settlement
++                </button>
++              </div>
+             </div>
+-          </form>
+-        </div>
+-      </div>
++          </section>
+ 
+-      <!-- Employee Modal: View Ledger -->
+-      <div id="modal-employee-ledger" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); z-index: 100; align-items: center; justify-content: center;">
+-        <div class="modal-content card" style="width: 95%; max-width: 800px; padding: 1.5rem; max-height: 90vh; display: flex; flex-direction: column;">
+-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+-            <div>
+-              <h2 style="margin: 0; font-size: 1.2rem;">Employee Ledger</h2>
+-              <p id="ledger-emp-name" style="margin: 0; color: var(--accent); font-weight: 700;"></p>
++          <!-- Ledger Table -->
++          <section class="card" style="max-width: 960px; width: 100%; margin-inline: auto; padding: 0; display: flex; flex-direction: column; overflow: hidden; flex: 1; min-height: 0;">
++            <div style="overflow-y: auto; flex: 1;">
++              <table class="table" style="width: 100%; border-collapse: collapse;">
++                <thead>
++                  <tr style="border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.01);">
++                    <th style="padding: 0.75rem 0.85rem; text-align: left; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Date</th>
++                    <th style="padding: 0.75rem 0.85rem; text-align: left; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Particulars</th>
++                    <th style="padding: 0.75rem 0.85rem; text-align: right; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Debit (Γé╣)</th>
++                    <th style="padding: 0.75rem 0.85rem; text-align: right; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Credit (Γé╣)</th>
++                    <th style="padding: 0.75rem 0.85rem; text-align: right; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Running Balance (Γé╣)</th>
++                  </tr>
++                </thead>
++                <tbody id="tt-statement-body">
++                  <tr><td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-muted);">Select a month to view TT ledger.</td></tr>
++                </tbody>
++              </table>
+             </div>
+-            <button type="button" class="btn btn-secondary" style="padding: 0.3rem 0.6rem;" onclick="document.getElementById('modal-employee-ledger').style.display='none'">Close Γ£û</button>
+-          </div>
+-          
+-          <div style="overflow-y: auto; flex: 1; border: 1px solid rgba(255,255,255,0.08); border-radius: 0.5rem;">
+-            <table class="table" style="width: 100%; font-size: 0.85rem;">
+-              <thead style="position: sticky; top: 0; background: var(--bg-card); z-index: 1;">
+-                <tr>
+-                  <th style="text-align: left;">Date</th>
+-                  <th style="text-align: left;">Type</th>
+-                  <th style="text-align: right;">Given (-)</th>
+-                  <th style="text-align: right;">Settled (+)</th>
+-                  <th style="text-align: right;">Balance</th>
+-                </tr>
+-              </thead>
+-              <tbody id="employee-ledger-tbody">
+-                <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Loading...</td></tr>
+-              </tbody>
+-            </table>
+-          </div>
++          </section>
++        </main>
++      </div>
++
++    </div>
++  </div>
++
++  <!-- Employee Modal: Add Employee -->
++  <div id="modal-add-employee" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); z-index: 100; align-items: center; justify-content: center;">
++    <div class="modal-content card" style="width: 90%; max-width: 400px; padding: 1.5rem;">
++      <h2 style="margin-top: 0; margin-bottom: 1rem; font-size: 1.2rem;">Add New Employee</h2>
++      <form id="form-add-employee" style="display: flex; flex-direction: column; gap: 1rem;">
++        <div class="form-group">
++          <label>Employee Name</label>
++          <input type="text" id="new-emp-name" class="form-control" required placeholder="e.g. Ramesh">
++        </div>
++        <div class="form-group">
++          <label>Mobile Number (Optional)</label>
++          <input type="text" id="new-emp-mobile" class="form-control" placeholder="10 digit number">
++        </div>
++        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem;">
++          <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-add-employee').style.display='none'">Cancel</button>
++          <button type="submit" class="btn btn-primary">Save Employee</button>
++        </div>
++      </form>
++    </div>
++  </div>
++
++  <!-- Employee Modal: Edit Employee -->
++  <div id="modal-edit-employee" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); z-index: 100; align-items: center; justify-content: center;">
++    <div class="modal-content card" style="width: 90%; max-width: 400px; padding: 1.5rem;">
++      <h2 style="margin-top: 0; margin-bottom: 1rem; font-size: 1.2rem;">Edit Employee</h2>
++      <form id="form-edit-employee" style="display: flex; flex-direction: column; gap: 1rem;">
++        <input type="hidden" id="edit-emp-id">
++        <div class="form-group">
++          <label>Employee Name</label>
++          <input type="text" id="edit-emp-name" class="form-control" required placeholder="e.g. Ramesh">
++        </div>
++        <div class="form-group">
++          <label>Mobile Number (Optional)</label>
++          <input type="text" id="edit-emp-mobile" class="form-control" placeholder="10 digit number">
++        </div>
++        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem;">
++          <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-edit-employee').style.display='none'">Cancel</button>
++          <button type="submit" class="btn btn-primary">Update Employee</button>
++        </div>
++      </form>
++    </div>
++  </div>
++
++  <!-- Employee Modal: Add Transaction -->
++  <div id="modal-employee-txn" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); z-index: 100; align-items: center; justify-content: center;">
++    <div class="modal-content card" style="width: 90%; max-width: 400px; padding: 1.5rem;">
++      <h2 style="margin-top: 0; margin-bottom: 0.2rem; font-size: 1.2rem;">Add Transaction</h2>
++      <p id="txn-emp-name" style="margin-bottom: 1rem; color: var(--accent); font-weight: 700;"></p>
++      <form id="form-employee-txn" style="display: flex; flex-direction: column; gap: 1rem;">
++        <input type="hidden" id="txn-emp-id">
++        <div class="form-group">
++          <label>Date</label>
++          <input type="date" id="txn-emp-date" class="form-control" required>
++        </div>
++        <div class="form-group">
++          <label>Transaction Type</label>
++          <select id="txn-emp-type" class="form-control" required>
++            <option value="Advance Given">Give Advance (-)</option>
++            <option value="Advance Settled">Settle Advance (+)</option>
++          </select>
++        </div>
++        <div class="form-group">
++          <label>Amount (Γé╣)</label>
++          <input type="number" id="txn-emp-amount" class="form-control" required min="1" step="1">
++        </div>
++        <div class="form-group">
++          <label>Description (Optional)</label>
++          <input type="text" id="txn-emp-desc" class="form-control" placeholder="e.g. Weekly advance">
++        </div>
++        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem;">
++          <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-employee-txn').style.display='none'">Cancel</button>
++          <button type="submit" class="btn btn-primary">Save Transaction</button>
++        </div>
++      </form>
++    </div>
++  </div>
++
++  <!-- Employee Modal: Edit Transaction -->
++  <div id="modal-employee-edit-txn" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); z-index: 100; align-items: center; justify-content: center;">
++    <div class="modal-content card" style="width: 90%; max-width: 400px; padding: 1.5rem;">
++      <h2 style="margin-top: 0; margin-bottom: 0.2rem; font-size: 1.2rem;">Edit Transaction</h2>
++      <p id="edit-txn-emp-name" style="margin-bottom: 1rem; color: var(--accent); font-weight: 700;"></p>
++      <form id="form-employee-edit-txn" style="display: flex; flex-direction: column; gap: 1rem;">
++        <input type="hidden" id="edit-txn-id">
++        <input type="hidden" id="edit-txn-emp-id">
++        <div class="form-group">
++          <label>Date</label>
++          <input type="date" id="edit-txn-date" class="form-control" required>
++        </div>
++        <div class="form-group">
++          <label>Transaction Type</label>
++          <select id="edit-txn-type" class="form-control" required>
++            <option value="Advance Given">Give Advance (-)</option>
++            <option value="Advance Settled">Settle Advance (+)</option>
++          </select>
++        </div>
++        <div class="form-group">
++          <label>Amount (Γé╣)</label>
++          <input type="number" id="edit-txn-amount" class="form-control" required min="1" step="1">
++        </div>
++        <div class="form-group">
++          <label>Description (Optional)</label>
++          <input type="text" id="edit-txn-desc" class="form-control" placeholder="e.g. Weekly advance">
+         </div>
++        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem;">
++          <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-employee-edit-txn').style.display='none'">Cancel</button>
++          <button type="submit" class="btn btn-primary">Update Transaction</button>
++        </div>
++      </form>
++    </div>
++  </div>
++
++  <!-- Employee Modal: View Ledger -->
++  <div id="modal-employee-ledger" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); z-index: 100; align-items: center; justify-content: center;">
++    <div class="modal-content card" style="width: 95%; max-width: 800px; padding: 1.5rem; max-height: 90vh; display: flex; flex-direction: column;">
++      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
++        <div>
++          <h2 style="margin: 0; font-size: 1.2rem;">Employee Ledger</h2>
++          <p id="ledger-emp-name" style="margin: 0; color: var(--accent); font-weight: 700;"></p>
++        </div>
++        <button type="button" class="btn btn-secondary" style="padding: 0.3rem 0.6rem;" onclick="document.getElementById('modal-employee-ledger').style.display='none'">Close Γ£û</button>
++      </div>
++      
++      <div style="overflow-y: auto; flex: 1; border: 1px solid rgba(255,255,255,0.08); border-radius: 0.5rem;">
++        <table class="table" style="width: 100%; font-size: 0.85rem;">
++          <thead style="position: sticky; top: 0; background: var(--bg-card); z-index: 1;">
++            <tr>
++              <th style="text-align: left;">Date</th>
++              <th style="text-align: left;">Type</th>
++              <th style="text-align: right;">Given (-)</th>
++              <th style="text-align: right;">Settled (+)</th>
++              <th style="text-align: right;">Balance</th>
++            </tr>
++          </thead>
++          <tbody id="employee-ledger-tbody">
++            <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Loading...</td></tr>
++          </tbody>
++        </table>
+       </div>
++    </div>
++  </div>
+ 
++  <!-- TT Modal: Manual Entry -->
++  <div id="modal-tt-manual" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); z-index: 100; align-items: center; justify-content: center;">
++    <div class="modal-content card" style="width: 90%; max-width: 400px; padding: 1.5rem;">
++      <h2 style="margin-top: 0; margin-bottom: 1rem; font-size: 1.2rem; font-family: var(--font-header);">Record TT Manual Entry</h2>
++      <form id="form-tt-manual" style="display: flex; flex-direction: column; gap: 1rem;">
++        <div class="form-group">
++          <label for="tt-manual-date" style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;">Date</label>
++          <input type="date" id="tt-manual-date" class="form-control" required style="width: 100%; padding: 0.5rem; height: 38px;">
++        </div>
++        <div class="form-group">
++          <label for="tt-manual-type" style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;">Transaction Type</label>
++          <select id="tt-manual-type" class="form-control" required style="width: 100%; padding: 0.5rem; height: 38px; appearance: auto;">
++            <option value="DEBIT">Debit (Payment/Expense)</option>
++            <option value="CREDIT">Credit (Receipt/Settlement)</option>
++          </select>
++        </div>
++        <div class="form-group">
++          <label for="tt-manual-amount" style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;">Amount (Γé╣)</label>
++          <input type="number" id="tt-manual-amount" class="form-control" required step="0.01" min="0.01" placeholder="0.00" style="width: 100%; padding: 0.5rem; height: 38px; font-weight: 600;">
++        </div>
++        <div class="form-group">
++          <label for="tt-manual-notes" style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;">Notes / Remarks</label>
++          <input type="text" id="tt-manual-notes" class="form-control" placeholder="e.g. Toll, driver expense" style="width: 100%; padding: 0.5rem; height: 38px;">
++        </div>
++        <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 0.5rem;">
++          <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-tt-manual').style.display='none'">Cancel</button>
++          <button type="submit" class="btn btn-primary">Save Entry</button>
++        </div>
++      </form>
++    </div>
++  </div>
++
++  <!-- TT Modal: Record Settlement -->
++  <div id="modal-tt-settlement" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); z-index: 100; align-items: center; justify-content: center;">
++    <div class="modal-content card" style="width: 90%; max-width: 400px; padding: 1.5rem;">
++      <h2 style="margin-top: 0; margin-bottom: 0.25rem; font-size: 1.2rem; font-family: var(--font-header);">Record TT Settlement</h2>
++      <p id="tt-settlement-target-month" style="font-size: 0.8rem; color: var(--accent); font-weight: 600; margin-bottom: 1rem;"></p>
++      <form id="form-tt-settlement" style="display: flex; flex-direction: column; gap: 1rem;">
++        <div class="form-group">
++          <label for="tt-settlement-date" style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;">Date Received</label>
++          <input type="date" id="tt-settlement-date" class="form-control" required style="width: 100%; padding: 0.5rem; height: 38px;">
++        </div>
++        <div class="form-group">
++          <label for="tt-settlement-amount" style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;">Settlement Amount (Γé╣)</label>
++          <input type="number" id="tt-settlement-amount" class="form-control" required step="0.01" min="0.01" placeholder="0.00" style="width: 100%; padding: 0.5rem; height: 38px; font-weight: 600;">
++        </div>
++        <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; margin: 0 0 0.5rem 0;">
++          * Note: Monthly profit is auto-computed as (Settlement Amount - Total Debits for that month).
++        </p>
++        <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 0.5rem;">
++          <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-tt-settlement').style.display='none'">Cancel</button>
++          <button type="submit" class="btn btn-primary">Record Settlement</button>
++        </div>
++      </form>
++    </div>
++  </div>
+ 
+   <!-- JS Logic -->
+   <script src="app.js?v=1.6.1"></script>
