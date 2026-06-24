@@ -3705,11 +3705,6 @@ document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('.btn-delete-hpcl').forEach(btn => {
         btn.addEventListener('click', async (e) => {
           const id = btn.getAttribute('data-id');
-          const txDate = btn.getAttribute('data-date');
-          if (isDayClosed || (txDate && txDate < activeDate)) {
-            showToast('Cannot delete transaction from a locked/frozen date.', 'error');
-            return;
-          }
           try {
             const res = await fetch(`/api/hpcl/transaction/${id}`, { method: 'DELETE' });
             if (!res.ok) throw new Error('Failed to delete transaction');
@@ -3736,10 +3731,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const description = document.getElementById('hpcl-credit-desc').value;
       const amount = parseFloat(document.getElementById('hpcl-credit-amount').value);
       
-      if (isDayClosed || date < activeDate) {
-        showToast('This date is locked/frozen. Credit transactions cannot be added.', 'error');
-        return;
-      }
+      // Date freezing does not apply to HPCL Portal Balance page transactions
       
       try {
         const response = await fetch('/api/hpcl/transaction', {
@@ -3770,10 +3762,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const description = document.getElementById('hpcl-debit-desc').value;
       const amount = parseFloat(document.getElementById('hpcl-debit-amount').value);
       
-      if (isDayClosed || date < activeDate) {
-        showToast('This date is locked/frozen. Debit transactions cannot be added.', 'error');
-        return;
-      }
+      // Date freezing does not apply to HPCL Portal Balance page transactions
       
       try {
         const response = await fetch('/api/hpcl/transaction', {
