@@ -2,6 +2,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('readings-form');
   const dateInput = document.getElementById('reading-date');
 
+  // If page is loaded with #finish hash, clean it up so we start fresh
+  if (window.location.hash === '#finish') {
+    window.history.replaceState(null, '', window.location.pathname);
+  }
+
+  // Detect browser back/forward buttons when on the finish step and trigger reload
+  window.addEventListener('popstate', (event) => {
+    if (document.body.getAttribute('data-active-view') === 'finish') {
+      window.location.reload();
+    }
+  });
+
   // Global active date and closed state
   let activeDate = '2026-06-01';
   let isDayClosed = false;
@@ -333,6 +345,9 @@ document.addEventListener('DOMContentLoaded', () => {
     viewOtherPayments.style.display = viewName === 'other' ? 'block' : 'none';
     if (viewPreview) viewPreview.style.display = viewName === 'preview' ? 'block' : 'none';
     viewFinish.style.display = viewName === 'finish' ? 'block' : 'none';
+    if (viewName === 'finish') {
+      window.history.pushState({ view: 'finish' }, '', '#finish');
+    }
     if (viewGstData) viewGstData.style.display = viewName === 'gst' ? 'block' : 'none';
     const viewEmployeeManagement = document.getElementById('view-employee-management');
     if (viewEmployeeManagement) viewEmployeeManagement.style.display = viewName === 'employee-management' ? 'block' : 'none';
@@ -2943,11 +2958,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Finish: Back to Preview — returns to Step 8 (Preview)
+  // Finish: Back to Preview — reloads the page to refresh data state
   const btnFinishBack = document.getElementById('btn-finish-back');
   if (btnFinishBack) {
     btnFinishBack.addEventListener('click', () => {
-      showView('preview');
+      if (window.location.hash === '#finish') {
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+      window.location.reload();
     });
   }
 
