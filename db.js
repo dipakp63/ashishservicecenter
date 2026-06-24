@@ -242,6 +242,7 @@ async function initDatabase() {
         description TEXT,
         debit_amount REAL DEFAULT 0,
         credit_amount REAL DEFAULT 0,
+        remarks TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (debtor_id) REFERENCES debtors(id)
       )`,
@@ -264,6 +265,7 @@ async function initDatabase() {
         description TEXT,
         advance_given REAL DEFAULT 0,
         amount_settled REAL DEFAULT 0,
+        remarks TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (employee_id) REFERENCES employees(id)
       )`,
@@ -373,6 +375,22 @@ async function initDatabase() {
   try {
     await run(`ALTER TABLE tank_readings ADD COLUMN tt_decantation INTEGER DEFAULT 0`);
     console.log('[DB] Migration: added tt_decantation column to tank_readings.');
+  } catch (e) {
+    // Column already exists — ignore
+  }
+
+  // Add remarks column to debtor_transactions if it doesn't exist
+  try {
+    await run(`ALTER TABLE debtor_transactions ADD COLUMN remarks TEXT`);
+    console.log('[DB] Migration: added remarks column to debtor_transactions.');
+  } catch (e) {
+    // Column already exists — ignore
+  }
+
+  // Add remarks column to employee_transactions if it doesn't exist
+  try {
+    await run(`ALTER TABLE employee_transactions ADD COLUMN remarks TEXT`);
+    console.log('[DB] Migration: added remarks column to employee_transactions.');
   } catch (e) {
     // Column already exists — ignore
   }
