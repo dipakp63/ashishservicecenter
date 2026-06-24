@@ -7341,9 +7341,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const nozzles = [
         { id: 1, product: 'Petrol', rate: currentRates.rate_petrol },
         { id: 2, product: 'Petrol', rate: currentRates.rate_petrol },
-        { id: 3, product: 'Diesel', rate: currentRates.rate_diesel },
+        { id: 3, product: 'Petrol', rate: currentRates.rate_petrol },
         { id: 4, product: 'Diesel', rate: currentRates.rate_diesel },
-        { id: 5, product: 'poWer', rate: currentRates.rate_power },
+        { id: 5, product: 'Diesel', rate: currentRates.rate_diesel },
         { id: 6, product: 'poWer', rate: currentRates.rate_power }
       ];
 
@@ -7378,6 +7378,18 @@ document.addEventListener('DOMContentLoaded', () => {
               const dayReading = dayReadingsMap[noz.id];
               if (dayReading) openingVal = dayReading.opening_reading;
             }
+            // Shift 2 opening matches Shift 1 closing reading (saved or in the DOM)
+            if (shiftNum === 2) {
+              const shift1Row = document.querySelector(`#porancha-hishob-table-shift-1 tr td[data-nozzle="${noz.id}"]`)?.closest('tr');
+              const shift1ClosingInput = shift1Row?.querySelector('.row-closing-input');
+              if (shift1ClosingInput) openingVal = shift1ClosingInput.value;
+            }
+            // Shift 3 opening matches Shift 2 closing reading (saved or in the DOM)
+            if (shiftNum === 3) {
+              const shift2Row = document.querySelector(`#porancha-hishob-table-shift-2 tr td[data-nozzle="${noz.id}"]`)?.closest('tr');
+              const shift2ClosingInput = shift2Row?.querySelector('.row-closing-input');
+              if (shift2ClosingInput) openingVal = shift2ClosingInput.value;
+            }
             // Shift 3 closing matches Day's closing reading
             if (shiftNum === 3) {
               const dayReading = dayReadingsMap[noz.id];
@@ -7409,6 +7421,34 @@ document.addEventListener('DOMContentLoaded', () => {
           `;
 
           tbody.appendChild(tr);
+
+          // Setup cascading change listeners
+          // Shift 1 Closing -> Shift 2 Opening
+          if (shiftNum === 1) {
+            const closingInput = tr.querySelector('.row-closing-input');
+            closingInput.addEventListener('input', () => {
+              const val = closingInput.value;
+              const shift2Row = document.querySelector(`#porancha-hishob-table-shift-2 tr td[data-nozzle="${noz.id}"]`)?.closest('tr');
+              if (shift2Row) {
+                const shift2OpeningInput = shift2Row.querySelector('.row-opening-input');
+                shift2OpeningInput.value = val;
+                recalcShiftRow(shift2Row);
+              }
+            });
+          }
+          // Shift 2 Closing -> Shift 3 Opening
+          else if (shiftNum === 2) {
+            const closingInput = tr.querySelector('.row-closing-input');
+            closingInput.addEventListener('input', () => {
+              const val = closingInput.value;
+              const shift3Row = document.querySelector(`#porancha-hishob-table-shift-3 tr td[data-nozzle="${noz.id}"]`)?.closest('tr');
+              if (shift3Row) {
+                const shift3OpeningInput = shift3Row.querySelector('.row-opening-input');
+                shift3OpeningInput.value = val;
+                recalcShiftRow(shift3Row);
+              }
+            });
+          }
         });
 
         // Set up real-time calculations for this shift table
@@ -7425,6 +7465,7 @@ document.addEventListener('DOMContentLoaded', () => {
           inp.addEventListener('input', () => updateShiftTotal(shiftNum));
         });
       });
+
 
       // Render Nozzle Testing Table
       const testTbody = document.querySelector('#porancha-hishob-table-testing .testing-tbody');

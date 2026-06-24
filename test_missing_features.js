@@ -180,9 +180,9 @@ const runTest = async () => {
         const nozzleStmt = testDb.prepare('INSERT INTO readings (date, nozzle_id, product, opening_reading, closing_reading, testing_qty) VALUES (?, ?, ?, ?, ?, ?)');
         nozzleStmt.run('2026-06-16', 1, 'Petrol', 10, 20, 5);
         nozzleStmt.run('2026-06-16', 2, 'Petrol', 10, 20, 0);
-        nozzleStmt.run('2026-06-16', 3, 'Diesel', 10, 20, 0);
+        nozzleStmt.run('2026-06-16', 3, 'Petrol', 10, 20, 0);
         nozzleStmt.run('2026-06-16', 4, 'Diesel', 10, 20, 0);
-        nozzleStmt.run('2026-06-16', 5, 'poWer', 10, 20, 0);
+        nozzleStmt.run('2026-06-16', 5, 'Diesel', 10, 20, 0);
         nozzleStmt.run('2026-06-16', 6, 'poWer', 10, 20, 0);
         nozzleStmt.finalize();
 
