@@ -7371,6 +7371,10 @@ document.addEventListener('DOMContentLoaded', () => {
         tbody.innerHTML = '';
 
         nozzles.forEach(noz => {
+          const dayReading = currentDayReadingsMap[noz.id];
+          const savedTest = hishobData.testing.find(t => t.nozzle_index === noz.id);
+          const tQty = savedTest ? savedTest.testing_qty : (dayReading ? dayReading.testing_qty : 5.0);
+
           // Find if there is a saved entry for this shift and nozzle
           const savedEntry = hishobData.entries.find(e => e.shift === shiftNum && e.nozzle_index === noz.id);
           const activeEmployeeId = savedEntry ? savedEntry.employee_id : '';
@@ -7381,12 +7385,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
           if (savedEntry) {
             openingVal = savedEntry.opening_reading;
-            closingVal = savedEntry.closing_reading;
+            closingVal = (shiftNum === 3) ? (dayReading ? dayReading.closing_reading - tQty : savedEntry.closing_reading) : savedEntry.closing_reading;
           } else {
             // Default heuristics:
             // Shift 1 opening matches Day's opening reading
             if (shiftNum === 1) {
-              const dayReading = currentDayReadingsMap[noz.id];
               if (dayReading) openingVal = dayReading.opening_reading;
             }
             // Shift 2 opening matches Shift 1 closing reading (saved or in the DOM)
@@ -7401,10 +7404,9 @@ document.addEventListener('DOMContentLoaded', () => {
               const shift2ClosingInput = shift2Row?.querySelector('.row-closing-input');
               if (shift2ClosingInput) openingVal = shift2ClosingInput.value;
             }
-            // Shift 3 closing matches Day's closing reading
+            // Shift 3 closing matches Day's closing reading minus testing qty
             if (shiftNum === 3) {
-              const dayReading = currentDayReadingsMap[noz.id];
-              if (dayReading) closingVal = dayReading.closing_reading;
+              if (dayReading) closingVal = dayReading.closing_reading - tQty;
             }
           }
 
@@ -7497,7 +7499,7 @@ document.addEventListener('DOMContentLoaded', () => {
         nozzles.forEach(noz => {
           const savedTest = hishobData.testing.find(t => t.nozzle_index === noz.id);
           const activeEmployeeId = savedTest ? savedTest.employee_id : '';
-          const testingQty = savedTest ? savedTest.testing_qty : (dayReadingsMap[noz.id] ? dayReadingsMap[noz.id].testing_qty : 5.0);
+          const testingQty = savedTest ? savedTest.testing_qty : (currentDayReadingsMap[noz.id] ? currentDayReadingsMap[noz.id].testing_qty : 5.0);
           const phonepeVal = savedTest ? savedTest.phonepe_amount : 0;
 
           const tr = document.createElement('tr');
@@ -7512,7 +7514,6 @@ document.addEventListener('DOMContentLoaded', () => {
             <td style="padding: 0.2rem 0.05rem;">
               <input type="number" step="0.01" class="row-testing-qty-input" value="${testingQty}" style="width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 22px; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border);">
             </td>
-            <td style="padding: 0.2rem 0.05rem; text-align: center; color: var(--text-muted); font-size: 0.7rem;">—</td>
             <td style="padding: 0.2rem 0.05rem; text-align: right; font-weight: 600; font-size: 0.72rem;"><span class="row-testing-sale-val">${testingQty.toFixed(2)}</span></td>
             <td style="padding: 0.2rem 0.05rem; text-align: right; font-size: 0.72rem; color: var(--text-muted); font-family: monospace;">${noz.rate.toFixed(2)}</td>
             <td style="padding: 0.2rem 0.05rem; text-align: right; font-weight: 700; font-size: 0.72rem; color: var(--success);"><span class="row-testing-amount-val">₹ 0.00</span></td>
@@ -7527,6 +7528,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const val = parseFloat(qtyInput.value) || 0;
             tr.querySelector('.row-testing-sale-val').textContent = val.toFixed(2);
             recalcTestingRow(tr);
+
+            // Update Shift 3 closing reading in real-time
+            const shift3Row = document.querySelector(`#porancha-hishob-table-shift-3 tr td[data-nozzle="${noz.id}"]`)?.closest('tr');
+            if (shift3Row) {
+              const dayReading = currentDayReadingsMap[noz.id];
+              if (dayReading) {
+                const shift3ClosingInput = shift3Row.querySelector('.row-closing-input');
+                if (shift3ClosingInput) {
+                  shift3ClosingInput.value = (dayReading.closing_reading - val).toFixed(2);
+                  recalcShiftRow(shift3Row);
+                }
+              }
+            }
           });
 
           const phonepeInput = tr.querySelector('.row-testing-phonepe-input');
