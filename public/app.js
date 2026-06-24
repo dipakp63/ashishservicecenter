@@ -7266,6 +7266,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Porancha Hishob (Shift Sales Duty Log) Logic ──────────────────────────────
   const poranchaHishobDateInput = document.getElementById('porancha-hishob-date');
+  let currentDayReadingsMap = {};
   if (poranchaHishobDateInput) {
     poranchaHishobDateInput.addEventListener('change', () => {
       loadPoranchaHishob();
@@ -7337,10 +7338,31 @@ document.addEventListener('DOMContentLoaded', () => {
       ];
 
       // Map day readings for quick lookup
-      const dayReadingsMap = {};
+      currentDayReadingsMap = {};
       checkData.savedReadings.forEach(r => {
-        dayReadingsMap[r.nozzle_id] = r;
+        currentDayReadingsMap[r.nozzle_id] = r;
       });
+
+      function validateReadingInput(input, nozzleId) {
+        const val = parseFloat(input.value);
+        if (isNaN(val)) return true;
+        const dayReading = currentDayReadingsMap[nozzleId];
+        if (!dayReading) return true;
+        
+        if (val < dayReading.opening_reading) {
+          showToast(`Nozzle N${nozzleId} reading cannot be less than Day's opening reading (${dayReading.opening_reading.toFixed(2)}).`, 'warning');
+          input.value = dayReading.opening_reading.toFixed(2);
+          input.dispatchEvent(new Event('input'));
+          return false;
+        }
+        if (val > dayReading.closing_reading) {
+          showToast(`Nozzle N${nozzleId} reading cannot be greater than Day's closing reading (${dayReading.closing_reading.toFixed(2)}).`, 'warning');
+          input.value = dayReading.closing_reading.toFixed(2);
+          input.dispatchEvent(new Event('input'));
+          return false;
+        }
+        return true;
+      }
 
       // Render Shifts 1, 2, 3
       [1, 2, 3].forEach(shiftNum => {
@@ -7364,7 +7386,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Default heuristics:
             // Shift 1 opening matches Day's opening reading
             if (shiftNum === 1) {
-              const dayReading = dayReadingsMap[noz.id];
+              const dayReading = currentDayReadingsMap[noz.id];
               if (dayReading) openingVal = dayReading.opening_reading;
             }
             // Shift 2 opening matches Shift 1 closing reading (saved or in the DOM)
@@ -7381,10 +7403,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             // Shift 3 closing matches Day's closing reading
             if (shiftNum === 3) {
-              const dayReading = dayReadingsMap[noz.id];
+              const dayReading = currentDayReadingsMap[noz.id];
               if (dayReading) closingVal = dayReading.closing_reading;
             }
           }
+
+          const isOpReadonly = 'readonly tabindex="-1" style="width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 22px; border-radius: 0.2rem; background: rgba(255,255,255,0.02); color: var(--text-muted); border: 1px solid var(--panel-border); cursor: not-allowed;"';
+          const isClReadonly = (shiftNum === 3)
+            ? 'readonly tabindex="-1" style="width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 22px; border-radius: 0.2rem; background: rgba(255,255,255,0.02); color: var(--text-muted); border: 1px solid var(--panel-border); cursor: not-allowed;"'
+            : 'style="width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 22px; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border);"';
 
           const tr = document.createElement('tr');
           tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
@@ -7396,10 +7423,10 @@ document.addEventListener('DOMContentLoaded', () => {
               </select>
             </td>
             <td style="padding: 0.2rem 0.05rem;">
-              <input type="number" step="0.01" class="row-opening-input" value="${openingVal}" style="width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 22px; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border);">
+              <input type="number" step="0.01" class="row-opening-input" value="${openingVal}" ${isOpReadonly}>
             </td>
             <td style="padding: 0.2rem 0.05rem;">
-              <input type="number" step="0.01" class="row-closing-input" value="${closingVal}" style="width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 22px; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border);">
+              <input type="number" step="0.01" class="row-closing-input" value="${closingVal}" ${isClReadonly}>
             </td>
             <td style="padding: 0.2rem 0.05rem; text-align: right; font-weight: 600; font-size: 0.72rem;"><span class="row-sale-val">0.00</span></td>
             <td style="padding: 0.2rem 0.05rem; text-align: right; font-size: 0.72rem; color: var(--text-muted); font-family: monospace;">${noz.rate.toFixed(2)}</td>
@@ -7411,7 +7438,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
           tbody.appendChild(tr);
 
-          // Setup cascading change listeners
+          // Setup cascading change listeners and validations
           // Shift 1 Closing -> Shift 2 Opening
           if (shiftNum === 1) {
             const closingInput = tr.querySelector('.row-closing-input');
@@ -7423,6 +7450,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 shift2OpeningInput.value = val;
                 recalcShiftRow(shift2Row);
               }
+            });
+            closingInput.addEventListener('change', () => {
+              validateReadingInput(closingInput, noz.id);
             });
           }
           // Shift 2 Closing -> Shift 3 Opening
@@ -7436,6 +7466,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 shift3OpeningInput.value = val;
                 recalcShiftRow(shift3Row);
               }
+            });
+            closingInput.addEventListener('change', () => {
+              validateReadingInput(closingInput, noz.id);
             });
           }
         });
@@ -7584,6 +7617,30 @@ document.addEventListener('DOMContentLoaded', () => {
           showToast('Select Date is required.', 'warning');
           return;
         }
+
+        // Validate all readings are within day boundaries
+        let isValid = true;
+        for (let shiftNum = 1; shiftNum <= 3; shiftNum++) {
+          const rows = document.querySelectorAll(`#porancha-hishob-table-shift-${shiftNum} .shift-tbody tr`);
+          rows.forEach(tr => {
+            const nozzleId = parseInt(tr.querySelector('td[data-nozzle]').getAttribute('data-nozzle')) || 0;
+            const opening = parseFloat(tr.querySelector('.row-opening-input').value) || 0;
+            const closing = parseFloat(tr.querySelector('.row-closing-input').value) || 0;
+            
+            const dayReading = currentDayReadingsMap[nozzleId];
+            if (dayReading) {
+              if (opening < dayReading.opening_reading || opening > dayReading.closing_reading) {
+                showToast(`Nozzle N${nozzleId} Shift ${shiftNum} opening reading (${opening}) is out of day boundaries [${dayReading.opening_reading}, ${dayReading.closing_reading}].`, 'error');
+                isValid = false;
+              }
+              if (closing < dayReading.opening_reading || closing > dayReading.closing_reading) {
+                showToast(`Nozzle N${nozzleId} Shift ${shiftNum} closing reading (${closing}) is out of day boundaries [${dayReading.opening_reading}, ${dayReading.closing_reading}].`, 'error');
+                isValid = false;
+              }
+            }
+          });
+        }
+        if (!isValid) return;
 
         const entries = [];
         const testing = [];

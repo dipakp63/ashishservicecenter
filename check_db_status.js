@@ -9,7 +9,20 @@ const db = new sqlite3.Database(dbPath, (err) => {
   }
 });
 
-const tables = ['readings', 'tank_readings', 'rates', 'cash_reconciliation'];
+const tables = [
+  'readings',
+  'tank_readings',
+  'rates',
+  'cash_reconciliation',
+  'non_cash_payments',
+  'debtor_transactions',
+  'debtors',
+  'hpcl_transactions',
+  'hpcl_config',
+  'employee_transactions',
+  'employees',
+  'tt_transactions'
+];
 
 db.serialize(() => {
   tables.forEach((table) => {
