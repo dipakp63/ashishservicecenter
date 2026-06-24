@@ -226,7 +226,8 @@ async function recalculateHpclLedger() {
 app.get('/api/active-date', async (req, res) => {
   try {
     const activeDate = await getActiveDate();
-    res.json({ activeDate });
+    const row = await db.get('SELECT MAX(date) AS latest_closed_date FROM cash_reconciliation');
+    res.json({ activeDate, latestClosedDate: row ? row.latest_closed_date : null });
   } catch (err) {
     console.error('Error fetching active date:', err.message);
     res.status(500).json({ error: 'Database error fetching active date.' });

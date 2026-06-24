@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Global active date and closed state
   let activeDate = '2026-06-01';
+  let latestClosedDate = null;
   let isDayClosed = false;
 
   let globalDebtorsList = [];
@@ -242,9 +243,11 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       const data = await response.json();
       activeDate = data.activeDate;
+      latestClosedDate = data.latestClosedDate;
     } catch (error) {
       console.error('Error fetching active date:', error);
       activeDate = '2026-05-02'; // Fallback
+      latestClosedDate = null;
     }
   }
 
@@ -7011,6 +7014,9 @@ document.addEventListener('DOMContentLoaded', () => {
   if (navPoranchaHishob) {
     navPoranchaHishob.addEventListener('click', (e) => {
       e.preventDefault();
+      if (poranchaHishobDateInput) {
+        poranchaHishobDateInput.value = '';
+      }
       showView('porancha-hishob');
       loadPoranchaHishob();
     });
@@ -7287,13 +7293,17 @@ document.addEventListener('DOMContentLoaded', () => {
   async function loadPoranchaHishob() {
     try {
       if (!poranchaHishobDateInput.value) {
-        const parts = activeDate.split('-');
-        const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-        d.setDate(d.getDate() - 1);
-        const y = d.getFullYear();
-        const m = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        poranchaHishobDateInput.value = `${y}-${m}-${day}`;
+        if (latestClosedDate) {
+          poranchaHishobDateInput.value = latestClosedDate;
+        } else {
+          const parts = activeDate.split('-');
+          const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+          d.setDate(d.getDate() - 1);
+          const y = d.getFullYear();
+          const m = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          poranchaHishobDateInput.value = `${y}-${m}-${day}`;
+        }
       }
       const selDate = poranchaHishobDateInput.value;
 
@@ -7329,6 +7339,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const hishobData = await hishobRes.json();
       const employeesData = await empRes.json();
       const ratesData = await ratesRes.json();
+      const isSaved = hishobData.entries.length > 0;
+      const btnPoranchaHishobSave = document.getElementById('btn-porancha-hishob-save');
+      if (btnPoranchaHishobSave) {
+        btnPoranchaHishobSave.style.display = isSaved ? 'none' : 'block';
+      }
 
       const employeesList = employeesData.employees || [];
       const currentRates = ratesData.rates || { rate_petrol: 100, rate_diesel: 90, rate_power: 110 };
@@ -7427,31 +7442,37 @@ document.addEventListener('DOMContentLoaded', () => {
             }
           }
 
-          const isOpReadonly = 'readonly tabindex="-1" style="width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 22px; border-radius: 0.2rem; background: rgba(255,255,255,0.02); color: var(--text-muted); border: 1px solid var(--panel-border); cursor: not-allowed;"';
-          const isClReadonly = (shiftNum === 3)
-            ? 'readonly tabindex="-1" style="width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 22px; border-radius: 0.2rem; background: rgba(255,255,255,0.02); color: var(--text-muted); border: 1px solid var(--panel-border); cursor: not-allowed;"'
-            : 'style="width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 22px; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border);"';
+          const isOpReadonly = 'readonly tabindex="-1" style="width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 25px; border-radius: 0.2rem; background: rgba(255,255,255,0.02); color: var(--text-muted); border: 1px solid var(--panel-border); cursor: not-allowed;"';
+          const isClReadonly = (isSaved || shiftNum === 3)
+            ? 'readonly tabindex="-1" style="width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 25px; border-radius: 0.2rem; background: rgba(255,255,255,0.02); color: var(--text-muted); border: 1px solid var(--panel-border); cursor: not-allowed;"'
+            : 'style="width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 25px; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border);"';
+
+          const selectDisabled = isSaved ? 'disabled' : '';
+          const phonepeReadonly = isSaved ? 'readonly tabindex="-1"' : '';
+          const phonepeStyle = isSaved
+            ? 'width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 25px; border-radius: 0.2rem; background: rgba(255,255,255,0.02); color: var(--text-muted); border: 1px solid var(--panel-border); cursor: not-allowed;'
+            : 'width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 25px; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border);';
 
           const tr = document.createElement('tr');
           tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
           tr.innerHTML = `
-            <td style="padding: 0.2rem 0.05rem; font-weight: 700; font-size: 0.72rem; color: var(--text-main);" data-nozzle="${noz.id}" data-product="${noz.product}" data-rate="${noz.rate}">N${noz.id}</td>
-            <td style="padding: 0.2rem 0.05rem;">
-              <select class="row-employee-select" style="width: 100%; padding: 0.1rem; font-size: 0.7rem; height: 22px; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border);">
+            <td style="padding: 0.55rem 0.05rem; font-weight: 700; font-size: 0.72rem; color: var(--text-main);" data-nozzle="${noz.id}" data-product="${noz.product}" data-rate="${noz.rate}">N${noz.id}</td>
+            <td style="padding: 0.55rem 0.05rem;">
+              <select class="row-employee-select" ${selectDisabled} style="width: 100%; padding: 0.1rem; font-size: 0.7rem; height: 25px; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border);">
                 ${generateEmployeeOptionsHTML(activeEmployeeId)}
               </select>
             </td>
-            <td style="padding: 0.2rem 0.05rem;">
+            <td style="padding: 0.55rem 0.05rem;">
               <input type="number" step="0.01" class="row-opening-input" value="${openingVal}" ${isOpReadonly}>
             </td>
-            <td style="padding: 0.2rem 0.05rem;">
+            <td style="padding: 0.55rem 0.05rem;">
               <input type="number" step="0.01" class="row-closing-input" value="${closingVal}" ${isClReadonly}>
             </td>
-            <td style="padding: 0.2rem 0.05rem; text-align: right; font-weight: 600; font-size: 0.72rem;"><span class="row-sale-val">0.00</span></td>
-            <td style="padding: 0.2rem 0.05rem; text-align: right; font-size: 0.72rem; color: var(--text-muted); font-family: monospace;">${noz.rate.toFixed(2)}</td>
-            <td style="padding: 0.2rem 0.05rem; text-align: right; font-weight: 700; font-size: 0.72rem; color: var(--success);"><span class="row-amount-val">₹ 0.00</span></td>
-            <td style="padding: 0.2rem 0.05rem;">
-              <input type="number" step="0.01" class="row-phonepe-input" value="${phonepeVal}" style="width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 22px; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border);">
+            <td style="padding: 0.55rem 0.05rem; text-align: right; font-weight: 600; font-size: 0.72rem;"><span class="row-sale-val">0.00</span></td>
+            <td style="padding: 0.55rem 0.05rem; text-align: right; font-size: 0.72rem; color: var(--text-muted); font-family: monospace;">${noz.rate.toFixed(2)}</td>
+            <td style="padding: 0.55rem 0.05rem; text-align: right; font-weight: 700; font-size: 0.72rem; color: var(--success);"><span class="row-amount-val">₹ 0.00</span></td>
+            <td style="padding: 0.55rem 0.05rem;">
+              <input type="number" step="0.01" class="row-phonepe-input" value="${phonepeVal}" ${phonepeReadonly} style="${phonepeStyle}">
             </td>
           `;
 
@@ -7520,28 +7541,36 @@ document.addEventListener('DOMContentLoaded', () => {
           const testingQty = savedTest ? savedTest.testing_qty : (dayReading ? dayReading.testing_qty : 5.0);
           const phonepeVal = savedTest ? savedTest.phonepe_amount : 0;
 
+          const selectDisabled = isSaved ? 'disabled' : '';
+          const phonepeReadonly = isSaved ? 'readonly tabindex="-1"' : '';
+          const phonepeStyle = isSaved
+            ? 'width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 25px; border-radius: 0.2rem; background: rgba(255,255,255,0.02); color: var(--text-muted); border: 1px solid var(--panel-border); cursor: not-allowed;'
+            : 'width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 25px; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border);';
+
+          const readonlyStyle = 'width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 25px; border-radius: 0.2rem; background: rgba(255,255,255,0.02); color: var(--text-muted); border: 1px solid var(--panel-border); cursor: not-allowed;';
+
           const tr = document.createElement('tr');
           tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
           tr.innerHTML = `
-            <td style="padding: 0.2rem 0.05rem; font-weight: 700; font-size: 0.72rem; color: var(--text-main);" data-nozzle="${noz.id}" data-product="${noz.product}" data-rate="${noz.rate}">N${noz.id}</td>
-            <td style="padding: 0.2rem 0.05rem;">
-              <select class="row-employee-select" style="width: 100%; padding: 0.1rem; font-size: 0.7rem; height: 22px; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border);">
+            <td style="padding: 0.55rem 0.05rem; font-weight: 700; font-size: 0.72rem; color: var(--text-main);" data-nozzle="${noz.id}" data-product="${noz.product}" data-rate="${noz.rate}">N${noz.id}</td>
+            <td style="padding: 0.55rem 0.05rem;">
+              <select class="row-employee-select" ${selectDisabled} style="width: 100%; padding: 0.1rem; font-size: 0.7rem; height: 25px; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border);">
                 ${generateEmployeeOptionsHTML(activeEmployeeId)}
               </select>
             </td>
-            <td style="padding: 0.2rem 0.05rem;">
-              <input type="number" step="0.01" class="row-testing-opening-input" value="${(dayReading ? dayReading.closing_reading - testingQty : 0).toFixed(2)}" readonly tabindex="-1" style="width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 22px; border-radius: 0.2rem; background: rgba(255,255,255,0.02); color: var(--text-muted); border: 1px solid var(--panel-border); cursor: not-allowed;">
+            <td style="padding: 0.55rem 0.05rem;">
+              <input type="number" step="0.01" class="row-testing-opening-input" value="${(dayReading ? dayReading.closing_reading - testingQty : 0).toFixed(2)}" readonly tabindex="-1" style="${readonlyStyle}">
             </td>
-            <td style="padding: 0.2rem 0.05rem;">
-              <input type="number" step="0.01" class="row-testing-closing-input" value="${(dayReading ? dayReading.closing_reading : 0).toFixed(2)}" readonly tabindex="-1" style="width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 22px; border-radius: 0.2rem; background: rgba(255,255,255,0.02); color: var(--text-muted); border: 1px solid var(--panel-border); cursor: not-allowed;">
+            <td style="padding: 0.55rem 0.05rem;">
+              <input type="number" step="0.01" class="row-testing-closing-input" value="${(dayReading ? dayReading.closing_reading : 0).toFixed(2)}" readonly tabindex="-1" style="${readonlyStyle}">
             </td>
-            <td style="padding: 0.2rem 0.05rem;">
-              <input type="number" step="0.01" class="row-testing-qty-input" value="${testingQty}" style="width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 22px; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border);">
+            <td style="padding: 0.55rem 0.05rem;">
+              <input type="number" step="0.01" class="row-testing-qty-input" value="${testingQty}" ${isSaved ? 'readonly tabindex="-1"' : ''} style="${isSaved ? readonlyStyle : 'width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 28px; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border);'}">
             </td>
-            <td style="padding: 0.2rem 0.05rem; text-align: right; font-size: 0.72rem; color: var(--text-muted); font-family: monospace;">${noz.rate.toFixed(2)}</td>
-            <td style="padding: 0.2rem 0.05rem; text-align: right; font-weight: 700; font-size: 0.72rem; color: var(--success);"><span class="row-testing-amount-val">₹ 0.00</span></td>
-            <td style="padding: 0.2rem 0.05rem;">
-              <input type="number" step="0.01" class="row-testing-phonepe-input" value="${phonepeVal}" style="width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 22px; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border);">
+            <td style="padding: 0.55rem 0.05rem; text-align: right; font-size: 0.72rem; color: var(--text-muted); font-family: monospace;">${noz.rate.toFixed(2)}</td>
+            <td style="padding: 0.55rem 0.05rem; text-align: right; font-weight: 700; font-size: 0.72rem; color: var(--success);"><span class="row-testing-amount-val">₹ 0.00</span></td>
+            <td style="padding: 0.55rem 0.05rem;">
+              <input type="number" step="0.01" class="row-testing-phonepe-input" value="${phonepeVal}" ${phonepeReadonly} style="${phonepeStyle}">
             </td>
           `;
           testTbody.appendChild(tr);
