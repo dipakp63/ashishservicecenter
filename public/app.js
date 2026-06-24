@@ -368,6 +368,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const viewTankerLabelWizard = document.getElementById('view-tanker-label-wizard');
     if (viewTankerLabelWizard) viewTankerLabelWizard.style.display = viewName === 'tanker-label-wizard' ? 'block' : 'none';
 
+    const viewChillarRecord = document.getElementById('view-chillar-record');
+    if (viewChillarRecord) viewChillarRecord.style.display = viewName === 'chillar-record' ? 'block' : 'none';
+
+    const viewPoranchaHishob = document.getElementById('view-porancha-hishob');
+    if (viewPoranchaHishob) viewPoranchaHishob.style.display = viewName === 'porancha-hishob' ? 'block' : 'none';
+
     // Udhari view panes
     const viewUdhariMaster = document.getElementById('view-udhari-master');
     const viewUdhariActive = document.getElementById('view-udhari-active');
@@ -484,6 +490,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const navHpclTracker = document.getElementById('nav-hpcl-tracker');
     const navTtLedger = document.getElementById('nav-tt-ledger');
     const navTankerReceipts = document.getElementById('nav-tanker-receipts');
+    const navChillarRecord = document.getElementById('nav-chillar-record');
+    const navPoranchaHishob = document.getElementById('nav-porancha-hishob');
     
     const navUdhariMaster = document.getElementById('nav-udhari-master');
     const navUdhariActive = document.getElementById('nav-udhari-active');
@@ -506,8 +514,10 @@ document.addEventListener('DOMContentLoaded', () => {
     else if (viewName === 'employee-management' && navEmployeeManagement) navEmployeeManagement.classList.add('active');
     else if (viewName === 'hpcl' && navHpclTracker) navHpclTracker.classList.add('active');
     else if (viewName === 'tt-ledger' && navTtLedger) navTtLedger.classList.add('active');
+    else if (viewName === 'chillar-record' && navChillarRecord) navChillarRecord.classList.add('active');
+    else if (viewName === 'porancha-hishob' && navPoranchaHishob) navPoranchaHishob.classList.add('active');
     else if ((viewName === 'tanker-receipts' || viewName === 'tanker-label-wizard') && navTankerReceipts) navTankerReceipts.classList.add('active');
-    else if (navDayClosing && !['udhari', 'other', 'tt-ledger', 'tanker-receipts', 'tanker-label-wizard'].some(pre => viewName.startsWith(pre))) navDayClosing.classList.add('active');
+    else if (navDayClosing && !['udhari', 'other', 'tt-ledger', 'tanker-receipts', 'tanker-label-wizard', 'chillar-record', 'porancha-hishob'].some(pre => viewName.startsWith(pre))) navDayClosing.classList.add('active');
 
     // Update steps title texts dynamically
     if (hasDecantation) {
@@ -5361,11 +5371,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // TT Tabs Switch Controller
   function switchTtTab(tabId) {
-    const tabs = ['tab-tt-expenses', 'tab-tt-average', 'tab-tt-trips'];
+    const tabs = ['tab-tt-expenses', 'tab-tt-average', 'tab-tt-trips', 'tab-tt-toll'];
     const panes = {
       'tab-tt-expenses': 'tt-pane-expenses',
       'tab-tt-average': 'tt-pane-average',
-      'tab-tt-trips': 'tt-pane-trips'
+      'tab-tt-trips': 'tt-pane-trips',
+      'tab-tt-toll': 'tt-pane-toll'
     };
 
     tabs.forEach(tId => {
@@ -5400,7 +5411,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Register Tab Click Listeners
-  ['tab-tt-expenses', 'tab-tt-average', 'tab-tt-trips'].forEach(tabId => {
+  ['tab-tt-expenses', 'tab-tt-average', 'tab-tt-trips', 'tab-tt-toll'].forEach(tabId => {
     const btn = document.getElementById(tabId);
     if (btn) {
       btn.addEventListener('click', () => switchTtTab(tabId));
@@ -6981,6 +6992,634 @@ document.addEventListener('DOMContentLoaded', () => {
     `);
 
     printWindow.document.close();
+  }
+
+
+  // ── CHILLAR RECORD & PORANCHA HISHOB FEATURES ─────────────────────────────────
+
+  const navChillarRecord = document.getElementById('nav-chillar-record');
+  const navPoranchaHishob = document.getElementById('nav-porancha-hishob');
+
+  if (navChillarRecord) {
+    navChillarRecord.addEventListener('click', (e) => {
+      e.preventDefault();
+      showView('chillar-record');
+      loadChillarData();
+    });
+  }
+
+  if (navPoranchaHishob) {
+    navPoranchaHishob.addEventListener('click', (e) => {
+      e.preventDefault();
+      showView('porancha-hishob');
+      loadPoranchaHishob();
+    });
+  }
+
+  // ── Chillar Record Logic ──────────────────────────────────────────────────
+  async function loadChillarData() {
+    try {
+      // 1. Fetch current status
+      const statusRes = await fetch('/api/chillar/status');
+      if (!statusRes.ok) throw new Error('Failed to load Chillar status.');
+      const status = await statusRes.json();
+
+      const totalBalanceEl = document.getElementById('chillar-total-balance');
+      if (totalBalanceEl) {
+        totalBalanceEl.textContent = `₹ ${status.total_amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      }
+
+      const statusMap = {
+        'status-notes-10': status.notes_10,
+        'status-coins-20': status.coins_20,
+        'status-coins-10': status.coins_10,
+        'status-coins-5': status.coins_5,
+        'status-coins-2': status.coins_2,
+        'status-coins-1': status.coins_1
+      };
+
+      for (const [id, count] of Object.entries(statusMap)) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = count;
+      }
+
+      // 2. Fetch transactions history
+      const txRes = await fetch('/api/chillar/transactions');
+      if (!txRes.ok) throw new Error('Failed to load Chillar transactions.');
+      const txData = await txRes.json();
+      const txList = txData.transactions || [];
+
+      const tbody = document.querySelector('#chillar-ledger-table tbody');
+      if (tbody) {
+        tbody.innerHTML = '';
+        if (txList.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted);">No transactions recorded yet.</td></tr>';
+        } else {
+          // Sort descending: newest date first, then newest ID first
+          const sortedList = txList.sort((a, b) => {
+            const dateComp = b.date.localeCompare(a.date);
+            if (dateComp !== 0) return dateComp;
+            return b.id - a.id;
+          });
+
+          sortedList.forEach(tx => {
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+            
+            // Format denomination log
+            const logParts = [];
+            if (tx.notes_10) logParts.push(`₹10 x ${tx.notes_10}`);
+            if (tx.coins_20) logParts.push(`₹20 x ${tx.coins_20}`);
+            if (tx.coins_10) logParts.push(`₹10 x ${tx.coins_10}`);
+            if (tx.coins_5) logParts.push(`₹5 x ${tx.coins_5}`);
+            if (tx.coins_2) logParts.push(`₹2 x ${tx.coins_2}`);
+            if (tx.coins_1) logParts.push(`₹1 x ${tx.coins_1}`);
+            const denomLog = logParts.join(', ') || '—';
+
+            // Amount formatting
+            let amountText = `₹ ${tx.total_amount.toFixed(2)}`;
+            let amountStyle = '';
+            if (tx.type === 'OPENING' || tx.type === 'MANUAL_CREDIT' || tx.type === 'DAY_CLOSE') {
+              amountText = `+ ${amountText}`;
+              amountStyle = 'color: var(--success); font-weight: 700;';
+            } else if (tx.type === 'MANUAL_DEBIT') {
+              amountText = `- ${amountText}`;
+              amountStyle = 'color: var(--danger); font-weight: 700;';
+            }
+
+            // Type Badge
+            let typeBadge = `<span class="badge" style="padding: 0.15rem 0.4rem; font-size: 0.7rem; border-radius: 0.25rem; font-weight: 600; text-transform: uppercase; `;
+            if (tx.type === 'OPENING') {
+              typeBadge += `background: rgba(168, 85, 247, 0.15); color: #c084fc;">Opening</span>`;
+            } else if (tx.type === 'DAY_CLOSE') {
+              typeBadge += `background: rgba(59, 130, 246, 0.15); color: #60a5fa;">Day Close</span>`;
+            } else if (tx.type === 'MANUAL_CREDIT') {
+              typeBadge += `background: rgba(16, 185, 129, 0.15); color: #34d399;">Adjustment (+)</span>`;
+            } else if (tx.type === 'MANUAL_DEBIT') {
+              typeBadge += `background: rgba(239, 68, 68, 0.15); color: #f87171;">Adjustment (-)</span>`;
+            }
+
+            // Action
+            const showDelete = tx.type !== 'OPENING' && tx.type !== 'DAY_CLOSE';
+            const actionTd = showDelete 
+              ? `<button type="button" class="btn btn-secondary btn-delete-chillar-tx" data-id="${tx.id}" style="padding: 0.15rem 0.4rem; font-size: 0.7rem; min-height: auto; border-radius: 0.25rem;">🗑 Delete</button>`
+              : '—';
+
+            tr.innerHTML = `
+              <td style="padding: 0.5rem; white-space: nowrap;">${tx.date}</td>
+              <td style="padding: 0.5rem;">${typeBadge}</td>
+              <td style="padding: 0.5rem;">${tx.description || ''}</td>
+              <td style="padding: 0.5rem; font-family: monospace; font-size: 0.75rem; color: var(--text-muted);">${denomLog}</td>
+              <td style="padding: 0.5rem; text-align: right; ${amountStyle}">${amountText}</td>
+              <td style="padding: 0.5rem; text-align: right; font-weight: 600;">₹ ${tx.running_balance.toFixed(2)}</td>
+              <td style="padding: 0.5rem; text-align: center;">${actionTd}</td>
+            `;
+
+            tbody.appendChild(tr);
+          });
+
+          // Bind delete events
+          document.querySelectorAll('.btn-delete-chillar-tx').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+              const txId = e.currentTarget.getAttribute('data-id');
+              if (confirm('Are you sure you want to delete this manual chillar transaction?')) {
+                try {
+                  const deleteRes = await fetch(`/api/chillar/transaction/${txId}`, { method: 'DELETE' });
+                  if (!deleteRes.ok) throw new Error('Failed to delete transaction.');
+                  showToast('Transaction deleted successfully', 'success');
+                  loadChillarData();
+                } catch (err) {
+                  showToast(err.message, 'error');
+                }
+              }
+            });
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Error loading Chillar data:', err);
+      showToast(err.message, 'error');
+    }
+  }
+
+  // Real-time calculations for chillar adjustments
+  function calcChillarAdjustmentTotal() {
+    const n10 = parseInt(document.getElementById('adj-notes-10').value) || 0;
+    const c20 = parseInt(document.getElementById('adj-coins-20').value) || 0;
+    const c10 = parseInt(document.getElementById('adj-coins-10').value) || 0;
+    const c5 = parseInt(document.getElementById('adj-coins-5').value) || 0;
+    const c2 = parseInt(document.getElementById('adj-coins-2').value) || 0;
+    const c1 = parseInt(document.getElementById('adj-coins-1').value) || 0;
+    const total = (n10 * 10) + (c20 * 20) + (c10 * 10) + (c5 * 5) + (c2 * 2) + (c1 * 1);
+    
+    const adjTotalValEl = document.getElementById('chillar-adj-total-val');
+    if (adjTotalValEl) adjTotalValEl.textContent = `₹ ${total.toFixed(2)}`;
+  }
+
+  document.querySelectorAll('.chillar-calc-input').forEach(input => {
+    input.addEventListener('input', calcChillarAdjustmentTotal);
+  });
+
+  const formChillarAdjustment = document.getElementById('form-chillar-adjustment');
+  if (formChillarAdjustment) {
+    formChillarAdjustment.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const date = document.getElementById('chillar-adj-date').value;
+      const type = document.getElementById('chillar-adj-type').value;
+      const description = document.getElementById('chillar-adj-desc').value.trim();
+      const notes_10 = parseInt(document.getElementById('adj-notes-10').value) || 0;
+      const coins_20 = parseInt(document.getElementById('adj-coins-20').value) || 0;
+      const coins_10 = parseInt(document.getElementById('adj-coins-10').value) || 0;
+      const coins_5 = parseInt(document.getElementById('adj-coins-5').value) || 0;
+      const coins_2 = parseInt(document.getElementById('adj-coins-2').value) || 0;
+      const coins_1 = parseInt(document.getElementById('adj-coins-1').value) || 0;
+
+      if (!date || !type || !description) {
+        showToast('Please fill all required fields.', 'warning');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/chillar/transaction', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ date, type, description, notes_10, coins_20, coins_10, coins_5, coins_2, coins_1 })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to save transaction.');
+        showToast('Chillar adjustment saved successfully.', 'success');
+        
+        // Reset form
+        formChillarAdjustment.reset();
+        document.getElementById('chillar-adj-date').value = activeDate;
+        calcChillarAdjustmentTotal();
+        
+        loadChillarData();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+  }
+
+  // Chillar Edit Opening balance
+  const btnChillarEditOpening = document.getElementById('btn-chillar-edit-opening');
+  if (btnChillarEditOpening) {
+    btnChillarEditOpening.addEventListener('click', async () => {
+      document.getElementById('modal-chillar-opening').style.display = 'flex';
+      try {
+        const txRes = await fetch('/api/chillar/transactions');
+        if (!txRes.ok) throw new Error('Failed to load transactions.');
+        const txData = await txRes.json();
+        const txList = txData.transactions || [];
+        const openingTx = txList.find(tx => tx.type === 'OPENING') || {
+          notes_10: 0, coins_20: 0, coins_10: 0, coins_5: 0, coins_2: 0, coins_1: 0
+        };
+
+        document.getElementById('opening-notes-10').value = openingTx.notes_10;
+        document.getElementById('opening-coins-20').value = openingTx.coins_20;
+        document.getElementById('opening-coins-10').value = openingTx.coins_10;
+        document.getElementById('opening-coins-5').value = openingTx.coins_5;
+        document.getElementById('opening-coins-2').value = openingTx.coins_2;
+        document.getElementById('opening-coins-1').value = openingTx.coins_1;
+
+        calcChillarOpeningTotal();
+      } catch (err) {
+        showToast('Failed to load opening balance: ' + err.message, 'error');
+      }
+    });
+  }
+
+  function calcChillarOpeningTotal() {
+    const n10 = parseInt(document.getElementById('opening-notes-10').value) || 0;
+    const c20 = parseInt(document.getElementById('opening-coins-20').value) || 0;
+    const c10 = parseInt(document.getElementById('opening-coins-10').value) || 0;
+    const c5 = parseInt(document.getElementById('opening-coins-5').value) || 0;
+    const c2 = parseInt(document.getElementById('opening-coins-2').value) || 0;
+    const c1 = parseInt(document.getElementById('opening-coins-1').value) || 0;
+    const total = (n10 * 10) + (c20 * 20) + (c10 * 10) + (c5 * 5) + (c2 * 2) + (c1 * 1);
+
+    const openingTotalValEl = document.getElementById('opening-total-val');
+    if (openingTotalValEl) openingTotalValEl.textContent = `₹ ${total.toFixed(2)}`;
+  }
+
+  document.querySelectorAll('.opening-calc-input').forEach(input => {
+    input.addEventListener('input', calcChillarOpeningTotal);
+  });
+
+  const formChillarOpening = document.getElementById('form-chillar-opening');
+  if (formChillarOpening) {
+    formChillarOpening.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const notes_10 = parseInt(document.getElementById('opening-notes-10').value) || 0;
+      const coins_20 = parseInt(document.getElementById('opening-coins-20').value) || 0;
+      const coins_10 = parseInt(document.getElementById('opening-coins-10').value) || 0;
+      const coins_5 = parseInt(document.getElementById('opening-coins-5').value) || 0;
+      const coins_2 = parseInt(document.getElementById('opening-coins-2').value) || 0;
+      const coins_1 = parseInt(document.getElementById('opening-coins-1').value) || 0;
+
+      try {
+        const res = await fetch('/api/chillar/opening', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ notes_10, coins_20, coins_10, coins_5, coins_2, coins_1 })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to update opening balance.');
+        showToast('Opening balance updated successfully.', 'success');
+        document.getElementById('modal-chillar-opening').style.display = 'none';
+        loadChillarData();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+  }
+
+
+  // ── Porancha Hishob (Shift Sales Duty Log) Logic ──────────────────────────────
+  const poranchaHishobDateInput = document.getElementById('porancha-hishob-date');
+  if (poranchaHishobDateInput) {
+    poranchaHishobDateInput.addEventListener('change', () => {
+      loadPoranchaHishob();
+    });
+  }
+
+  async function loadPoranchaHishob() {
+    try {
+      if (!poranchaHishobDateInput.value) {
+        poranchaHishobDateInput.value = activeDate;
+      }
+      const selDate = poranchaHishobDateInput.value;
+
+      // 1. Verify if the date is finalized/closed
+      const readingsCheckRes = await fetch(`/api/readings/opening?date=${selDate}`);
+      if (!readingsCheckRes.ok) throw new Error('Failed to verify date status.');
+      const checkData = await readingsCheckRes.json();
+
+      const overlay = document.getElementById('porancha-hishob-blocked-overlay');
+      if (!checkData.isClosed) {
+        if (overlay) {
+          overlay.style.display = 'flex';
+          document.getElementById('porancha-hishob-blocked-title').textContent = 'DAY NOT FINALIZED';
+          document.getElementById('porancha-hishob-blocked-message').textContent = 
+            `Day Closing must be completed and closed first for ${selDate} before shift sales can be accessed.`;
+        }
+        return;
+      } else {
+        if (overlay) overlay.style.display = 'none';
+      }
+
+      // 2. Fetch shift data, employees, and rates
+      const [hishobRes, empRes, ratesRes] = await Promise.all([
+        fetch(`/api/porancha-hishob?date=${selDate}`),
+        fetch('/api/employees'),
+        fetch(`/api/rates/opening?date=${selDate}`)
+      ]);
+
+      if (!hishobRes.ok) throw new Error('Failed to fetch shift details.');
+      if (!empRes.ok) throw new Error('Failed to fetch employees.');
+      if (!ratesRes.ok) throw new Error('Failed to fetch rates.');
+
+      const hishobData = await hishobRes.json();
+      const employeesData = await empRes.json();
+      const ratesData = await ratesRes.json();
+
+      const employeesList = employeesData.employees || [];
+      const currentRates = ratesData.rates || { rate_petrol: 100, rate_diesel: 90, rate_power: 110 };
+
+      // Helper to generate options for employee select
+      const generateEmployeeOptionsHTML = (selectedId) => {
+        let html = '<option value="">— On Duty —</option>';
+        employeesList.forEach(emp => {
+          if (emp.is_active === 1 || emp.id === selectedId) {
+            html += `<option value="${emp.id}" ${emp.id === selectedId ? 'selected' : ''}>${emp.name}</option>`;
+          }
+        });
+        return html;
+      };
+
+      // Configuration of the 6 nozzles
+      const nozzles = [
+        { id: 1, product: 'Petrol', rate: currentRates.rate_petrol },
+        { id: 2, product: 'Petrol', rate: currentRates.rate_petrol },
+        { id: 3, product: 'Diesel', rate: currentRates.rate_diesel },
+        { id: 4, product: 'Diesel', rate: currentRates.rate_diesel },
+        { id: 5, product: 'poWer', rate: currentRates.rate_power },
+        { id: 6, product: 'poWer', rate: currentRates.rate_power }
+      ];
+
+      // Map day readings for quick lookup
+      const dayReadingsMap = {};
+      checkData.savedReadings.forEach(r => {
+        dayReadingsMap[r.nozzle_id] = r;
+      });
+
+      // Render Shifts 1, 2, 3
+      [1, 2, 3].forEach(shiftNum => {
+        const tbody = document.querySelector(`#porancha-hishob-table-shift-${shiftNum} .shift-tbody`);
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        nozzles.forEach(noz => {
+          // Find if there is a saved entry for this shift and nozzle
+          const savedEntry = hishobData.entries.find(e => e.shift === shiftNum && e.nozzle_index === noz.id);
+          const activeEmployeeId = savedEntry ? savedEntry.employee_id : '';
+          
+          let openingVal = '';
+          let closingVal = '';
+          let phonepeVal = savedEntry ? savedEntry.phonepe_amount : 0;
+
+          if (savedEntry) {
+            openingVal = savedEntry.opening_reading;
+            closingVal = savedEntry.closing_reading;
+          } else {
+            // Default heuristics:
+            // Shift 1 opening matches Day's opening reading
+            if (shiftNum === 1) {
+              const dayReading = dayReadingsMap[noz.id];
+              if (dayReading) openingVal = dayReading.opening_reading;
+            }
+            // Shift 3 closing matches Day's closing reading
+            if (shiftNum === 3) {
+              const dayReading = dayReadingsMap[noz.id];
+              if (dayReading) closingVal = dayReading.closing_reading;
+            }
+          }
+
+          const tr = document.createElement('tr');
+          tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+          tr.innerHTML = `
+            <td style="padding: 0.2rem 0.05rem; font-weight: 700; font-size: 0.72rem; color: var(--text-main);" data-nozzle="${noz.id}" data-product="${noz.product}" data-rate="${noz.rate}">N${noz.id}</td>
+            <td style="padding: 0.2rem 0.05rem;">
+              <select class="row-employee-select" style="width: 100%; padding: 0.1rem; font-size: 0.7rem; height: 22px; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border);">
+                ${generateEmployeeOptionsHTML(activeEmployeeId)}
+              </select>
+            </td>
+            <td style="padding: 0.2rem 0.05rem;">
+              <input type="number" step="0.01" class="row-opening-input" value="${openingVal}" style="width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 22px; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border);">
+            </td>
+            <td style="padding: 0.2rem 0.05rem;">
+              <input type="number" step="0.01" class="row-closing-input" value="${closingVal}" style="width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 22px; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border);">
+            </td>
+            <td style="padding: 0.2rem 0.05rem; text-align: right; font-weight: 600; font-size: 0.72rem;"><span class="row-sale-val">0.00</span></td>
+            <td style="padding: 0.2rem 0.05rem; text-align: right; font-size: 0.72rem; color: var(--text-muted); font-family: monospace;">${noz.rate.toFixed(2)}</td>
+            <td style="padding: 0.2rem 0.05rem; text-align: right; font-weight: 700; font-size: 0.72rem; color: var(--success);"><span class="row-amount-val">₹ 0.00</span></td>
+            <td style="padding: 0.2rem 0.05rem;">
+              <input type="number" step="0.01" class="row-phonepe-input" value="${phonepeVal}" style="width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 22px; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border);">
+            </td>
+          `;
+
+          tbody.appendChild(tr);
+        });
+
+        // Set up real-time calculations for this shift table
+        const inputs = tbody.querySelectorAll('.row-opening-input, .row-closing-input');
+        inputs.forEach(inp => {
+          inp.addEventListener('input', () => recalcShiftRow(inp.closest('tr')));
+        });
+        
+        // Trigger initial calculations
+        tbody.querySelectorAll('tr').forEach(tr => recalcShiftRow(tr));
+        
+        // Listen for PhonePe changes to also update totals
+        tbody.querySelectorAll('.row-phonepe-input').forEach(inp => {
+          inp.addEventListener('input', () => updateShiftTotal(shiftNum));
+        });
+      });
+
+      // Render Nozzle Testing Table
+      const testTbody = document.querySelector('#porancha-hishob-table-testing .testing-tbody');
+      if (testTbody) {
+        testTbody.innerHTML = '';
+
+        nozzles.forEach(noz => {
+          const savedTest = hishobData.testing.find(t => t.nozzle_index === noz.id);
+          const activeEmployeeId = savedTest ? savedTest.employee_id : '';
+          const testingQty = savedTest ? savedTest.testing_qty : (dayReadingsMap[noz.id] ? dayReadingsMap[noz.id].testing_qty : 5.0);
+          const phonepeVal = savedTest ? savedTest.phonepe_amount : 0;
+
+          const tr = document.createElement('tr');
+          tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+          tr.innerHTML = `
+            <td style="padding: 0.2rem 0.05rem; font-weight: 700; font-size: 0.72rem; color: var(--text-main);" data-nozzle="${noz.id}" data-product="${noz.product}" data-rate="${noz.rate}">N${noz.id}</td>
+            <td style="padding: 0.2rem 0.05rem;">
+              <select class="row-employee-select" style="width: 100%; padding: 0.1rem; font-size: 0.7rem; height: 22px; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border);">
+                ${generateEmployeeOptionsHTML(activeEmployeeId)}
+              </select>
+            </td>
+            <td style="padding: 0.2rem 0.05rem;">
+              <input type="number" step="0.01" class="row-testing-qty-input" value="${testingQty}" style="width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 22px; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border);">
+            </td>
+            <td style="padding: 0.2rem 0.05rem; text-align: center; color: var(--text-muted); font-size: 0.7rem;">—</td>
+            <td style="padding: 0.2rem 0.05rem; text-align: right; font-weight: 600; font-size: 0.72rem;"><span class="row-testing-sale-val">${testingQty.toFixed(2)}</span></td>
+            <td style="padding: 0.2rem 0.05rem; text-align: right; font-size: 0.72rem; color: var(--text-muted); font-family: monospace;">${noz.rate.toFixed(2)}</td>
+            <td style="padding: 0.2rem 0.05rem; text-align: right; font-weight: 700; font-size: 0.72rem; color: var(--success);"><span class="row-testing-amount-val">₹ 0.00</span></td>
+            <td style="padding: 0.2rem 0.05rem;">
+              <input type="number" step="0.01" class="row-testing-phonepe-input" value="${phonepeVal}" style="width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 22px; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border);">
+            </td>
+          `;
+          testTbody.appendChild(tr);
+
+          const qtyInput = tr.querySelector('.row-testing-qty-input');
+          qtyInput.addEventListener('input', () => {
+            const val = parseFloat(qtyInput.value) || 0;
+            tr.querySelector('.row-testing-sale-val').textContent = val.toFixed(2);
+            recalcTestingRow(tr);
+          });
+
+          const phonepeInput = tr.querySelector('.row-testing-phonepe-input');
+          phonepeInput.addEventListener('input', recalcTestingTotal);
+
+          recalcTestingRow(tr);
+        });
+      }
+
+    } catch (err) {
+      console.error('Error loading Porancha Hishob details:', err);
+      showToast(err.message, 'error');
+    }
+  }
+
+  // Row calculation for shifts
+  function recalcShiftRow(tr) {
+    const opening = parseFloat(tr.querySelector('.row-opening-input').value) || 0;
+    const closing = parseFloat(tr.querySelector('.row-closing-input').value) || 0;
+    const rate = parseFloat(tr.querySelector('td[data-rate]').getAttribute('data-rate')) || 0;
+
+    let sale = closing - opening;
+    if (sale < 0) sale = 0;
+
+    const amount = sale * rate;
+
+    tr.querySelector('.row-sale-val').textContent = sale.toFixed(2);
+    tr.querySelector('.row-amount-val').textContent = `₹ ${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    tr.setAttribute('data-computed-amount', amount);
+
+    // Update parent shift total
+    const shiftTableId = tr.closest('table').id;
+    const shiftNum = parseInt(shiftTableId.replace('porancha-hishob-table-shift-', '')) || 1;
+    updateShiftTotal(shiftNum);
+  }
+
+  // Shift total updates
+  function updateShiftTotal(shiftNum) {
+    const tbody = document.querySelector(`#porancha-hishob-table-shift-${shiftNum} .shift-tbody`);
+    if (!tbody) return;
+    
+    let total = 0;
+    tbody.querySelectorAll('tr').forEach(tr => {
+      total += parseFloat(tr.getAttribute('data-computed-amount')) || 0;
+    });
+
+    const shiftTotalEl = document.getElementById(`shift-${shiftNum}-total-val`);
+    if (shiftTotalEl) {
+      shiftTotalEl.textContent = `₹ ${total.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+  }
+
+  // Row calculation for testing
+  function recalcTestingRow(tr) {
+    const qty = parseFloat(tr.querySelector('.row-testing-qty-input').value) || 0;
+    const rate = parseFloat(tr.querySelector('td[data-rate]').getAttribute('data-rate')) || 0;
+    const amount = qty * rate;
+
+    tr.querySelector('.row-testing-amount-val').textContent = `₹ ${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    tr.setAttribute('data-computed-amount', amount);
+
+    recalcTestingTotal();
+  }
+
+  // Testing total calculation
+  function recalcTestingTotal() {
+    const tbody = document.querySelector('#porancha-hishob-table-testing .testing-tbody');
+    if (!tbody) return;
+
+    let total = 0;
+    tbody.querySelectorAll('tr').forEach(tr => {
+      total += parseFloat(tr.getAttribute('data-computed-amount')) || 0;
+    });
+
+    const testingTotalEl = document.getElementById('testing-total-val');
+    if (testingTotalEl) {
+      testingTotalEl.textContent = `₹ ${total.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+  }
+
+  // Save Shifts Data
+  const btnPoranchaHishobSave = document.getElementById('btn-porancha-hishob-save');
+  if (btnPoranchaHishobSave) {
+    btnPoranchaHishobSave.addEventListener('click', async () => {
+      try {
+        const date = poranchaHishobDateInput.value;
+        if (!date) {
+          showToast('Select Date is required.', 'warning');
+          return;
+        }
+
+        const entries = [];
+        const testing = [];
+
+        // Collect Shift 1, 2, 3 entries
+        for (let shiftNum = 1; shiftNum <= 3; shiftNum++) {
+          const rows = document.querySelectorAll(`#porancha-hishob-table-shift-${shiftNum} .shift-tbody tr`);
+          rows.forEach(tr => {
+            const nozzleId = parseInt(tr.querySelector('td[data-nozzle]').getAttribute('data-nozzle')) || 0;
+            const product = tr.querySelector('td[data-product]').getAttribute('data-product');
+            const rate = parseFloat(tr.querySelector('td[data-rate]').getAttribute('data-rate')) || 0;
+            const employeeId = parseInt(tr.querySelector('.row-employee-select').value) || null;
+            const opening = parseFloat(tr.querySelector('.row-opening-input').value) || 0;
+            const closing = parseFloat(tr.querySelector('.row-closing-input').value) || 0;
+            const phonepe = parseFloat(tr.querySelector('.row-phonepe-input').value) || 0;
+
+            let sale = closing - opening;
+            if (sale < 0) sale = 0;
+            const amount = sale * rate;
+
+            entries.push({
+              shift: shiftNum,
+              nozzle_index: nozzleId,
+              product: product,
+              employee_id: employeeId,
+              opening_reading: opening,
+              closing_reading: closing,
+              difference_sale: sale,
+              rate: rate,
+              final_amount: amount,
+              phonepe_amount: phonepe
+            });
+          });
+        }
+
+        // Collect testing entries
+        const testRows = document.querySelectorAll('#porancha-hishob-table-testing .testing-tbody tr');
+        testRows.forEach(tr => {
+          const nozzleId = parseInt(tr.querySelector('td[data-nozzle]').getAttribute('data-nozzle')) || 0;
+          const employeeId = parseInt(tr.querySelector('.row-employee-select').value) || null;
+          const qty = parseFloat(tr.querySelector('.row-testing-qty-input').value) || 0;
+          const phonepe = parseFloat(tr.querySelector('.row-testing-phonepe-input').value) || 0;
+
+          testing.push({
+            nozzle_index: nozzleId,
+            employee_id: employeeId,
+            testing_qty: qty,
+            phonepe_amount: phonepe
+          });
+        });
+
+        // Send payload
+        const saveRes = await fetch('/api/porancha-hishob', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ date, entries, testing })
+        });
+        const data = await saveRes.json();
+        if (!saveRes.ok) throw new Error(data.error || 'Failed to save shift details.');
+
+        showToast('Shift sales and duty records saved successfully.', 'success');
+        loadPoranchaHishob();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
   }
 
 });
