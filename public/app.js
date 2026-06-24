@@ -315,6 +315,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.showView = showView;
   function showView(viewName) {
+    if (viewName === 'tanker-receipts') {
+      openLabelWizard(null, true);
+      return;
+    }
     document.body.setAttribute('data-active-view', viewName);
     const decantValObj = document.querySelector('input[name="decantation-toggle"]:checked');
     const hasDecantation = decantValObj ? decantValObj.value === 'yes' : false;
@@ -345,6 +349,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const viewCashCalculator = document.getElementById('view-cash-calculator');
     if (viewTankerCalculation) viewTankerCalculation.style.display = viewName === 'tanker' ? 'block' : 'none';
     if (viewCashCalculator) viewCashCalculator.style.display = viewName === 'cash-calc' ? 'block' : 'none';
+
+    const viewTankerLabelWizard = document.getElementById('view-tanker-label-wizard');
+    if (viewTankerLabelWizard) viewTankerLabelWizard.style.display = viewName === 'tanker-label-wizard' ? 'block' : 'none';
 
     // Udhari view panes
     const viewUdhariMaster = document.getElementById('view-udhari-master');
@@ -445,7 +452,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (viewName.startsWith('udhari-') || viewName === 'udhari') {
       if (udhariToggle) udhariToggle.classList.add('active');
       if (otherToggle) otherToggle.classList.remove('active');
-    } else if (viewName === 'reminders' || viewName === 'gst' || viewName === 'employee-management') {
+    } else if (viewName === 'reminders' || viewName === 'gst' || viewName === 'employee-management' || viewName === 'tanker-receipts' || viewName === 'tanker-label-wizard') {
       if (otherToggle) otherToggle.classList.add('active');
       if (udhariToggle) udhariToggle.classList.remove('active');
     } else {
@@ -461,6 +468,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const navEmployeeManagement = document.getElementById('nav-employee-management');
     const navHpclTracker = document.getElementById('nav-hpcl-tracker');
     const navTtLedger = document.getElementById('nav-tt-ledger');
+    const navTankerReceipts = document.getElementById('nav-tanker-receipts');
     
     const navUdhariMaster = document.getElementById('nav-udhari-master');
     const navUdhariActive = document.getElementById('nav-udhari-active');
@@ -483,7 +491,8 @@ document.addEventListener('DOMContentLoaded', () => {
     else if (viewName === 'employee-management' && navEmployeeManagement) navEmployeeManagement.classList.add('active');
     else if (viewName === 'hpcl' && navHpclTracker) navHpclTracker.classList.add('active');
     else if (viewName === 'tt-ledger' && navTtLedger) navTtLedger.classList.add('active');
-    else if (navDayClosing && !['udhari', 'other', 'tt-ledger'].some(pre => viewName.startsWith(pre))) navDayClosing.classList.add('active');
+    else if ((viewName === 'tanker-receipts' || viewName === 'tanker-label-wizard') && navTankerReceipts) navTankerReceipts.classList.add('active');
+    else if (navDayClosing && !['udhari', 'other', 'tt-ledger', 'tanker-receipts', 'tanker-label-wizard'].some(pre => viewName.startsWith(pre))) navDayClosing.classList.add('active');
 
     // Update steps title texts dynamically
     if (hasDecantation) {
@@ -554,6 +563,14 @@ document.addEventListener('DOMContentLoaded', () => {
     navCashCalcSide.addEventListener('click', (e) => {
       e.preventDefault();
       showView('cash-calc');
+    });
+  }
+
+  const navTankerReceiptsSide = document.getElementById('nav-tanker-receipts');
+  if (navTankerReceiptsSide) {
+    navTankerReceiptsSide.addEventListener('click', (e) => {
+      e.preventDefault();
+      openLabelWizard(null, true);
     });
   }
 
@@ -6443,6 +6460,509 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('Network error adding trip.', 'error');
       }
     });
+  }
+
+  // ── TANKER LABEL WIZARD (टँकर लेबल्स विझार्ड) LOGIC ────────────────────────────
+  let currentWizardData = null;
+
+  // Open Wizard & Pre-fill
+  function openLabelWizard(receipt, isBlank = true) {
+    // Reset view steps
+    const step1El = document.getElementById('label-wizard-step-1');
+    const step2El = document.getElementById('label-wizard-step-2');
+    if (step1El) step1El.style.display = 'block';
+    if (step2El) step2El.style.display = 'none';
+
+    // Retrieve DOM fields
+    const productSelect = document.getElementById('wizard-product');
+    const tankerInput = document.getElementById('wizard-tanker-no');
+    const invoiceInput = document.getElementById('wizard-invoice-no');
+    const dateInput = document.getElementById('wizard-date');
+    const timeInput = document.getElementById('wizard-time');
+    const challanDensityInput = document.getElementById('wizard-challan-density');
+    const lorryDensityInput = document.getElementById('wizard-lorry-density');
+    const roTankInput = document.getElementById('wizard-ro-tank');
+    const containerSealInput = document.getElementById('wizard-container-seal');
+    const woodenSealInput = document.getElementById('wizard-wooden-seal');
+    const driverInput = document.getElementById('wizard-driver');
+    const transporterInput = document.getElementById('wizard-transporter');
+    const dealerRepInput = document.getElementById('wizard-dealer-rep');
+    const copiesInput = document.getElementById('wizard-copies');
+
+    if (productSelect) productSelect.value = 'Petrol';
+    if (tankerInput) tankerInput.value = '';
+    if (invoiceInput) invoiceInput.value = '';
+    if (dateInput) dateInput.value = activeDate || new Date().toISOString().split('T')[0];
+    if (timeInput) timeInput.value = '';
+    if (challanDensityInput) challanDensityInput.value = '';
+    if (lorryDensityInput) lorryDensityInput.value = '';
+    if (roTankInput) roTankInput.value = '';
+    if (containerSealInput) containerSealInput.value = '';
+    if (woodenSealInput) woodenSealInput.value = '';
+    if (driverInput) driverInput.value = '';
+    if (transporterInput) transporterInput.value = '';
+    if (dealerRepInput) dealerRepInput.value = 'Ashish Service Center';
+    if (copiesInput) copiesInput.value = '8'; // Default to 8 because Petrol is default
+
+    showView('tanker-label-wizard');
+  }
+
+  // Register loadTankerReceipts globally (no-op now)
+  async function loadTankerReceipts() {
+    // Standalone Label Wizard questionnaire is now the default view.
+  }
+  window.loadTankerReceipts = loadTankerReceipts;
+  window.openLabelWizard = openLabelWizard;
+
+  // Change listener on product selection to default copies
+  const wizardProductSelect = document.getElementById('wizard-product');
+  if (wizardProductSelect) {
+    wizardProductSelect.addEventListener('change', () => {
+      const product = wizardProductSelect.value;
+      const copiesInput = document.getElementById('wizard-copies');
+      if (copiesInput) {
+        if (product === 'Petrol' || product === 'poWer') {
+          copiesInput.value = '8';
+        } else {
+          copiesInput.value = '4';
+        }
+      }
+    });
+  }
+
+  const btnWizardClose = document.getElementById('btn-wizard-close');
+  if (btnWizardClose) {
+    btnWizardClose.addEventListener('click', () => {
+      showView('du');
+    });
+  }
+
+  const btnWizardBack = document.getElementById('btn-wizard-back');
+  if (btnWizardBack) {
+    btnWizardBack.addEventListener('click', () => {
+      document.getElementById('label-wizard-step-1').style.display = 'block';
+      document.getElementById('label-wizard-step-2').style.display = 'none';
+    });
+  }
+
+  const btnWizardPrint = document.getElementById('btn-wizard-print');
+  if (btnWizardPrint) {
+    btnWizardPrint.addEventListener('click', () => {
+      printRetentionLabels();
+    });
+  }
+
+  // Step 1: Submit Form to transition to Step 2
+  const formLabelWizard = document.getElementById('form-label-wizard');
+  if (formLabelWizard) {
+    formLabelWizard.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      currentWizardData = {
+        product: document.getElementById('wizard-product').value,
+        tanker_no: document.getElementById('wizard-tanker-no').value.trim(),
+        invoice_no: document.getElementById('wizard-invoice-no').value.trim(),
+        date: document.getElementById('wizard-date').value,
+        time: document.getElementById('wizard-time').value.trim(),
+        challanDensity: document.getElementById('wizard-challan-density').value.trim(),
+        lorryDensity: document.getElementById('wizard-lorry-density').value.trim(),
+        roTank: document.getElementById('wizard-ro-tank').value.trim(),
+        containerSeal: document.getElementById('wizard-container-seal').value.trim(),
+        woodenSeal: document.getElementById('wizard-wooden-seal').value.trim(),
+        driver: document.getElementById('wizard-driver').value.trim(),
+        transporter: document.getElementById('wizard-transporter').value.trim(),
+        dealerRep: document.getElementById('wizard-dealer-rep').value.trim(),
+        copies: parseInt(document.getElementById('wizard-copies').value) || 4
+      };
+
+      // Show step 2, hide step 1
+      document.getElementById('label-wizard-step-1').style.display = 'none';
+      document.getElementById('label-wizard-step-2').style.display = 'block';
+
+      // Render mini screen preview
+      renderWizardPreview();
+    });
+  }
+
+  function formatUnderlineValue(val) {
+    return val ? `<u><b>${val}</b></u>` : '______________________';
+  }
+
+  function renderSingleLabelHTML(data) {
+    const isBlankProduct = (data.product === 'BLANK' || !data.product);
+    let displayProduct = '';
+    if (!isBlankProduct) {
+      let pShort = data.product;
+      if (data.product === 'Petrol') pShort = 'POWER MS (Petrol)';
+      if (data.product === 'Diesel') pShort = 'HSD (Diesel)';
+      if (data.product === 'poWer') pShort = 'POWER (poWer)';
+      displayProduct = 'POWER MS/HSD: <u><b>' + pShort + '</b></u>';
+    } else {
+      displayProduct = 'POWER MS/HSD: ____________________';
+    }
+
+    let formattedDate = '';
+    if (data.date) {
+      const parts = data.date.split('-');
+      if (parts.length === 3) {
+        formattedDate = parts[2] + '-' + parts[1] + '-' + parts[0];
+      } else {
+        formattedDate = data.date;
+      }
+    }
+
+    let transporterVal = data.transporter ? '<u><b>' + data.transporter + '</b></u>' : '______________________';
+    const drawnStr = formattedDate ? '<u><b>' + formattedDate + ' at ' + (data.time ? data.time : '____') + ' Hours</b></u>' : '________________________';
+    const challanDensityStr = data.challanDensity ? '<u><b>' + data.challanDensity + ' kg/m³</b></u>' : '______________________';
+    const driverNameStr = data.driver ? '<u><b>' + data.driver + '</b></u>' : '';
+
+    return `
+      <div class="print-label" style="border: 2px solid #800000; border-radius: 4px; padding: 6px; box-sizing: border-box; color: #800000; background: #fff; display: flex; flex-direction: column; justify-content: space-between; height: 100%; width: 100%;">
+        <div class="label-header" style="display: flex; border-bottom: 2px solid #800000; padding-bottom: 4px; align-items: center; margin-bottom: 4px;">
+          <div class="hp-logo-box" style="border: 2px solid #800000; width: 44px; height: 44px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; margin-right: 6px; flex-shrink: 0; box-sizing: border-box;">
+            <div style="font-size: 5.5px; line-height: 1.1; font-weight: bold;">Hindustan<br>Petroleum</div>
+            <div style="font-size: 13px; font-weight: 800; border-top: 1.5px solid #800000; width: 100%; margin-top: 2px; padding-top: 1px; letter-spacing: 0.5px;">HP</div>
+          </div>
+          <div class="header-text" style="flex-grow: 1; text-align: center; line-height: 1.1;">
+            <div style="font-size: 10px; font-weight: 800; text-transform: uppercase;">Sample Label, Tank Lorry Retention</div>
+            <div style="font-size: 7.5px; font-weight: 700; margin: 1px 0;">Sample Drawn At Retail Outlets</div>
+            <div style="font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1px;">Hindustan Petroleum Corporation Limited</div>
+          </div>
+        </div>
+        
+        <div class="label-body" style="flex-grow: 1; font-size: 8px; line-height: 1.25; display: flex; flex-direction: column; justify-content: flex-start; gap: 1.5px;">
+          <div class="field-row" style="display: flex; align-items: baseline;">
+            <span class="num" style="font-weight: bold; margin-right: 3px; width: 14px; flex-shrink: 0;">1.</span> <span class="label-txt" style="margin-right: 4px; flex-shrink: 0;">Supply Location:</span>
+            <span class="value-txt" style="border-bottom: 1px dotted #800000; flex-grow: 1; font-weight: 700; font-size: 8.5px; color: #000; padding-left: 2px; min-height: 10px;">Panewadi (Manmad IRD)</span>
+          </div>
+          <div class="field-row" style="display: flex; align-items: baseline;">
+            <span class="num" style="font-weight: bold; margin-right: 3px; width: 14px; flex-shrink: 0;">2.</span> <span class="label-txt" style="margin-right: 4px; flex-shrink: 0;">Division/Territory/Region Offce:</span>
+            <span class="value-txt" style="border-bottom: 1px dotted #800000; flex-grow: 1; font-weight: 700; font-size: 8.5px; color: #000; padding-left: 2px; min-height: 10px;">Nashik RO (HPCL)</span>
+          </div>
+          <div class="field-row" style="display: flex; align-items: baseline;">
+            <span class="num" style="font-weight: bold; margin-right: 3px; width: 14px; flex-shrink: 0;">3.</span> <span class="label-txt" style="margin-right: 4px; flex-shrink: 0;">Name of the Retail Outlet:</span>
+            <span class="value-txt" style="border-bottom: 1px dotted #800000; flex-grow: 1; font-weight: 700; font-size: 8.5px; color: #000; padding-left: 2px; min-height: 10px;">Ashish Service Center (41052317)</span>
+          </div>
+          <div class="field-row" style="display: flex; align-items: baseline;">
+            <span class="num" style="font-weight: bold; margin-right: 3px; width: 14px; flex-shrink: 0;">4.</span> <span class="label-txt" style="margin-right: 4px; flex-shrink: 0;">Name of the Oil Company:</span>
+            <span class="value-txt" style="border-bottom: 1px dotted #800000; flex-grow: 1; font-weight: 700; font-size: 8.5px; color: #000; padding-left: 2px; min-height: 10px;">HPCL</span>
+          </div>
+          <div class="field-row" style="display: flex; align-items: baseline;">
+            <span class="num" style="font-weight: bold; margin-right: 3px; width: 14px; flex-shrink: 0;">5.</span> <span class="label-txt" style="margin-right: 4px; flex-shrink: 0;">${displayProduct}</span>
+          </div>
+          <div class="field-row" style="display: flex; align-items: baseline;">
+            <span class="num" style="font-weight: bold; margin-right: 3px; width: 14px; flex-shrink: 0;">6.</span> <span class="label-txt" style="margin-right: 4px; flex-shrink: 0;">Source of Sample:</span>
+            <span class="value-txt" style="border-bottom: 1px dotted #800000; flex-grow: 1; font-weight: 700; font-size: 8.5px; color: #000; padding-left: 2px; min-height: 10px;">T/T</span>
+          </div>
+          <div class="field-row" style="display: flex; align-items: baseline;">
+            <span class="num" style="font-weight: bold; margin-right: 3px; width: 14px; flex-shrink: 0;">7.</span> <span class="label-txt" style="margin-right: 4px; flex-shrink: 0;">Tank/ Lorry No:</span>
+            <span class="value-txt" style="border-bottom: 1px dotted #800000; flex-grow: 1; font-weight: 700; font-size: 8.5px; color: #000; padding-left: 2px; min-height: 10px;">${formatUnderlineValue(data.tanker_no)}</span>
+          </div>
+          <div class="field-row" style="display: flex; align-items: baseline;">
+            <span class="num" style="font-weight: bold; margin-right: 3px; width: 14px; flex-shrink: 0;">8.</span> <span class="label-txt" style="margin-right: 4px; flex-shrink: 0;">Invoice No.</span>
+            <span class="value-txt" style="border-bottom: 1px dotted #800000; flex-grow: 1; font-weight: 700; font-size: 8.5px; color: #000; padding-left: 2px; min-height: 10px;">${formatUnderlineValue(data.invoice_no)}</span>
+          </div>
+          <div class="field-row" style="display: flex; align-items: baseline;">
+            <span class="num" style="font-weight: bold; margin-right: 3px; width: 14px; flex-shrink: 0;">9.</span> <span class="label-txt" style="margin-right: 4px; flex-shrink: 0;">Samples drawn on at Pimpalgaon, Hours.</span>
+            <span class="value-txt" style="border-bottom: 1px dotted #800000; flex-grow: 1; font-weight: 700; font-size: 8.5px; color: #000; padding-left: 2px; min-height: 10px;">${drawnStr}</span>
+          </div>
+          
+          <div class="field-row" style="margin-bottom: 1px; display: flex; align-items: baseline;">
+            <span class="num" style="font-weight: bold; margin-right: 3px; width: 14px; flex-shrink: 0;">10.</span> <span class="label-txt" style="font-weight: 700; margin-right: 4px; flex-shrink: 0;">Density at 15°c</span>
+          </div>
+          <div class="field-row sub-field" style="display: flex; align-items: baseline;">
+            <span class="num" style="font-weight: bold; margin-right: 3px; width: 22px; padding-left: 8px; flex-shrink: 0;">10.1.</span> <span class="label-txt" style="margin-right: 4px; flex-shrink: 0;">As Recorded in the Challan:</span>
+            <span class="value-txt" style="border-bottom: 1px dotted #800000; flex-grow: 1; font-weight: 700; font-size: 8.5px; color: #000; padding-left: 2px; min-height: 10px;">${challanDensityStr}</span>
+          </div>
+          <div class="field-row sub-field" style="display: flex; align-items: baseline;">
+            <span class="num" style="font-weight: bold; margin-right: 3px; width: 22px; padding-left: 8px; flex-shrink: 0;">10.2.</span> <span class="label-txt" style="margin-right: 4px; flex-shrink: 0;">Of Sample Collected From Lorry:</span>
+            <span class="value-txt" style="border-bottom: 1px dotted #800000; flex-grow: 1; font-weight: 700; font-size: 8.5px; color: #000; padding-left: 2px; min-height: 10px;">${formatUnderlineValue(data.lorryDensity)}</span>
+          </div>
+          
+          <div class="field-row" style="display: flex; align-items: baseline;">
+            <span class="num" style="font-weight: bold; margin-right: 3px; width: 14px; flex-shrink: 0;">11.</span> <span class="label-txt" style="margin-right: 4px; flex-shrink: 0;">RO tank no. of product decanted.</span>
+            <span class="value-txt" style="border-bottom: 1px dotted #800000; flex-grow: 1; font-weight: 700; font-size: 8.5px; color: #000; padding-left: 2px; min-height: 10px;">${formatUnderlineValue(data.roTank)}</span>
+          </div>
+          <div class="field-row" style="display: flex; align-items: baseline;">
+            <span class="num" style="font-weight: bold; margin-right: 3px; width: 14px; flex-shrink: 0;">12.</span> <span class="label-txt" style="margin-right: 4px; flex-shrink: 0;">Plastic Seal No. of Aluminum Container:</span>
+            <span class="value-txt" style="border-bottom: 1px dotted #800000; flex-grow: 1; font-weight: 700; font-size: 8.5px; color: #000; padding-left: 2px; min-height: 10px;">${formatUnderlineValue(data.containerSeal)}</span>
+          </div>
+          <div class="field-row" style="display: flex; align-items: baseline;">
+            <span class="num" style="font-weight: bold; margin-right: 3px; width: 14px; flex-shrink: 0;">13.</span> <span class="label-txt" style="margin-right: 4px; flex-shrink: 0;">Plastic Seals No, of Wooden Box:</span>
+            <span class="value-txt" style="border-bottom: 1px dotted #800000; flex-grow: 1; font-weight: 700; font-size: 8.5px; color: #000; padding-left: 2px; min-height: 10px;">${formatUnderlineValue(data.woodenSeal)}</span>
+          </div>
+        </div>
+        
+        <div class="certification-text" style="font-size: 6.8px; font-style: italic; line-height: 1.1; text-align: justify; margin: 2px 0; border-top: 1.5px solid #800000; border-bottom: 1.5px solid #800000; padding: 1px 0; font-weight: 500;">
+          We certified that the empty container had been rinsed with the product before drawing samples in my presence and that the sample is re-tained after proper labelling and sealing
+        </div>
+        
+        <div class="label-footer" style="display: flex; flex-direction: column; gap: 2.5px;">
+          <div class="footer-row" style="display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-top: 2px;">
+            <div style="display: flex; flex-direction: column;">
+              <div style="border-bottom: 1px dotted #800000; height: 10px; width: 120px;"></div>
+              <div style="font-size: 6.5px; font-weight: bold; transform: scale(0.95);">Signature of the Dealer/Dealer's Representative:</div>
+            </div>
+            <div style="display: flex; flex-direction: column;">
+              <div style="font-weight: 700; font-size: 7.5px; border-bottom: 1px dotted #800000; width: 120px; text-align: center; height: 10px; line-height: 10px; color: #000;">${data.dealerRep || 'Ashish Service Center'}</div>
+              <div style="font-size: 6.5px; font-weight: bold; text-align: center; transform: scale(0.95);">Name of the Dealer/Dealer's Representative:</div>
+            </div>
+          </div>
+          
+          <div class="footer-row" style="display: flex; justify-content: space-between; align-items: center; gap: 6px;">
+            <div style="font-size: 7.5px; font-weight: bold;">Seal Rubber Stamp:</div>
+            <div style="display: flex; flex-direction: column;">
+              <div style="font-weight: 700; font-size: 7.5px; border-bottom: 1px dotted #800000; width: 150px; text-align: center; color: #000;">Place: Pimpalgaon Retail Outlet, Date: ${formattedDate ? '<u><b>' + formattedDate + '</b></u>' : '______'}</div>
+            </div>
+          </div>
+
+          <div class="footer-row" style="display: flex; justify-content: space-between; align-items: center; gap: 6px;">
+            <div style="display: flex; flex-direction: column;">
+              <div style="border-bottom: 1px dotted #800000; height: 10px; width: 120px;"></div>
+              <div style="font-size: 6.5px; font-weight: bold; transform: scale(0.95);">Signature of T/T Driver:</div>
+            </div>
+            <div style="display: flex; flex-direction: column;">
+              <div style="font-weight: 700; font-size: 7.5px; border-bottom: 1px dotted #800000; width: 120px; height: 10px; color: #000;">${driverNameStr}</div>
+              <div style="font-size: 6.5px; font-weight: bold; text-align: center; transform: scale(0.95);">Name of T/T Driver:</div>
+            </div>
+          </div>
+
+          <div class="footer-row" style="margin-top: 1px; display: flex; justify-content: space-between; align-items: center; gap: 6px;">
+            <div style="width: 100%; display: flex; flex-direction: column;">
+              <div style="font-size: 7.5px; border-bottom: 1px dotted #800000; width: 100%; color: #000; min-height: 10px;">${transporterVal}</div>
+              <div style="font-size: 6.5px; font-weight: bold;">Transporter's Name:</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderWizardPreview() {
+    const sheet = document.getElementById('mini-a4-sheet');
+    if (!sheet) return;
+    sheet.innerHTML = '';
+    // Draw 4 cards for screen A4 preview
+    for (let i = 0; i < 4; i++) {
+      sheet.innerHTML += renderSingleLabelHTML(currentWizardData);
+    }
+  }
+
+  function printRetentionLabels() {
+    if (!currentWizardData) return;
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Please allow popups to print/save labels.');
+      return;
+    }
+
+    const totalCopies = currentWizardData.copies || 4;
+    let pagesHtml = '';
+
+    for (let i = 0; i < totalCopies; i += 4) {
+      let label1 = renderSingleLabelHTML(currentWizardData);
+      let label2 = (i + 1 < totalCopies) ? renderSingleLabelHTML(currentWizardData) : '<div class="empty-label-cell"></div>';
+      let label3 = (i + 2 < totalCopies) ? renderSingleLabelHTML(currentWizardData) : '<div class="empty-label-cell"></div>';
+      let label4 = (i + 3 < totalCopies) ? renderSingleLabelHTML(currentWizardData) : '<div class="empty-label-cell"></div>';
+
+      pagesHtml += `
+        <div class="print-page">
+          ${label1}
+          ${label2}
+          ${label3}
+          ${label4}
+        </div>
+      `;
+    }
+
+    let docTitle = 'Retention Labels';
+    if (currentWizardData.invoice_no) {
+      docTitle = `Retention Labels - Invoice ${currentWizardData.invoice_no}`;
+    }
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>${docTitle}</title>
+        <style>
+          @page {
+            size: A4 portrait;
+            margin: 6mm 4mm;
+          }
+          body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            background: #fff;
+            color: #000;
+          }
+          .print-page {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 4mm 3mm;
+            width: 202mm;
+            height: 285mm;
+            page-break-after: always;
+            box-sizing: border-box;
+          }
+          .print-page:last-child {
+            page-break-after: avoid;
+          }
+          .print-label {
+            border: 2px solid #800000;
+            border-radius: 4px;
+            padding: 6px;
+            box-sizing: border-box;
+            color: #800000;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 140mm;
+            width: 99mm;
+            position: relative;
+          }
+          .empty-label-cell {
+            height: 140mm;
+            width: 99mm;
+            box-sizing: border-box;
+          }
+          .label-header {
+            display: flex;
+            border-bottom: 2px solid #800000;
+            padding-bottom: 4px;
+            align-items: center;
+            margin-bottom: 4px;
+          }
+          .hp-logo-box {
+            border: 2px solid #800000;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            margin-right: 6px;
+            flex-shrink: 0;
+            box-sizing: border-box;
+          }
+          .header-text {
+            flex-grow: 1;
+            text-align: center;
+            line-height: 1.1;
+          }
+          .label-body {
+            flex-grow: 1;
+            font-size: 8px;
+            line-height: 1.25;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            gap: 1.5px;
+          }
+          .field-row {
+            display: flex;
+            align-items: baseline;
+          }
+          .num {
+            font-weight: bold;
+            margin-right: 3px;
+            width: 14px;
+            flex-shrink: 0;
+          }
+          .sub-field .num {
+            width: 22px;
+            padding-left: 8px;
+          }
+          .label-txt {
+            margin-right: 4px;
+            flex-shrink: 0;
+          }
+          .value-txt {
+            border-bottom: 1px dotted #800000;
+            flex-grow: 1;
+            font-weight: 700;
+            font-size: 8.5px;
+            color: #000;
+            padding-left: 2px;
+            min-height: 10px;
+          }
+          .certification-text {
+            font-size: 6.8px;
+            font-style: italic;
+            line-height: 1.1;
+            text-align: justify;
+            margin: 2px 0;
+            border-top: 1.5px solid #800000;
+            border-bottom: 1.5px solid #800000;
+            padding: 1px 0;
+            font-weight: 500;
+          }
+          .label-footer {
+            display: flex;
+            flex-direction: column;
+            gap: 2.5px;
+          }
+          .footer-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 6px;
+          }
+          .footer-row > div {
+            display: flex;
+            flex-direction: column;
+          }
+          .print-btn-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #800000;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          }
+          .print-btn-container:hover {
+            background: #600000;
+          }
+          @media print {
+            .print-btn-container {
+              display: none;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <button class="print-btn-container" onclick="window.print()">
+          <span>🖨️</span> Print Labels / Save as PDF
+        </button>
+        ${pagesHtml}
+        <script>
+          window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+              window.print();
+            }, 500);
+          });
+        </script>
+      </body>
+      </html>
+    `);
+
+    printWindow.document.close();
   }
 
 });

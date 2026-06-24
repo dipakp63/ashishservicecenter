@@ -1,13 +1,15 @@
 :root {
-  --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  --bg-gradient: #1e293b;
   --sidebar-bg: #0f172a;
-  --card-bg: rgba(30, 41, 59, 0.75);
-  --card-border: rgba(255, 255, 255, 0.06);
-  --text-main: #f1f5f9;
-  --text-muted: #64748b;
-  --accent: #06b6d4;
-  --accent-hover: #0891b2;
-  --accent-glow: rgba(6, 182, 212, 0.15);
+  --card-bg: #243447;
+  --card-border: #475569;
+  --text-main: #f8fafc;
+  --text-muted: #cbd5e1;
+  --accent: #fbbf24;
+  --accent-hover: #f59e0b;
+  --accent-glow: rgba(251, 191, 36, 0.15);
+  --sidebar-accent: #fbbf24;
+  --sidebar-accent-glow: rgba(251, 191, 36, 0.15);
   --success: #10b981;
   --success-glow: rgba(16, 185, 129, 0.12);
   --danger: #ef4444;
@@ -16,28 +18,28 @@
   --font-body: 'Inter', sans-serif;
   
   /* Panel backgrounds and borders for default dark mode */
-  --panel-bg: rgba(8, 12, 22, 0.4);
-  --panel-border: rgba(255, 255, 255, 0.05);
-  --panel-row-bg: rgba(8, 12, 22, 0.2);
-  --panel-btn-bg: rgba(8, 12, 22, 0.35);
-  --panel-header-bg: rgba(0, 0, 0, 0.25);
-  --panel-sub-card-bg: rgba(8, 12, 22, 0.4);
-  --panel-sub-card-border: rgba(255, 255, 255, 0.02);
-  --warning-banner-bg: rgba(245, 158, 11, 0.08);
-  --warning-banner-border: rgba(245, 158, 11, 0.3);
+  --panel-bg: #2d4059;
+  --panel-border: #475569;
+  --panel-row-bg: rgba(45, 64, 89, 0.5);
+  --panel-btn-bg: rgba(45, 64, 89, 0.7);
+  --panel-header-bg: rgba(15, 23, 42, 0.4);
+  --panel-sub-card-bg: #243447;
+  --panel-sub-card-border: #475569;
+  --warning-banner-bg: rgba(251, 191, 36, 0.08);
+  --warning-banner-border: rgba(251, 191, 36, 0.3);
 
   /* Product Color Schemes */
   --petrol-color: #10b981;
   --petrol-bg: rgba(16, 185, 129, 0.06);
-  --petrol-border: rgba(16, 185, 129, 0.15);
+  --petrol-border: rgba(16, 185, 129, 0.25);
   
   --diesel-color: #3b82f6;
   --diesel-bg: rgba(59, 130, 246, 0.06);
-  --diesel-border: rgba(59, 130, 246, 0.15);
+  --diesel-border: rgba(59, 130, 246, 0.25);
   
   --power-color: #f43f5e;
   --power-bg: rgba(244, 63, 94, 0.06);
-  --power-border: rgba(244, 63, 94, 0.15);
+  --power-border: rgba(244, 63, 94, 0.25);
 }
 
 * {
@@ -84,7 +86,7 @@ body {
   max-height: 100vh;
   overflow-y: auto;
   width: 210px;
-  background-color: var(--accent);
+  background-color: var(--sidebar-accent);
   border-right: 1px solid rgba(0,0,0,0.1);
   border-bottom: 1px solid rgba(0,0,0,0.1);
   border-bottom-right-radius: 12px;
@@ -108,19 +110,34 @@ body.theme-hpcl .submenu-sidebar {
   background-color: #ffc72c; /* Match HPCL Yellow highlight */
 }
 
-.submenu-sidebar .nav-item {
+.submenu-sidebar .nav-item,
+.submenu-sidebar .nav-submenu .nav-item {
   color: #0f172a; /* Dark text for contrast against accent background */
 }
 
-.submenu-sidebar .nav-item:hover {
-  background-color: rgba(255, 255, 255, 0.3);
-  color: #000;
+.submenu-sidebar .nav-submenu .nav-item::before {
+  background: #0f172a;
 }
 
-.submenu-sidebar .nav-item.active {
+.submenu-sidebar .nav-item:hover,
+.submenu-sidebar .nav-submenu .nav-item:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+  color: #000000;
+}
+
+.submenu-sidebar .nav-submenu .nav-item:hover::before {
+  background: #000000;
+}
+
+.submenu-sidebar .nav-item.active,
+.submenu-sidebar .nav-submenu .nav-item.active {
   background-color: rgba(0, 0, 0, 0.15); /* Dark translucent for active state inside */
-  color: #000;
+  color: #000000;
   box-shadow: none;
+}
+
+.submenu-sidebar .nav-submenu .nav-item.active::before {
+  background: #000000;
 }
 
 .submenu-sidebar h3 {
@@ -182,9 +199,9 @@ body.theme-hpcl .submenu-sidebar {
 
 .nav-item.active {
   color: #0f172a;
-  background: var(--accent);
+  background: var(--sidebar-accent);
   font-weight: 600;
-  box-shadow: 0 4px 10px var(--accent-glow);
+  box-shadow: 0 4px 10px var(--sidebar-accent-glow);
 }
 
 .nav-icon {
@@ -366,8 +383,8 @@ label {
 }
 
 input {
-  background: rgba(8, 12, 22, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #1e293b;
+  border: 1px solid #475569;
   color: var(--text-main);
   border-radius: 0.5rem;
   padding: 0.5rem 0.75rem;
@@ -391,8 +408,8 @@ input:disabled {
 }
 
 select {
-  background: rgba(8, 12, 22, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #1e293b;
+  border: 1px solid #475569;
   color: var(--text-main);
   border-radius: 0.5rem;
   padding: 0.5rem 0.75rem;
@@ -1352,29 +1369,30 @@ body.theme-hpcl .non-cash-amount-input {
 /* ==================================================
    HPCL LIGHT CORPORATE THEME OVERRIDES
    ================================================== */
+
 body.theme-hpcl {
-  --bg-gradient: linear-gradient(135deg, #f0f7ff 0%, #e0effe 100%);
-  --sidebar-bg: #0f2d59; /* Softened HPCL Navy */
-  --card-bg: #ffffff; /* Clean white background */
-  --card-border: rgba(0, 75, 135, 0.08); /* Soft blue borders */
-  --text-main: #1e293b; /* Dark slate text */
-  --text-muted: #64748b;
-  --accent: #004b87; /* HPCL Royal Blue */
-  --accent-hover: #003663;
-  --accent-glow: rgba(0, 75, 135, 0.15);
+  --bg-gradient: #f0f9ff;
+  --sidebar-bg: #0b4ea2;
+  --card-bg: #ffffff;
+  --card-border: #bae6fd;
+  --text-main: #0f172a;
+  --text-muted: #0369a1;
+  --accent: #ffc72c;
+  --accent-hover: #e0a900;
+  --accent-glow: rgba(255, 199, 44, 0.15);
   --success: #10b981;
   --success-glow: rgba(16, 185, 129, 0.12);
   --danger: #ef4444;
-  --warning: #ffc72c; /* HPCL Golden Yellow */
+  --warning: #f59e0b;
 
-  /* Light theme panel overrides (Zero Gray) */
-  --panel-bg: rgba(0, 75, 135, 0.025);
-  --panel-border: rgba(0, 75, 135, 0.12);
-  --panel-row-bg: rgba(255, 255, 255, 0.8);
-  --panel-btn-bg: rgba(0, 75, 135, 0.04);
-  --panel-header-bg: rgba(0, 75, 135, 0.05);
+  /* Soft light theme panel overrides */
+  --panel-bg: #f0f9ff;
+  --panel-border: #bae6fd;
+  --panel-row-bg: #ffffff;
+  --panel-btn-bg: #e0f2fe;
+  --panel-header-bg: #bae6fd;
   --panel-sub-card-bg: #ffffff;
-  --panel-sub-card-border: rgba(0, 75, 135, 0.08);
+  --panel-sub-card-border: #bae6fd;
   --warning-banner-bg: rgba(255, 199, 44, 0.08);
   --warning-banner-border: rgba(255, 199, 44, 0.4);
 }
@@ -1386,59 +1404,77 @@ body.theme-hpcl .theme-btn-group {
 }
 body.theme-hpcl .theme-btn.active {
   background: rgba(255, 255, 255, 0.1);
-  color: #ffc72c; /* Active button highlight */
+  color: #fbbf24; /* Active button highlight */
 }
 body.theme-hpcl .sidebar-brand h2 {
-  background: linear-gradient(to right, #ffffff, #ffc72c);
+  background: linear-gradient(to right, #e0f2fe, #fbbf24);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+body.theme-hpcl .nav-item {
+  color: #fbbf24;
+  font-weight: 700;
+}
 body.theme-hpcl .nav-item:hover {
-  background-color: rgba(255, 255, 255, 0.04);
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.08);
 }
 body.theme-hpcl .nav-item.active {
-  color: #002d62;
-  background: #ffc72c; /* HPCL Yellow */
-  box-shadow: 0 4px 10px rgba(255, 199, 44, 0.25);
+  color: #0b4ea2;
+  background: #fbbf24; /* HPCL Yellow */
+  font-weight: 800;
+  box-shadow: 0 4px 10px rgba(251, 191, 36, 0.25);
+}
+
+body.theme-hpcl .submenu-sidebar .nav-item {
+  color: #0f172a;
+}
+body.theme-hpcl .submenu-sidebar .nav-item:hover {
+  color: #000000;
+  background-color: rgba(255, 255, 255, 0.3);
+}
+body.theme-hpcl .submenu-sidebar .nav-item.active {
+  color: #000000;
+  background-color: rgba(0, 0, 0, 0.15);
 }
 
 /* Content Panel overrides */
 body.theme-hpcl .content-header h1 {
-  background: linear-gradient(to right, #002d62, #004b87);
+  background: linear-gradient(to right, #0b4ea2, #1e293b);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 /* Card overrides */
 body.theme-hpcl .card {
-  box-shadow: 0 8px 20px -6px rgba(0, 45, 98, 0.06), 0 4px 10px -4px rgba(0, 45, 98, 0.04);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
 }
 
 /* Inputs overrides */
 body.theme-hpcl input {
   background: #ffffff;
-  border: 1px solid #93c5fd;
+  border: 1px solid #bae6fd;
   color: #0f172a;
 }
 body.theme-hpcl input:disabled {
-  background: #f8fafc;
-  color: #94a3b8;
-  border-color: #cbd5e1;
+  background: #f0f9ff;
+  color: #0369a1;
+  border-color: #bae6fd;
 }
 body.theme-hpcl input:focus {
-  border-color: #004b87;
-  box-shadow: 0 0 0 2px rgba(0, 75, 135, 0.15);
+  border-color: #0b4ea2;
+  box-shadow: 0 0 0 2px rgba(11, 78, 162, 0.15);
 }
 
 body.theme-hpcl select {
   background: #ffffff;
-  border: 1px solid #93c5fd;
+  border: 1px solid #bae6fd;
   color: #0f172a;
 }
 
 body.theme-hpcl select:focus {
-  border-color: #004b87;
-  box-shadow: 0 0 0 2px rgba(0, 75, 135, 0.15);
+  border-color: #0b4ea2;
+  box-shadow: 0 0 0 2px rgba(11, 78, 162, 0.15);
 }
 
 body.theme-hpcl select option {
@@ -1446,24 +1482,34 @@ body.theme-hpcl select option {
   color: #0f172a;
 }
 
+body.theme-hpcl .filter-card input,
+body.theme-hpcl .filter-card select {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #bae6fd !important;
+}
+body.theme-hpcl .filter-card select option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
 
 /* Buttons overrides */
 body.theme-hpcl .btn-primary {
-  background: #ffc72c; /* HPCL Gold Yellow */
-  color: #002d62; /* Deep blue text */
+  background: #fbbf24; /* HPCL Gold Yellow */
+  color: #0b4ea2; /* Deep blue text */
 }
 body.theme-hpcl .btn-primary:hover {
-  background: #e0ab00;
-  box-shadow: 0 0 10px rgba(255, 199, 44, 0.3);
+  background: #f59e0b;
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
 }
 body.theme-hpcl .btn-secondary {
   background: #ffffff;
-  color: #004b87;
-  border: 1px solid #93c5fd;
+  color: #0b4ea2;
+  border: 1px solid #cbd5e1;
 }
 body.theme-hpcl .btn-secondary:hover {
-  background: #f0f7ff;
-  border-color: #3b82f6;
+  background: #f1f5f9;
+  border-color: #0b4ea2;
 }
 
 /* Grid & Table overrides */
@@ -2055,19 +2101,23 @@ body.theme-hpcl #hpcl-modal input {
 
 /* HPCL theme overrides for udhari */
 body.theme-hpcl .udhari-table th {
-  background: #f8fafc;
-  color: #64748b;
-  border-bottom-color: #cbd5e1;
+  background: #f0f9ff;
+  color: #0b4ea2;
+  border-bottom-color: #bae6fd;
+}
+body.theme-hpcl .udhari-totals-bar {
+  background: #e0f2fe;
+  border: 1px solid #bae6fd;
 }
 
 body.theme-hpcl .udhari-table td {
-  border-bottom-color: #f1f5f9;
+  border-bottom-color: #e0f2fe;
   color: #0f172a;
 }
 
 body.theme-hpcl .udhari-tab-btn {
-  background: #f1f5f9;
-  color: #64748b;
+  background: #e0f2fe;
+  color: #0369a1;
 }
 
 body.theme-hpcl .udhari-tab-btn.active {

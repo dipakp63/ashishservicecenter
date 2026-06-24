@@ -1,3 +1,4 @@
+process.env.DATABASE_FILE = process.env.DATABASE_FILE || 'database_test.sqlite';
 const db = require('./db');
 
 async function runIntegrationTest() {

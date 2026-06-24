@@ -3,14 +3,17 @@ const path = require('path');
 const http = require('http');
 const fs = require('fs');
 
-const dbPath = path.join(__dirname, 'database.sqlite');
+const dbFile = process.env.DATABASE_FILE || 'database_test.sqlite';
+const dbPath = path.join(__dirname, dbFile);
+
+const testPort = process.env.PORT || 3000;
 
 const sendRequest = (path, method, payload) => {
   const stringPayload = payload ? JSON.stringify(payload) : '';
   return new Promise((resolve, reject) => {
     const req = http.request({
       hostname: 'localhost',
-      port: 3000,
+      port: testPort,
       path: path,
       method: method,
       headers: {

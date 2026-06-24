@@ -1,8 +1,10 @@
 const http = require('http');
 
+const testPort = process.env.PORT || 3000;
+
 const getActiveDate = () => {
   return new Promise((resolve, reject) => {
-    http.get('http://localhost:3000/api/active-date', (res) => {
+    http.get(`http://localhost:${testPort}/api/active-date`, (res) => {
       let data = '';
       res.on('data', (chunk) => data += chunk);
       res.on('end', () => {
@@ -31,7 +33,7 @@ const runTest = async () => {
     return new Promise((resolve, reject) => {
       const req = http.request({
         hostname: 'localhost',
-        port: 3000,
+        port: testPort,
         path: '/api/tanks',
         method: 'POST',
         headers: {

@@ -24,9 +24,10 @@ function initialize() {
     backend = 'sqlite';
     const sqlite3 = require('sqlite3').verbose();
     const path = require('path');
-    const dbPath = path.join(__dirname, 'database.sqlite');
+    const dbFile = process.env.DATABASE_FILE || 'database.sqlite';
+    const dbPath = path.join(__dirname, dbFile);
     sqliteDb = new sqlite3.Database(dbPath);
-    console.log('[DB] Connected to local SQLite database.');
+    console.log(`[DB] Connected to local SQLite database: ${dbFile}`);
   }
 }
 
@@ -305,6 +306,49 @@ async function initDatabase() {
         remark1 TEXT,
         remark2 TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`,
+    },
+    {
+      sql: `CREATE TABLE IF NOT EXISTS porancha_hishob_entries (
+        date TEXT NOT NULL,
+        shift INTEGER NOT NULL,
+        nozzle_index INTEGER NOT NULL,
+        product TEXT NOT NULL,
+        employee_id INTEGER,
+        opening_reading REAL,
+        closing_reading REAL,
+        difference_sale REAL,
+        rate REAL,
+        final_amount REAL,
+        phonepe_amount REAL,
+        PRIMARY KEY (date, shift, nozzle_index),
+        FOREIGN KEY (employee_id) REFERENCES employees(id)
+      )`,
+    },
+    {
+      sql: `CREATE TABLE IF NOT EXISTS porancha_hishob_testing (
+        date TEXT NOT NULL,
+        nozzle_index INTEGER NOT NULL,
+        employee_id INTEGER,
+        testing_qty REAL NOT NULL DEFAULT 5.0,
+        phonepe_amount REAL NOT NULL DEFAULT 0.0,
+        PRIMARY KEY (date, nozzle_index),
+        FOREIGN KEY (employee_id) REFERENCES employees(id)
+      )`,
+    },
+    {
+      sql: `CREATE TABLE IF NOT EXISTS chillar_transactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        date TEXT NOT NULL,
+        type TEXT NOT NULL,
+        description TEXT NOT NULL,
+        notes_10 INTEGER DEFAULT 0,
+        coins_20 INTEGER DEFAULT 0,
+        coins_10 INTEGER DEFAULT 0,
+        coins_5 INTEGER DEFAULT 0,
+        coins_2 INTEGER DEFAULT 0,
+        coins_1 INTEGER DEFAULT 0,
+        total_amount REAL NOT NULL
       )`,
     },
   ];

@@ -366,7 +366,7 @@ app.get('/api/tanks/opening', async (req, res) => {
     }
 
     const todayQuery = `
-      SELECT tank_id, tank_name, product, capacity, opening_dip, opening_stock, closing_dip, closing_stock, decantation_qty
+      SELECT tank_id, tank_name, product, capacity, opening_dip, opening_stock, closing_dip, closing_stock, decantation_qty, tt_decantation
       FROM tank_readings
       WHERE date = ?
       ORDER BY tank_id ASC
@@ -721,32 +721,28 @@ app.post('/api/cash', async (req, res) => {
           );
         }
 
-        // Part 3: Calculate and push Fuel Filled (L) to tt_trips if not already present
+        // Part 3: Calculate and push Fuel Filled (L) to tt_trips
         if (rateDiesel > 0) {
-          const liters = parseFloat((ownAmt / rateDiesel).toFixed(2));
+          const liters = Math.floor((ownAmt / rateDiesel) * 100) / 100;
           const completedTrip = await db.get(
             `SELECT id, fuel_filled FROM tt_trips WHERE end_km > start_km ORDER BY date DESC, id DESC LIMIT 1`
           );
 
           if (completedTrip) {
-            if (!(completedTrip.fuel_filled > 0)) {
-              await db.run(
-                `UPDATE tt_trips SET fuel_filled = ? WHERE id = ?`,
-                [liters, completedTrip.id]
-              );
-            }
+            await db.run(
+              `UPDATE tt_trips SET fuel_filled = ? WHERE id = ?`,
+              [liters, completedTrip.id]
+            );
           } else {
             const existingTrip = await db.get(
               `SELECT id, fuel_filled FROM tt_trips WHERE date = ? LIMIT 1`,
               [date]
             );
             if (existingTrip) {
-              if (!(existingTrip.fuel_filled > 0)) {
-                await db.run(
-                  `UPDATE tt_trips SET fuel_filled = ? WHERE id = ?`,
-                  [liters, existingTrip.id]
-                );
-              }
+              await db.run(
+                `UPDATE tt_trips SET fuel_filled = ? WHERE id = ?`,
+                [liters, existingTrip.id]
+              );
             } else {
               await db.run(
                 `INSERT INTO tt_trips (date, start_km, end_km, run_km, fuel_filled, load_qty, driver_name, notes)
@@ -757,6 +753,28 @@ app.post('/api/cash', async (req, res) => {
           }
         }
       }
+    }
+
+    // Sync with Chillar Record
+    try {
+      await db.run(`DELETE FROM chillar_transactions WHERE date = ? AND type = 'DAY_CLOSE'`, [date]);
+      const chillarNotes10 = parseInt(notes_10 || 0, 10);
+      const chillarCoins20 = parseInt(coins_20 || 0, 10);
+      const chillarCoins10 = parseInt(coins_10 || 0, 10);
+      const chillarCoins5 = parseInt(coins_5 || 0, 10);
+      const chillarCoins2 = parseInt(coins_2 || 0, 10);
+      const chillarCoins1 = parseInt(coins_1 || 0, 10);
+      const chillarTotal = (chillarNotes10 * 10) + (chillarCoins20 * 20) + (chillarCoins10 * 10) + (chillarCoins5 * 5) + (chillarCoins2 * 2) + (chillarCoins1 * 1);
+      
+      if (chillarTotal > 0 || chillarNotes10 > 0 || chillarCoins20 > 0 || chillarCoins10 > 0 || chillarCoins5 > 0 || chillarCoins2 > 0 || chillarCoins1 > 0) {
+        await db.run(
+          `INSERT INTO chillar_transactions (date, type, description, notes_10, coins_20, coins_10, coins_5, coins_2, coins_1, total_amount)
+           VALUES (?, 'DAY_CLOSE', ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [date, `Day Closing Chillar Entry`, chillarNotes10, chillarCoins20, chillarCoins10, chillarCoins5, chillarCoins2, chillarCoins1, chillarTotal]
+        );
+      }
+    } catch (err) {
+      console.error('[CHILLAR] Failed to auto-sync day closing cash:', err.message);
     }
 
     // End-of-month check to automatically trigger GST report
@@ -924,11 +942,6 @@ app.post('/api/hpcl/transaction', async (req, res) => {
       return res.status(400).json({ error: 'Date, description, type, and amount are required.' });
     }
 
-    const activeDate = await getActiveDate();
-    if (date < activeDate) {
-      return res.status(403).json({ error: 'This date has been finalized and frozen. Data cannot be modified.' });
-    }
-
     if (type !== 'CREDIT' && type !== 'DEBIT') {
       return res.status(400).json({ error: 'Transaction type must be CREDIT or DEBIT.' });
     }
@@ -955,18 +968,48 @@ app.post('/api/hpcl/transaction', async (req, res) => {
   }
 });
 
+// PUT /api/hpcl/transaction/:id
+app.put('/api/hpcl/transaction/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { date, description, type, amount } = req.body;
+
+    if (!date || !description || !type || amount === undefined || amount === null) {
+      return res.status(400).json({ error: 'Date, description, type, and amount are required.' });
+    }
+
+    if (type !== 'CREDIT' && type !== 'DEBIT') {
+      return res.status(400).json({ error: 'Transaction type must be CREDIT or DEBIT.' });
+    }
+
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      return res.status(400).json({ error: 'Amount must be a positive number.' });
+    }
+
+    const result = await db.run(
+      `UPDATE hpcl_transactions SET date = ?, description = ?, type = ?, amount = ? WHERE id = ?`,
+      [date, description, type, parsedAmount, id]
+    );
+
+    if (result.rowsAffected === 0) {
+      return res.status(404).json({ error: 'Transaction not found.' });
+    }
+
+    await recalculateHpclLedger();
+
+    const row = await db.get(`SELECT * FROM hpcl_transactions WHERE id = ?`, [id]);
+    res.json({ success: true, transaction: row });
+  } catch (err) {
+    console.error('[HPCL] Error updating transaction:', err.message);
+    res.status(500).json({ error: 'Database error updating transaction.' });
+  }
+});
+
 // DELETE /api/hpcl/transaction/:id
 app.delete('/api/hpcl/transaction/:id', async (req, res) => {
   try {
     const { id } = req.params;
-
-    const transaction = await db.get(`SELECT date FROM hpcl_transactions WHERE id = ?`, [id]);
-    if (transaction) {
-      const activeDate = await getActiveDate();
-      if (transaction.date < activeDate) {
-        return res.status(403).json({ error: 'Cannot delete transaction from a finalized and locked date.' });
-      }
-    }
 
     const result = await db.run(`DELETE FROM hpcl_transactions WHERE id = ?`, [id]);
 
@@ -1306,17 +1349,22 @@ app.put('/api/debtor-transactions/:id', async (req, res) => {
   }
 });
 
-// GET /api/debtor-transactions/date — Date-wise report
+// GET /api/debtor-transactions/date — Date-wise / range report with optional filters
 app.get('/api/debtor-transactions/date', async (req, res) => {
   try {
-    const { date } = req.query;
-    if (!date) {
-      return res.status(400).json({ error: 'Date query parameter is required.' });
+    const { date, startDate, endDate, debtorId, type } = req.query;
+
+    let start = startDate || date;
+    let end = endDate || date;
+
+    if (!start || !end) {
+      return res.status(400).json({ error: 'Date or date range parameters are required.' });
     }
 
-    const rows = await db.all(`
+    let sql = `
       SELECT 
         dt.id,
+        dt.transaction_date,
         d.debtor_name,
         dt.transaction_type,
         dt.description,
@@ -1324,9 +1372,24 @@ app.get('/api/debtor-transactions/date', async (req, res) => {
         dt.credit_amount
       FROM debtor_transactions dt
       JOIN debtors d ON dt.debtor_id = d.id
-      WHERE dt.transaction_date = ?
-      ORDER BY dt.id ASC
-    `, [date]);
+      WHERE dt.transaction_date BETWEEN ? AND ?
+    `;
+    const params = [start, end];
+
+    if (debtorId) {
+      sql += ` AND dt.debtor_id = ?`;
+      params.push(debtorId);
+    }
+
+    if (type) {
+      sql += ` AND dt.transaction_type = ?`;
+      params.push(type);
+    }
+
+    sql += ` ORDER BY dt.transaction_date ASC, dt.id ASC`;
+
+    const rows = await db.all(sql, params);
+
     // Calculate totals
     let totalDebit = 0;
     let totalCredit = 0;
@@ -1336,15 +1399,16 @@ app.get('/api/debtor-transactions/date', async (req, res) => {
     });
 
     res.json({
-      date: date,
+      startDate: start,
+      endDate: end,
       transactions: rows,
       total_debit: parseFloat(totalDebit.toFixed(2)),
       total_credit: parseFloat(totalCredit.toFixed(2)),
       net_change: parseFloat((totalDebit - totalCredit).toFixed(2)),
     });
   } catch (err) {
-    console.error('[Udhari] Error fetching date-wise report:', err.message);
-    res.status(500).json({ error: 'Database error fetching date-wise report.' });
+    console.error('[Udhari] Error fetching date range report:', err.message);
+    res.status(500).json({ error: 'Database error fetching date range report.' });
   }
 });
 
@@ -2062,7 +2126,7 @@ app.get('/api/tt/average', async (req, res) => {
     const last10Average = last10Fuel > 0 ? (last10Run / last10Fuel) : 0;
 
     const trips = await db.all(
-      `SELECT date, start_km, end_km, run_km, fuel_filled FROM tt_trips ORDER BY date DESC, id DESC`
+      `SELECT id, date, start_km, end_km, run_km, fuel_filled, load_qty, driver_name, notes FROM tt_trips ORDER BY date DESC, id DESC`
     );
 
     res.json({
@@ -2074,6 +2138,224 @@ app.get('/api/tt/average', async (req, res) => {
     res.status(500).json({ error: 'Database error fetching average data.' });
   }
 });
+
+// GET /api/porancha-hishob — Fetch shift entries and testing data for a date
+app.get('/api/porancha-hishob', async (req, res) => {
+  try {
+    const { date } = req.query;
+    if (!date) {
+      return res.status(400).json({ error: 'Date query parameter is required.' });
+    }
+    const entries = await db.all(
+      `SELECT date, shift, nozzle_index, product, employee_id, opening_reading, closing_reading, difference_sale, rate, final_amount, phonepe_amount 
+       FROM porancha_hishob_entries 
+       WHERE date = ? 
+       ORDER BY shift ASC, nozzle_index ASC`,
+      [date]
+    );
+    const testing = await db.all(
+      `SELECT 
+         r.nozzle_id AS nozzle_index,
+         t.employee_id,
+         COALESCE(r.testing_qty, 0) AS testing_qty,
+         COALESCE(t.phonepe_amount, 0) AS phonepe_amount
+       FROM readings r
+       LEFT JOIN porancha_hishob_testing t 
+         ON r.date = t.date AND r.nozzle_id = t.nozzle_index
+       WHERE r.date = ?
+       ORDER BY r.nozzle_id ASC`,
+      [date]
+    );
+    res.json({ entries, testing });
+  } catch (err) {
+    console.error('Error fetching shift entries:', err.message);
+    res.status(500).json({ error: 'Database error fetching shift entries.' });
+  }
+});
+
+// POST /api/porancha-hishob — Save/update shift entries and testing data for a date
+app.post('/api/porancha-hishob', async (req, res) => {
+  try {
+    const { date, entries, testing } = req.body;
+    if (!date || !Array.isArray(entries)) {
+      return res.status(400).json({ error: 'Date and entries array are required.' });
+    }
+
+    const statements = [];
+    // Delete existing entries for this date
+    statements.push({
+      sql: `DELETE FROM porancha_hishob_entries WHERE date = ?`,
+      args: [date]
+    });
+    statements.push({
+      sql: `DELETE FROM porancha_hishob_testing WHERE date = ?`,
+      args: [date]
+    });
+
+    // Insert new shift entries
+    entries.forEach(e => {
+      statements.push({
+        sql: `INSERT INTO porancha_hishob_entries 
+              (date, shift, nozzle_index, product, employee_id, opening_reading, closing_reading, difference_sale, rate, final_amount, phonepe_amount)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [
+          date,
+          e.shift,
+          e.nozzle_index,
+          e.product,
+          e.employee_id || null,
+          e.opening_reading,
+          e.closing_reading,
+          e.difference_sale,
+          e.rate,
+          e.final_amount,
+          e.phonepe_amount
+        ]
+      });
+    });
+
+    // Insert new testing entries
+    if (Array.isArray(testing)) {
+      testing.forEach(t => {
+        statements.push({
+          sql: `INSERT INTO porancha_hishob_testing (date, nozzle_index, employee_id, testing_qty, phonepe_amount) VALUES (?, ?, ?, ?, ?)`,
+          args: [date, t.nozzle_index, t.employee_id || null, t.testing_qty, t.phonepe_amount]
+        });
+      });
+    }
+
+    await db.batch(statements);
+    res.json({ success: true, message: 'Shift sales and testing data saved successfully.' });
+  } catch (err) {
+    console.error('Error saving shift entries:', err.message);
+    res.status(500).json({ error: 'Database error saving shift entries.' });
+  }
+});
+
+// ── CHILLAR RECORD ENDPOINTS ────────────────────────────────────────────────
+
+// GET /api/chillar/status — Current counts of denominations and running balance
+app.get('/api/chillar/status', async (req, res) => {
+  try {
+    const status = await db.get(`
+      SELECT 
+        COALESCE(SUM(notes_10), 0) AS notes_10,
+        COALESCE(SUM(coins_20), 0) AS coins_20,
+        COALESCE(SUM(coins_10), 0) AS coins_10,
+        COALESCE(SUM(coins_5), 0) AS coins_5,
+        COALESCE(SUM(coins_2), 0) AS coins_2,
+        COALESCE(SUM(coins_1), 0) AS coins_1,
+        COALESCE(SUM(total_amount), 0.0) AS total_amount
+      FROM chillar_transactions
+    `);
+    res.json(status);
+  } catch (err) {
+    console.error('Error fetching chillar status:', err.message);
+    res.status(500).json({ error: 'Database error fetching chillar status.' });
+  }
+});
+
+// GET /api/chillar/transactions — Ledger transactions with in-memory running balance
+app.get('/api/chillar/transactions', async (req, res) => {
+  try {
+    const rows = await db.all(`
+      SELECT id, date, type, description, notes_10, coins_20, coins_10, coins_5, coins_2, coins_1, total_amount 
+      FROM chillar_transactions 
+      ORDER BY date ASC, id ASC
+    `);
+    
+    let running = 0;
+    const transactions = rows.map(r => {
+      running += r.total_amount;
+      return {
+        ...r,
+        running_balance: running
+      };
+    });
+    
+    // Sort latest first for display
+    transactions.reverse();
+    
+    res.json({ transactions });
+  } catch (err) {
+    console.error('Error fetching chillar transactions:', err.message);
+    res.status(500).json({ error: 'Database error fetching chillar transactions.' });
+  }
+});
+
+// POST /api/chillar/transaction — Create a manual credit/debit transaction
+app.post('/api/chillar/transaction', async (req, res) => {
+  try {
+    const { date, type, description, notes_10, coins_20, coins_10, coins_5, coins_2, coins_1 } = req.body;
+    if (!date || !type || !description) {
+      return res.status(400).json({ error: 'Date, type, and description are required.' });
+    }
+
+    const isDebit = type === 'MANUAL_DEBIT';
+    const factor = isDebit ? -1 : 1;
+
+    const n10 = parseInt(notes_10 || 0, 10) * factor;
+    const c20 = parseInt(coins_20 || 0, 10) * factor;
+    const c10 = parseInt(coins_10 || 0, 10) * factor;
+    const c5 = parseInt(coins_5 || 0, 10) * factor;
+    const c2 = parseInt(coins_2 || 0, 10) * factor;
+    const c1 = parseInt(coins_1 || 0, 10) * factor;
+
+    const total = ((n10 * 10) + (c20 * 20) + (c10 * 10) + (c5 * 5) + (c2 * 2) + (c1 * 1));
+
+    await db.run(`
+      INSERT INTO chillar_transactions (date, type, description, notes_10, coins_20, coins_10, coins_5, coins_2, coins_1, total_amount)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [date, type, description, n10, c20, c10, c5, c2, c1, total]);
+
+    res.json({ success: true, message: 'Chillar transaction saved successfully.' });
+  } catch (err) {
+    console.error('Error saving chillar transaction:', err.message);
+    res.status(500).json({ error: 'Database error saving chillar transaction.' });
+  }
+});
+
+// POST /api/chillar/opening — Reset initial opening balance
+app.post('/api/chillar/opening', async (req, res) => {
+  try {
+    const { notes_10, coins_20, coins_10, coins_5, coins_2, coins_1 } = req.body;
+    const n10 = parseInt(notes_10 || 0, 10);
+    const c20 = parseInt(coins_20 || 0, 10);
+    const c10 = parseInt(coins_10 || 0, 10);
+    const c5 = parseInt(coins_5 || 0, 10);
+    const c2 = parseInt(coins_2 || 0, 10);
+    const c1 = parseInt(coins_1 || 0, 10);
+    const total = (n10 * 10) + (c20 * 20) + (c10 * 10) + (c5 * 5) + (c2 * 2) + (c1 * 1);
+
+    await db.batch([
+      { sql: `DELETE FROM chillar_transactions WHERE type = 'OPENING'` },
+      {
+        sql: `INSERT INTO chillar_transactions (date, type, description, notes_10, coins_20, coins_10, coins_5, coins_2, coins_1, total_amount)
+              VALUES ('2026-06-01', 'OPENING', 'Opening Balance', ?, ?, ?, ?, ?, ?, ?)`,
+        args: [n10, c20, c10, c5, c2, c1, total]
+      }
+    ]);
+
+    res.json({ success: true, message: 'Opening balance updated successfully.' });
+  } catch (err) {
+    console.error('Error updating chillar opening balance:', err.message);
+    res.status(500).json({ error: 'Database error updating opening balance.' });
+  }
+});
+
+// DELETE /api/chillar/transaction/:id — Delete a specific chillar transaction
+app.delete('/api/chillar/transaction/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.run(`DELETE FROM chillar_transactions WHERE id = ?`, [id]);
+    res.json({ success: true, message: 'Transaction deleted successfully.' });
+  } catch (err) {
+    console.error('Error deleting chillar transaction:', err.message);
+    res.status(500).json({ error: 'Database error deleting transaction.' });
+  }
+});
+
+
 
 // ── Server Start (local development only, skipped on Vercel) ────────────────
 

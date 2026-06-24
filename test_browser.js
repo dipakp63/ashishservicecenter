@@ -112,8 +112,9 @@ async function run() {
       
       await send('Page.addScriptToEvaluateOnNewDocument', { source: injectScript });
       
-      console.log('Navigating to http://localhost:3000 ...');
-      await send('Page.navigate', { url: 'http://localhost:3000' });
+      const testPort = process.env.PORT || 3000;
+      console.log(`Navigating to http://localhost:${testPort} ...`);
+      await send('Page.navigate', { url: `http://localhost:${testPort}` });
       
       // Wait 4 seconds for page load
       await new Promise(resolve => setTimeout(resolve, 4000));
