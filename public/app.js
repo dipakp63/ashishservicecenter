@@ -1395,9 +1395,7 @@ document.addEventListener('DOMContentLoaded', () => {
       await fetchOpeningReadings(dateInput.value);
 
       // Auto-transition directly to Step 2 (Nozzle Testing View)
-      setTimeout(() => {
-        showView('testing');
-      }, 500);
+      showView('testing');
 
     } catch (error) {
       console.error('Error saving readings:', error);
@@ -1459,9 +1457,7 @@ document.addEventListener('DOMContentLoaded', () => {
       currentDuReadings = readings; // Cache readings with testing values
 
       // Transition directly to Step 3 (Rate Confirmation View)
-      setTimeout(() => {
-        showView('rates');
-      }, 500);
+      showView('rates');
 
     } catch (error) {
       console.error('Error saving testing quantities:', error);
@@ -1517,9 +1513,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentRates.Diesel = dieselVal;
 
         // Auto-transition directly to Step 4 (Tank Stock View)
-        setTimeout(() => {
-          showView('tank');
-        }, 500);
+        showView('tank');
 
       } catch (error) {
         console.error('Error saving rates:', error);
@@ -1638,9 +1632,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
           }
         }
-        setTimeout(() => {
-          showView(targetView);
-        }, 500);
+        showView(targetView);
       }
 
     } catch (error) {
@@ -3027,10 +3019,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     isDayClosed = false;
     // Now load opening readings/stocks/rates/cash for the selected date
-    await fetchOpeningReadings(dateInput.value);
-    await fetchOpeningTankStocks(dateInput.value);
-    await fetchOpeningRates(dateInput.value);
-    await fetchOpeningCash(dateInput.value);
+    await Promise.all([
+      fetchOpeningReadings(dateInput.value),
+      fetchOpeningTankStocks(dateInput.value),
+      fetchOpeningRates(dateInput.value),
+      fetchOpeningCash(dateInput.value)
+    ]);
 
     if (typeof window.updateTankerCalculator === 'function') {
       window.updateTankerCalculator(true);
