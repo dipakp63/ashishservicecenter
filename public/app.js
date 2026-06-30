@@ -4860,22 +4860,6 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchGlobalDebtorsList();
   fetchGlobalEmployeesList();
 
-  // Background Preload of all views to eliminate "0000" visual latency on first click (Stale-While-Revalidate pattern)
-  setTimeout(() => {
-    const currentMonth = typeof activeDate !== 'undefined' && activeDate ? activeDate.substring(0, 7) : new Date().toISOString().substring(0, 7);
-    Promise.allSettled([
-      typeof loadHpclData === 'function' ? loadHpclData() : Promise.resolve(),
-      typeof loadDebtorMaster === 'function' ? loadDebtorMaster() : Promise.resolve(),
-      typeof loadActiveOrInactiveDebtors === 'function' ? loadActiveOrInactiveDebtors(showingActiveDebtorsTab) : Promise.resolve(),
-      typeof loadDateWiseReport === 'function' ? loadDateWiseReport() : Promise.resolve(),
-      typeof loadDebtorSummary === 'function' ? loadDebtorSummary() : Promise.resolve(),
-      typeof loadChillarData === 'function' ? loadChillarData() : Promise.resolve(),
-      typeof loadPoranchaHishob === 'function' ? loadPoranchaHishob() : Promise.resolve(),
-      typeof fetchEmployees === 'function' ? fetchEmployees() : Promise.resolve(),
-      typeof loadTtLedger === 'function' ? loadTtLedger() : Promise.resolve(),
-      typeof loadGstReport === 'function' ? loadGstReport(currentMonth) : Promise.resolve()
-    ]).catch(console.error);
-  }, 3000); // 3-second delay so it doesn't block critical page render
 
   // ── EMPLOYEE MANAGEMENT ──────────────────────────────────────────────────────
 
