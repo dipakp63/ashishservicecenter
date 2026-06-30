@@ -1288,7 +1288,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Date input change handler
-  dateInput.addEventListener('change', () => {
+  dateInput.addEventListener('change', async () => {
     if (dateInput.value > activeDate) {
       showToast(`Date ${formatDate(dateInput.value)} is locked. Please complete calculations for ${formatDate(activeDate)} first.`, 'error');
       dateInput.value = activeDate;
