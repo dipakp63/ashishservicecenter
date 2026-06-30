@@ -3674,7 +3674,9 @@ document.addEventListener('DOMContentLoaded', () => {
   
   async function fetchHpclTransactions() {
     if (!hpclTableBody) return;
-    hpclTableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);">Loading transactions...</td></tr>`;
+    if (hpclTableBody.children.length === 0 || hpclTableBody.innerText.includes('No transactions')) {
+      hpclTableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);">Loading transactions...</td></tr>`;
+    }
     
     try {
       const response = await fetch('/api/hpcl/transactions?limit=15');
@@ -5682,7 +5684,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectedMonth = selectors.length > 0 ? selectors[0].value : (dateInput.value || activeDate).substring(0, 7);
     
     const tbody = document.getElementById('tt-trips-table-body');
-    if (tbody) {
+    if (tbody && (tbody.children.length === 0 || tbody.innerText.includes('No entries'))) {
       tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Loading...</td></tr>';
     }
 
@@ -5851,7 +5853,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function loadTtAverage() {
     const tbody = document.getElementById('tt-average-table-body');
-    if (tbody) {
+    if (tbody && (tbody.children.length === 0 || tbody.innerText.includes('No trip data'))) {
       tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Loading...</td></tr>';
     }
 
@@ -5970,7 +5972,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function loadTtAverage() {
     const tbody = document.getElementById('tt-average-table-body');
-    if (tbody) {
+    if (tbody && (tbody.children.length === 0 || tbody.innerText.includes('No trip data'))) {
       tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Loading...</td></tr>';
     }
 
@@ -6033,7 +6035,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectors = document.querySelectorAll('.tt-month-select-shared');
     const selectedMonth = selectors.length > 0 ? selectors[0].value : (dateInput.value || activeDate).substring(0, 7);
     
-    if (ttStatementBody) {
+    if (ttStatementBody && (ttStatementBody.children.length === 0 || ttStatementBody.innerText.includes('No transactions'))) {
       ttStatementBody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Loading...</td></tr>';
     }
 
