@@ -13,7 +13,189 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="app-layout">
+  <!-- Authorization Landing Page -->
+  <div id="landing-login-page" style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background: radial-gradient(circle at top right, #1e293b, #0f172a); font-family: 'Outfit', sans-serif; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 99999;">
+    <style>
+      .login-card {
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        background: rgba(30, 41, 59, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        border-radius: 1.25rem;
+        width: 100%;
+        max-width: 420px;
+        padding: 3rem 2.5rem;
+        text-align: center;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        animation: cardFadeIn 0.6s ease-out;
+      }
+      @keyframes cardFadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .login-logo {
+        width: 70px;
+        height: 70px;
+        background: linear-gradient(135deg, #06b6d4, #3b82f6);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.2rem;
+        margin: 0 auto 1.5rem;
+        box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
+      }
+      .login-title {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: #f8fafc;
+        margin-bottom: 0.5rem;
+        letter-spacing: -0.02em;
+      }
+      .login-subtitle {
+        font-size: 0.88rem;
+        color: #94a3b8;
+        margin-bottom: 2.5rem;
+      }
+      .login-input-group {
+        position: relative;
+        margin-bottom: 1.5rem;
+      }
+      .login-input {
+        width: 100%;
+        padding: 0.85rem 1rem;
+        background: rgba(15, 23, 42, 0.6);
+        border: 1.5px solid rgba(255, 255, 255, 0.1);
+        border-radius: 0.75rem;
+        color: #f8fafc;
+        font-size: 1.1rem;
+        font-weight: 600;
+        text-align: center;
+        letter-spacing: 0.5em;
+        font-family: monospace;
+        transition: all 0.2s ease;
+        outline: none;
+      }
+      .login-input:focus {
+        border-color: #06b6d4;
+        box-shadow: 0 0 15px rgba(6, 182, 212, 0.25);
+        background: rgba(15, 23, 42, 0.8);
+      }
+      .login-input::placeholder {
+        letter-spacing: normal;
+        font-family: 'Outfit', sans-serif;
+        font-size: 0.95rem;
+        color: #64748b;
+        font-weight: 500;
+      }
+      .login-btn {
+        width: 100%;
+        padding: 0.85rem;
+        background: linear-gradient(135deg, #06b6d4, #0891b2);
+        color: #ffffff;
+        font-size: 1rem;
+        font-weight: 700;
+        border: none;
+        border-radius: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2);
+      }
+      .login-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(6, 182, 212, 0.35);
+        background: linear-gradient(135deg, #0891b2, #0e7490);
+      }
+      .login-btn:active {
+        transform: translateY(0);
+      }
+      .login-error {
+        color: #ef4444;
+        font-size: 0.82rem;
+        font-weight: 600;
+        margin-top: 0.75rem;
+        min-height: 18px;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+      }
+      .login-error.show {
+        opacity: 1;
+      }
+      .login-footer {
+        margin-top: 3rem;
+        font-size: 0.75rem;
+        color: #475569;
+        font-weight: 500;
+      }
+    </style>
+    <div class="login-card">
+      <div class="login-logo">⛽</div>
+      <h1 class="login-title">PumpERP Secure Access</h1>
+      <p class="login-subtitle">Enter authorization password to access Dashboard</p>
+      
+      <form id="landing-login-form" onsubmit="handleLandingLogin(event)">
+        <div class="login-input-group">
+          <input type="password" id="landing-password-input" class="login-input" placeholder="••••" maxlength="10" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="login-btn">Authenticate & Enter</button>
+        <div id="landing-login-error" class="login-error"></div>
+      </form>
+      
+      <p class="login-footer">© 2026 Petrol Pump ERP. Protected Connection.</p>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const authKey = 'pumperp_landing_auth';
+      const passwordVal = '1161';
+      
+      // Check auth status immediately
+      if (localStorage.getItem(authKey) === 'verified') {
+        document.write('<style>.app-layout { display: flex !important; }</style>');
+        document.addEventListener('DOMContentLoaded', () => {
+          const lp = document.getElementById('landing-login-page');
+          if (lp) lp.style.display = 'none';
+        });
+      }
+      
+      window.handleLandingLogin = function(event) {
+        event.preventDefault();
+        const pwdInput = document.getElementById('landing-password-input');
+        const errDiv = document.getElementById('landing-login-error');
+        if (!pwdInput) return;
+        
+        if (pwdInput.value === passwordVal) {
+          localStorage.setItem(authKey, 'verified');
+          const lp = document.getElementById('landing-login-page');
+          const app = document.getElementById('main-app-layout');
+          if (lp) {
+            lp.style.opacity = '0';
+            lp.style.transition = 'opacity 0.4s ease';
+            setTimeout(() => {
+              lp.style.display = 'none';
+              if (app) app.style.display = 'flex';
+            }, 400);
+          } else {
+            if (app) app.style.display = 'flex';
+          }
+        } else {
+          pwdInput.value = '';
+          pwdInput.focus();
+          if (errDiv) {
+            errDiv.textContent = 'Invalid authorization password. Please try again.';
+            errDiv.classList.add('show');
+            setTimeout(() => {
+              errDiv.classList.remove('show');
+            }, 3000);
+          }
+        }
+      };
+    })();
+  </script>
+
+  <div class="app-layout" id="main-app-layout" style="display: none;">
     <!-- Sidebar Navigation -->
     <aside class="sidebar">
       <div class="sidebar-brand">
@@ -1516,12 +1698,6 @@
                 <button type="button" id="btn-gst-download-csv" class="btn btn-secondary" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.85rem; font-size: 0.85rem; min-height: auto;">
                   <span>📥</span> Download CSV
                 </button>
-                <button type="button" id="btn-gst-print" class="btn btn-secondary" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.85rem; font-size: 0.85rem; min-height: auto;">
-                  <span>🖨️</span> Print Report
-                </button>
-                <button type="button" id="btn-gst-whatsapp" class="btn" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.85rem; font-size: 0.85rem; min-height: auto; background: #25d366; color: #fff; border: none; font-weight: 600;">
-                  <span>💬</span> WhatsApp Report
-                </button>
               </div>
             </div>
           </section>
@@ -1539,7 +1715,6 @@
                     <th style="padding: 0.75rem 0.35rem; text-align: right; color: var(--text-muted); background: #0b0f19;">Petrol Rate</th>
                     <th style="padding: 0.75rem 0.35rem; text-align: right; border-left: 1px solid rgba(255,255,255,0.05); color: var(--diesel-color); font-weight: 700; background: #0b0f19;">Diesel Qty (L)</th>
                     <th style="padding: 0.75rem 0.35rem; text-align: right; color: var(--text-muted); background: #0b0f19;">Diesel Rate</th>
-                    <th style="padding: 0.75rem 0.5rem; text-align: right; border-left: 2px solid rgba(255,255,255,0.1); color: var(--accent); font-weight: 700; background: #0b0f19;">Line Total (₹)</th>
                   </tr>
                 </thead>
                 <tbody id="gst-table-body">
@@ -1650,14 +1825,14 @@
               
               <div class="hpcl-table-wrapper" style="overflow-y: auto; flex: 1; min-height: 0;">
                 <table class="hpcl-table" style="width: 100%; border-collapse: collapse; font-size: 0.78rem; text-align: left;">
-                  <thead style="position: sticky; top: 0; z-index: 10; background: #0b0f19;">
-                    <tr style="border-bottom: 2px solid rgba(255,255,255,0.08);">
-                      <th style="padding: 0.5rem 0.75rem; background: #0b0f19;">Date</th>
-                      <th style="padding: 0.5rem 0.5rem; background: #0b0f19;">Description</th>
-                      <th style="padding: 0.5rem 0.5rem; text-align: center; background: #0b0f19;">Type</th>
-                      <th style="padding: 0.5rem 0.5rem; text-align: right; background: #0b0f19;">Amount</th>
-                      <th style="padding: 0.5rem 0.75rem; text-align: right; background: #0b0f19;">Balance</th>
-                      <th style="padding: 0.5rem 0.5rem; text-align: center; background: #0b0f19;">Action</th>
+                  <thead style="position: sticky; top: 0; z-index: 10; background: var(--card-bg, #243447);">
+                    <tr style="border-bottom: 2px solid rgba(255,255,255,0.08); background: inherit;">
+                      <th style="padding: 0.5rem 0.75rem; background: inherit;">Date</th>
+                      <th style="padding: 0.5rem 0.5rem; background: inherit;">Description</th>
+                      <th style="padding: 0.5rem 0.5rem; text-align: center; background: inherit;">Type</th>
+                      <th style="padding: 0.5rem 0.5rem; text-align: right; background: inherit;">Amount</th>
+                      <th style="padding: 0.5rem 0.75rem; text-align: right; background: inherit;">Balance</th>
+                      <th style="padding: 0.5rem 0.5rem; text-align: center; background: inherit;">Action</th>
                     </tr>
                   </thead>
                   <tbody id="hpcl-table-body">
@@ -2146,12 +2321,15 @@
                 <tr>
                   <th style="text-align: left;">Employee Name</th>
                   <th style="text-align: left;">Mobile</th>
-                  <th style="text-align: right;">Advance Balance</th>
+                  <th style="text-align: right;">Opening</th>
+                  <th style="text-align: right;">Given</th>
+                  <th style="text-align: right;">Settled</th>
+                  <th style="text-align: right;">Closing</th>
                   <th style="text-align: center;">Actions</th>
                 </tr>
               </thead>
               <tbody id="employee-list-tbody">
-                <tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Loading...</td></tr>
+                <tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Loading...</td></tr>
               </tbody>
             </table>
           </div>
@@ -2173,21 +2351,113 @@
         </div>
 
         <section class="card" style="max-width: 960px; width: 100%; margin: auto; padding: 1rem;">
-          <div style="overflow-x: auto;">
+          <div style="max-height: 480px; overflow-y: auto; overflow-x: auto;">
             <table class="table" style="width: 100%; font-size: 0.85rem;">
               <thead>
-                <tr>
-                  <th style="text-align: left;">Date</th>
-                  <th style="text-align: left;">Type</th>
-                  <th style="text-align: right;">Given (-)</th>
-                  <th style="text-align: right;">Settled (+)</th>
-                  <th style="text-align: right;">Balance</th>
-                  <th style="text-align: center;">Actions</th>
+                <tr style="position: sticky; top: 0; z-index: 10; background: var(--card-bg, #243447);">
+                  <th style="text-align: left; background: inherit; position: sticky; top: 0; z-index: 10;">Date</th>
+                  <th style="text-align: left; background: inherit; position: sticky; top: 0; z-index: 10;">Type</th>
+                  <th style="text-align: right; background: inherit; position: sticky; top: 0; z-index: 10;">Given (-)</th>
+                  <th style="text-align: right; background: inherit; position: sticky; top: 0; z-index: 10;">Settled (+)</th>
+                  <th style="text-align: right; background: inherit; position: sticky; top: 0; z-index: 10;">Balance</th>
+                  <th style="text-align: center; background: inherit; position: sticky; top: 0; z-index: 10;">Actions</th>
                 </tr>
               </thead>
               <tbody id="view-employee-ledger-tbody">
                 <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Loading...</td></tr>
               </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- VIEW: Secret (Profit Calculator) -->
+      <div id="view-secret" class="view-pane" style="display: none;">
+        <header class="content-header" style="max-width: 100%; margin-inline: auto; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <h1>🔒 Secret Profit Calculator</h1>
+            <p class="subtitle">Calculate dealer & differential margins profit product wise</p>
+          </div>
+        </header>
+
+        <!-- Configuration Card -->
+        <section class="card" style="max-width: 100%; margin: auto; padding: 1.5rem; margin-bottom: 1.5rem;">
+          <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: flex-end;">
+            <div class="form-group" style="flex: 1; min-width: 180px;">
+              <label for="profit-month-select" style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;">Select Month</label>
+              <select id="profit-month-select" class="form-control" style="width: 100%; height: 38px; padding: 0.5rem;"></select>
+            </div>
+            <button type="button" id="btn-save-margins" class="btn btn-primary" style="height: 38px; padding: 0.5rem 1rem; max-width: 180px;">Save Margins</button>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
+            <!-- Dealer Margins -->
+            <div class="card" style="padding: 1rem; background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.05);">
+              <h3 style="margin-top: 0; margin-bottom: 0.75rem; font-size: 0.95rem; color: var(--accent); font-family: var(--font-header);">Dealer Margin (₹ / L)</h3>
+              <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span style="font-size: 0.85rem; font-weight: 600;">poWer</span>
+                  <input type="number" id="margin-dealer-power" class="form-control" step="0.01" min="0" style="width: 100px; padding: 0.25rem; text-align: right; height: 30px;">
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span style="font-size: 0.85rem; font-weight: 600;">Petrol</span>
+                  <input type="number" id="margin-dealer-petrol" class="form-control" step="0.01" min="0" style="width: 100px; padding: 0.25rem; text-align: right; height: 30px;">
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span style="font-size: 0.85rem; font-weight: 600;">Diesel</span>
+                  <input type="number" id="margin-dealer-diesel" class="form-control" step="0.01" min="0" style="width: 100px; padding: 0.25rem; text-align: right; height: 30px;">
+                </div>
+              </div>
+            </div>
+
+            <!-- Differential Margins -->
+            <div class="card" style="padding: 1rem; background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.05);">
+              <h3 style="margin-top: 0; margin-bottom: 0.75rem; font-size: 0.95rem; color: var(--accent); font-family: var(--font-header);">Differential Margin (₹ / L)</h3>
+              <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span style="font-size: 0.85rem; font-weight: 600;">poWer</span>
+                  <input type="number" id="margin-diff-power" class="form-control" step="0.01" min="0" style="width: 100px; padding: 0.25rem; text-align: right; height: 30px;">
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span style="font-size: 0.85rem; font-weight: 600;">Petrol</span>
+                  <input type="number" id="margin-diff-petrol" class="form-control" step="0.01" min="0" style="width: 100px; padding: 0.25rem; text-align: right; height: 30px;">
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span style="font-size: 0.85rem; font-weight: 600;">Diesel</span>
+                  <input type="number" id="margin-diff-diesel" class="form-control" step="0.01" min="0" style="width: 100px; padding: 0.25rem; text-align: right; height: 30px;">
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Profit Details Table Card -->
+        <section class="card" style="max-width: 100%; width: 100%; margin: auto; padding: 0; display: flex; flex-direction: column; overflow: hidden;">
+          <div style="max-height: 540px; overflow-y: auto;">
+            <table class="table" style="width: 100%; font-size: 0.72rem; border-collapse: collapse; text-align: left;">
+              <thead style="position: sticky; top: 0; z-index: 10; background: var(--card-bg, #243447);">
+                <tr style="position: sticky; top: 0; z-index: 10; background: inherit;">
+                  <th style="padding: 0.4rem 0.25rem; background: inherit; position: sticky; top: 0; z-index: 10; text-align: center; border: 1px solid rgba(255,255,255,0.08);">Date</th>
+                  <th style="padding: 0.4rem 0.25rem; color: var(--power-color); font-weight: 700; background: inherit; position: sticky; top: 0; z-index: 10; text-align: center; border: 1px solid rgba(255,255,255,0.08);">poWer Qty</th>
+                  <th style="padding: 0.4rem 0.25rem; color: var(--power-color); font-weight: 600; background: inherit; position: sticky; top: 0; z-index: 10; text-align: center; border: 1px solid rgba(255,255,255,0.08);">poWer Dealer Margin</th>
+                  <th style="padding: 0.4rem 0.25rem; color: var(--success); font-weight: 700; background: inherit; position: sticky; top: 0; z-index: 10; text-align: center; border: 1px solid rgba(255,255,255,0.08);">Petrol Qty</th>
+                  <th style="padding: 0.4rem 0.25rem; color: var(--success); font-weight: 600; background: inherit; position: sticky; top: 0; z-index: 10; text-align: center; border: 1px solid rgba(255,255,255,0.08);">Petrol Dealer Margin</th>
+                  <th style="padding: 0.4rem 0.25rem; color: var(--diesel-color); font-weight: 700; background: inherit; position: sticky; top: 0; z-index: 10; text-align: center; border: 1px solid rgba(255,255,255,0.08);">Diesel Qty</th>
+                  <th style="padding: 0.4rem 0.25rem; color: var(--diesel-color); font-weight: 600; background: inherit; position: sticky; top: 0; z-index: 10; text-align: center; border: 1px solid rgba(255,255,255,0.08);">Diesel Dealer Margin</th>
+                  <th style="padding: 0.4rem 0.35rem; color: var(--accent); font-weight: 800; background: inherit; position: sticky; top: 0; z-index: 10; text-align: center; border: 1px solid rgba(255,255,255,0.08);">Total of Dealer margin</th>
+                  <th style="padding: 0.4rem 0.25rem; color: var(--power-color); font-weight: 600; background: inherit; position: sticky; top: 0; z-index: 10; text-align: center; border: 1px solid rgba(255,255,255,0.08);">poWer Diff. margin</th>
+                  <th style="padding: 0.4rem 0.25rem; color: var(--success); font-weight: 600; background: inherit; position: sticky; top: 0; z-index: 10; text-align: center; border: 1px solid rgba(255,255,255,0.08);">Petrol Diff. margin</th>
+                  <th style="padding: 0.4rem 0.25rem; color: var(--diesel-color); font-weight: 600; background: inherit; position: sticky; top: 0; z-index: 10; text-align: center; border: 1px solid rgba(255,255,255,0.08);">Diesel Diff. margin</th>
+                  <th style="padding: 0.4rem 0.35rem; color: var(--accent); font-weight: 800; background: inherit; position: sticky; top: 0; z-index: 10; text-align: center; border: 1px solid rgba(255,255,255,0.08);">Grand Total of Margin</th>
+                </tr>
+              </thead>
+              <tbody id="profit-table-body">
+                <tr><td colspan="12" style="text-align: center; padding: 2rem; color: var(--text-muted);">Please select a month to calculate profit.</td></tr>
+              </tbody>
+              <tfoot>
+                <tr id="profit-table-footer" style="font-weight: 700; border-top: 2px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.02);">
+                </tr>
+              </tfoot>
             </table>
           </div>
         </section>
@@ -2534,7 +2804,7 @@
           </div>
         </section>
 
-        <main class="content-body" style="position: relative; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 0.35rem; width: 100%; overflow: hidden; flex: 1; padding-bottom: 0.25rem;">
+        <main class="content-body" style="position: relative; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 0.25rem; width: 100%; overflow: hidden; flex: 1; padding-bottom: 1.5rem;">
           
           <!-- Blocked Overlay -->
           <div id="porancha-hishob-blocked-overlay" style="display: none; position: absolute; inset: 0; background: rgba(18, 18, 24, 0.93); backdrop-filter: blur(5px); z-index: 100; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; text-align: center; border-radius: 0.5rem; border: 1px solid rgba(255, 255, 255, 0.05);">
@@ -2662,6 +2932,59 @@
           </section>
 
         </main>
+
+        <!-- Next Button Bar -->
+        <div id="porancha-hishob-next-bar" style="position: absolute; bottom: 0.8rem; right: 2.5rem; z-index: 50;">
+          <button type="button" id="btn-goto-reconciliation" class="btn btn-primary" style="padding: 0.35rem 1rem; font-size: 0.78rem; font-weight: 700; border-radius: 0.4rem; display: flex; align-items: center; gap: 0.35rem; letter-spacing: 0.3px; box-shadow: 0 2px 10px rgba(0,0,0,0.35);">
+            Next → Employee Reconciliation
+          </button>
+        </div>
+      </div>
+
+      <!-- VIEW: Employee Shift Reconciliation -->
+      <div id="view-shift-reconciliation" class="view-pane" style="display: none;">
+        <header class="content-header" style="margin-bottom: 0.5rem; padding-bottom: 0.25rem; min-height: auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+          <div class="header-title-wrapper" style="display: flex; align-items: baseline; gap: 0.5rem;">
+            <h1 style="font-size: 1.1rem; margin: 0;">Employee Shift Reconciliation</h1>
+            <p class="subtitle" style="margin: 0; font-size: 0.7rem; color: var(--text-muted);">Employee-wise sale breakdown per shift</p>
+          </div>
+          <button type="button" id="btn-back-to-shifts" class="btn btn-secondary" style="padding: 0.3rem 0.8rem; font-size: 0.78rem; display: flex; align-items: center; gap: 0.3rem;">
+            ← Back to Shifts
+          </button>
+        </header>
+
+        <!-- Date Display -->
+        <div style="margin-bottom: 0.5rem; padding: 0.3rem 0.75rem; background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 0.5rem; font-size: 0.8rem; display: flex; align-items: center; gap: 0.5rem;">
+          <span style="font-weight: 600; color: var(--text-muted);">Date:</span>
+          <span id="recon-date-display" style="font-weight: 700; color: var(--accent);"></span>
+        </div>
+
+        <!-- Shift Tabs -->
+        <div style="display: flex; gap: 0.4rem; margin-bottom: 0.75rem;">
+          <button type="button" class="btn recon-shift-tab active" data-shift="1" style="padding: 0.35rem 1rem; font-size: 0.78rem; font-weight: 700; border-radius: 0.4rem;">Shift 1 (6 AM – 2 PM)</button>
+          <button type="button" class="btn recon-shift-tab" data-shift="2" style="padding: 0.35rem 1rem; font-size: 0.78rem; font-weight: 700; border-radius: 0.4rem;">Shift 2 (2 PM – 10 PM)</button>
+          <button type="button" class="btn recon-shift-tab" data-shift="3" style="padding: 0.35rem 1rem; font-size: 0.78rem; font-weight: 700; border-radius: 0.4rem;">Shift 3 (10 PM – 6 AM)</button>
+        </div>
+
+        <!-- Shift Total Summary Bar -->
+        <div id="recon-shift-summary" style="display: flex; align-items: center; justify-content: flex-start; margin-bottom: 0.75rem; background: var(--panel-bg); border: 1px solid var(--panel-border); padding: 0.5rem 1rem; border-radius: 0.6rem; font-size: 0.85rem; flex-wrap: wrap; gap: 0.75rem;">
+          <span>Shift Total Sale: <strong id="recon-shift-total-sale" style="color: var(--success);">₹ 0.00</strong></span>
+          <span>Total PhonePe: <strong id="recon-shift-total-phonepe" style="color: var(--accent);">₹ 0.00</strong></span>
+          <span>Total Cash: <strong id="recon-shift-total-cash" style="color: var(--text-main);">₹ 0.00</strong></span>
+          <span>Total Credit: <strong id="recon-shift-total-credit" style="color: var(--danger);">₹ 0.00</strong></span>
+        </div>
+
+        <!-- Employee Cards Container -->
+        <div id="recon-employee-cards" style="display: flex; flex-direction: column; gap: 0.75rem; overflow-y: auto; flex: 1; padding-bottom: 3rem;">
+          <!-- Dynamically populated -->
+        </div>
+
+        <!-- Bottom Navigation -->
+        <div style="position: sticky; bottom: 0; display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0.75rem; background: linear-gradient(135deg, rgba(30,60,114,0.95), rgba(42,82,152,0.95)); backdrop-filter: blur(8px); border-top: 1px solid rgba(255,255,255,0.1); border-radius: 0 0 0.5rem 0.5rem; margin-top: auto;">
+          <button type="button" id="btn-recon-prev-shift" class="btn btn-secondary" style="padding: 0.3rem 1rem; font-size: 0.78rem; font-weight: 700; border-radius: 0.4rem; display: none;">← Previous Shift</button>
+          <div style="flex: 1;"></div>
+          <button type="button" id="btn-recon-next-shift" class="btn btn-primary" style="padding: 0.3rem 1rem; font-size: 0.78rem; font-weight: 700; border-radius: 0.4rem;">Next Shift →</button>
+        </div>
       </div>
 
       <!-- VIEW: चिल्लर Record (Chillar Cash in Hand) -->

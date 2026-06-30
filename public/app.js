@@ -376,6 +376,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const viewPoranchaHishob = document.getElementById('view-porancha-hishob');
     if (viewPoranchaHishob) viewPoranchaHishob.style.display = viewName === 'porancha-hishob' ? 'block' : 'none';
+    
+    const viewSecret = document.getElementById('view-secret');
+    if (viewSecret) viewSecret.style.display = viewName === 'secret' ? 'block' : 'none';
+
+    const viewShiftReconciliation = document.getElementById('view-shift-reconciliation');
+    if (viewShiftReconciliation) viewShiftReconciliation.style.display = viewName === 'shift-reconciliation' ? 'block' : 'none';
+
 
     // Udhari view panes
     const viewUdhariMaster = document.getElementById('view-udhari-master');
@@ -495,6 +502,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const navTankerReceipts = document.getElementById('nav-tanker-receipts');
     const navChillarRecord = document.getElementById('nav-chillar-record');
     const navPoranchaHishob = document.getElementById('nav-porancha-hishob');
+    const navSecret = document.getElementById('nav-secret');
     
     const navUdhariMaster = document.getElementById('nav-udhari-master');
     const navUdhariActive = document.getElementById('nav-udhari-active');
@@ -518,9 +526,10 @@ document.addEventListener('DOMContentLoaded', () => {
     else if (viewName === 'hpcl' && navHpclTracker) navHpclTracker.classList.add('active');
     else if (viewName === 'tt-ledger' && navTtLedger) navTtLedger.classList.add('active');
     else if (viewName === 'chillar-record' && navChillarRecord) navChillarRecord.classList.add('active');
-    else if (viewName === 'porancha-hishob' && navPoranchaHishob) navPoranchaHishob.classList.add('active');
+    else if (viewName === 'secret' && navSecret) navSecret.classList.add('active');
+    else if ((viewName === 'porancha-hishob' || viewName === 'shift-reconciliation') && navPoranchaHishob) navPoranchaHishob.classList.add('active');
     else if ((viewName === 'tanker-receipts' || viewName === 'tanker-label-wizard') && navTankerReceipts) navTankerReceipts.classList.add('active');
-    else if (navDayClosing && !['udhari', 'other', 'tt-ledger', 'tanker-receipts', 'tanker-label-wizard', 'chillar-record', 'porancha-hishob'].some(pre => viewName.startsWith(pre))) navDayClosing.classList.add('active');
+    else if (navDayClosing && !['udhari', 'other', 'tt-ledger', 'tanker-receipts', 'tanker-label-wizard', 'chillar-record', 'porancha-hishob', 'shift-reconciliation'].some(pre => viewName.startsWith(pre))) navDayClosing.classList.add('active');
 
     // Update steps title texts dynamically
     if (hasDecantation) {
@@ -3097,8 +3106,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const count = parseInt(input.value, 10) || 0;
         const total = val === 1 ? count : val * count;
         
-        // Exclude Rs 10 from grand total calculation (as they are not deposited)
-        if (val !== 10) {
+        // Exclude Rs 10 and Rs 20 from grand total calculation (they are not deposited in bank)
+        if (val !== 10 && val !== 20) {
             grandTotal += total;
         }
         
@@ -3135,7 +3144,7 @@ document.addEventListener('DOMContentLoaded', () => {
             set('calc-count-200', c.notes_200);
             set('calc-count-100', c.notes_100);
             set('calc-count-50',  c.notes_50);
-            set('calc-count-20',  c.notes_20);
+            set('calc-count-20',  0);
             set('calc-count-10',  0);
           } else {
             // No data — ensure inputs explicitly show 0
@@ -3403,7 +3412,7 @@ document.addEventListener('DOMContentLoaded', () => {
   async function loadGstReport(month) {
     if (!gstTableBody) return;
     
-    gstTableBody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-muted);">Loading monthly report...</td></tr>`;
+    gstTableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">Loading monthly report...</td></tr>`;
     if (gstTableFooter) gstTableFooter.innerHTML = '';
 
     try {
@@ -3418,7 +3427,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       console.error('Error loading GST report:', err);
       showToast('Error loading GST report.', 'error');
-      gstTableBody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem; color: var(--danger);">Failed to load data.</td></tr>`;
+      gstTableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--danger);">Failed to load data.</td></tr>`;
     }
   }
 
@@ -3427,22 +3436,18 @@ document.addEventListener('DOMContentLoaded', () => {
     gstTableBody.innerHTML = '';
 
     if (data.length === 0) {
-      gstTableBody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 3rem; color: var(--text-muted); font-size: 1rem;">No sales data available for this month.</td></tr>`;
+      gstTableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 3rem; color: var(--text-muted); font-size: 1rem;">No sales data available for this month.</td></tr>`;
       return;
     }
 
     let totalPetrolQty = 0;
     let totalDieselQty = 0;
     let totalPowerQty = 0;
-    let totalLineSales = 0;
 
     data.forEach(row => {
       totalPetrolQty += row.petrol_qty;
       totalDieselQty += row.diesel_qty;
       totalPowerQty += row.power_qty;
-
-      const lineTotal = (row.power_qty * row.rate_power) + (row.petrol_qty * row.rate_petrol) + (row.diesel_qty * row.rate_diesel);
-      totalLineSales += lineTotal;
 
       // Create row element
       const tr = document.createElement('tr');
@@ -3463,9 +3468,6 @@ document.addEventListener('DOMContentLoaded', () => {
         <!-- Diesel -->
         <td style="padding: 0.25rem 0.35rem; text-align: right; border-left: 1px solid rgba(255,255,255,0.03); font-weight: 600; color: var(--diesel-color);">${row.diesel_qty > 0 ? row.diesel_qty.toFixed(2) : '-'}</td>
         <td style="padding: 0.25rem 0.35rem; text-align: right; color: var(--text-muted);">${row.diesel_qty > 0 ? '\u20b9' + row.rate_diesel.toFixed(2) : '-'}</td>
-        
-        <!-- Line Total -->
-        <td style="padding: 0.25rem 0.5rem; text-align: right; border-left: 2px solid rgba(255,255,255,0.07); font-weight: 700; color: var(--accent); font-family: monospace;">\u20b9${lineTotal.toFixed(2)}</td>
       `;
 
       gstTableBody.appendChild(tr);
@@ -3487,9 +3489,6 @@ document.addEventListener('DOMContentLoaded', () => {
         <!-- Diesel totals -->
         <td style="padding: 0.35rem 0.35rem; text-align: right; border-left: 1px solid rgba(255,255,255,0.05); color: var(--diesel-color); font-weight: 700;">${totalDieselQty.toFixed(2)}</td>
         <td style="padding: 0.35rem 0.35rem; text-align: right;"></td>
-        
-        <!-- Grand Line Total -->
-        <td style="padding: 0.35rem 0.5rem; text-align: right; border-left: 2px solid rgba(255,255,255,0.1); color: var(--accent); font-weight: 800; font-family: monospace; font-size: 0.85rem;">\u20b9${totalLineSales.toFixed(2)}</td>
       `;
     }
   }
@@ -3503,23 +3502,20 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      let csv = 'Date,poWer Qty (L),poWer Rate (Rs/L),Petrol Qty (L),Petrol Rate (Rs/L),Diesel Qty (L),Diesel Rate (Rs/L),Line Total (Rs)\n';
+      let csv = 'Date,poWer Qty (L),poWer Rate (Rs/L),Petrol Qty (L),Petrol Rate (Rs/L),Diesel Qty (L),Diesel Rate (Rs/L)\n';
       
       let totalPetrolQty = 0;
       let totalDieselQty = 0;
       let totalPowerQty = 0;
-      let totalLineSales = 0;
 
       currentGstReportData.forEach(row => {
-        const lineTotal = (row.power_qty * row.rate_power) + (row.petrol_qty * row.rate_petrol) + (row.diesel_qty * row.rate_diesel);
-        totalLineSales += lineTotal;
-        csv += `"${row.date}","${row.power_qty.toFixed(2)}","${row.rate_power.toFixed(2)}","${row.petrol_qty.toFixed(2)}","${row.rate_petrol.toFixed(2)}","${row.diesel_qty.toFixed(2)}","${row.rate_diesel.toFixed(2)}","${lineTotal.toFixed(2)}"\n`;
+        csv += `"${row.date}","${row.power_qty.toFixed(2)}","${row.rate_power.toFixed(2)}","${row.petrol_qty.toFixed(2)}","${row.rate_petrol.toFixed(2)}","${row.diesel_qty.toFixed(2)}","${row.rate_diesel.toFixed(2)}"\n`;
         totalPetrolQty += row.petrol_qty;
         totalDieselQty += row.diesel_qty;
         totalPowerQty += row.power_qty;
       });
 
-      csv += `"TOTAL","${totalPowerQty.toFixed(2)}","","${totalPetrolQty.toFixed(2)}","","${totalDieselQty.toFixed(2)}","","${totalLineSales.toFixed(2)}"\n`;
+      csv += `"TOTAL","${totalPowerQty.toFixed(2)}","","${totalPetrolQty.toFixed(2)}","","${totalDieselQty.toFixed(2)}",""\n`;
 
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
@@ -3534,74 +3530,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Helper to trigger browser print dialog
-  const btnPrint = document.getElementById('btn-gst-print');
-  if (btnPrint) {
-    btnPrint.addEventListener('click', () => {
-      window.print();
-    });
-  }
-
-  // Helper to trigger manual WhatsApp report send
-  const btnWhatsApp = document.getElementById('btn-gst-whatsapp');
-  if (btnWhatsApp) {
-    btnWhatsApp.addEventListener('click', async () => {
-      if (currentGstReportData.length === 0) {
-        showToast('No data available to send.', 'warning');
-        return;
-      }
-
-      const selectedMonth = gstMonthSelect.value;
-      
-      // Calculate totals for the message summary
-      let totalPetrolQty = 0, totalPetrolAmt = 0;
-      let totalDieselQty = 0, totalDieselAmt = 0;
-      let totalPowerQty = 0, totalPowerAmt = 0;
-      let grandTotalSales = 0;
-      currentGstReportData.forEach(row => {
-        totalPetrolQty += row.petrol_qty;
-        totalPetrolAmt += row.petrol_amt;
-        totalDieselQty += row.diesel_qty;
-        totalDieselAmt += row.diesel_amt;
-        totalPowerQty += row.power_qty;
-        totalPowerAmt += row.power_amt;
-        grandTotalSales += row.total_sales;
-      });
-
-      showToast('Generating and sending WhatsApp report...', 'success');
-
-      try {
-        // Trigger server-side WhatsApp send
-        const response = await fetch('/api/send-gst-whatsapp', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ month: selectedMonth }),
-        });
-
-        const result = await response.json();
-        
-        if (response.ok) {
-          showToast('WhatsApp report sent successfully!', 'success');
-        } else {
-          throw new Error(result.error || 'Backend failed to send WhatsApp');
-        }
-      } catch (err) {
-        console.error('Server WhatsApp send error:', err);
-        showToast('WhatsApp backend request failed. Launching manual fallback...', 'warning');
-      }
-
-      // Open client-side WhatsApp fallback link in a new tab
-      const summaryMsg = `*PumpERP GST R1 %26 3B Report - ${selectedMonth}*\n\n` + 
-        `⛽ *Petrol:* ${totalPetrolQty.toFixed(2)} L\n` +
-        `⛽ *Diesel:* ${totalDieselQty.toFixed(2)} L\n` +
-        `⛽ *poWer:* ${totalPowerQty.toFixed(2)} L`;
-
-      const whatsappURL = `https://wa.me/919970889360?text=${encodeURIComponent(summaryMsg)}`;
-      window.open(whatsappURL, '_blank');
-    });
-  }
+  // Helper to trigger browser print dialog (disabled)
+  // Helper to trigger manual WhatsApp report send (disabled)
 
   // HPCL Portal Balance Tracker UI Logic
   const hpclCurrentBalanceEl = document.getElementById('hpcl-current-balance');
@@ -3691,7 +3621,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <td style="padding: 0.4rem 0.75rem; text-align: right; font-weight: 700;">₹ ${tx.running_balance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
           <td style="padding: 0.4rem 0.5rem; text-align: center;">
             <button class="btn btn-secondary btn-delete-hpcl" data-id="${tx.id}" data-date="${tx.date}" style="padding: 0.15rem 0.4rem; font-size: 0.65rem; min-height: auto; width: auto; color: var(--danger); border-color: rgba(239, 68, 68, 0.2); margin: 0; line-height: 1;">
-              Void 🗑️
+              🗑️
             </button>
           </td>
         `;
@@ -7442,36 +7372,36 @@ document.addEventListener('DOMContentLoaded', () => {
             }
           }
 
-          const isOpReadonly = 'readonly tabindex="-1" style="width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 25px; border-radius: 0.2rem; background: rgba(255,255,255,0.02); color: var(--text-muted); border: 1px solid var(--panel-border); cursor: not-allowed;"';
+          const isOpReadonly = 'readonly tabindex="-1" style="width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 22px; border-radius: 0.2rem; background: rgba(255,255,255,0.02); color: var(--text-muted); border: 1px solid var(--panel-border); cursor: not-allowed;"';
           const isClReadonly = (isSaved || shiftNum === 3)
-            ? 'readonly tabindex="-1" style="width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 25px; border-radius: 0.2rem; background: rgba(255,255,255,0.02); color: var(--text-muted); border: 1px solid var(--panel-border); cursor: not-allowed;"'
-            : 'style="width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 25px; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border);"';
+            ? 'readonly tabindex="-1" style="width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 22px; border-radius: 0.2rem; background: rgba(255,255,255,0.02); color: var(--text-muted); border: 1px solid var(--panel-border); cursor: not-allowed;"'
+            : 'style="width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 22px; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border);"';
 
           const selectDisabled = isSaved ? 'disabled' : '';
           const phonepeReadonly = isSaved ? 'readonly tabindex="-1"' : '';
           const phonepeStyle = isSaved
-            ? 'width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 25px; border-radius: 0.2rem; background: rgba(255,255,255,0.02); color: var(--text-muted); border: 1px solid var(--panel-border); cursor: not-allowed;'
-            : 'width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 25px; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border);';
+            ? 'width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 22px; border-radius: 0.2rem; background: rgba(255,255,255,0.02); color: var(--text-muted); border: 1px solid var(--panel-border); cursor: not-allowed;'
+            : 'width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 22px; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border);';
 
           const tr = document.createElement('tr');
           tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
           tr.innerHTML = `
-            <td style="padding: 0.55rem 0.05rem; font-weight: 700; font-size: 0.72rem; color: var(--text-main);" data-nozzle="${noz.id}" data-product="${noz.product}" data-rate="${noz.rate}">N${noz.id}</td>
-            <td style="padding: 0.55rem 0.05rem;">
-              <select class="row-employee-select" ${selectDisabled} style="width: 100%; padding: 0.1rem; font-size: 0.7rem; height: 25px; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border);">
+            <td style="padding: 0.3rem 0.05rem; font-weight: 700; font-size: 0.72rem; color: var(--text-main);" data-nozzle="${noz.id}" data-product="${noz.product}" data-rate="${noz.rate}">N${noz.id}</td>
+            <td style="padding: 0.3rem 0.05rem;">
+              <select class="row-employee-select" ${selectDisabled} style="width: 100%; padding: 0.1rem; font-size: 0.7rem; height: 22px; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border);">
                 ${generateEmployeeOptionsHTML(activeEmployeeId)}
               </select>
             </td>
-            <td style="padding: 0.55rem 0.05rem;">
+            <td style="padding: 0.3rem 0.05rem;">
               <input type="number" step="0.01" class="row-opening-input" value="${openingVal}" ${isOpReadonly}>
             </td>
-            <td style="padding: 0.55rem 0.05rem;">
+            <td style="padding: 0.3rem 0.05rem;">
               <input type="number" step="0.01" class="row-closing-input" value="${closingVal}" ${isClReadonly}>
             </td>
-            <td style="padding: 0.55rem 0.05rem; text-align: right; font-weight: 600; font-size: 0.72rem;"><span class="row-sale-val">0.00</span></td>
-            <td style="padding: 0.55rem 0.05rem; text-align: right; font-size: 0.72rem; color: var(--text-muted); font-family: monospace;">${noz.rate.toFixed(2)}</td>
-            <td style="padding: 0.55rem 0.05rem; text-align: right; font-weight: 700; font-size: 0.72rem; color: var(--success);"><span class="row-amount-val">₹ 0.00</span></td>
-            <td style="padding: 0.55rem 0.05rem;">
+            <td style="padding: 0.3rem 0.05rem; text-align: right; font-weight: 600; font-size: 0.72rem;"><span class="row-sale-val">0.00</span></td>
+            <td style="padding: 0.3rem 0.05rem; text-align: right; font-size: 0.72rem; color: var(--text-muted); font-family: monospace;">${noz.rate.toFixed(2)}</td>
+            <td style="padding: 0.3rem 0.05rem; text-align: right; font-weight: 700; font-size: 0.72rem; color: var(--success);"><span class="row-amount-val">₹ 0.00</span></td>
+            <td style="padding: 0.3rem 0.05rem;">
               <input type="number" step="0.01" class="row-phonepe-input" value="${phonepeVal}" ${phonepeReadonly} style="${phonepeStyle}">
             </td>
           `;
@@ -7526,6 +7456,65 @@ document.addEventListener('DOMContentLoaded', () => {
         tbody.querySelectorAll('.row-phonepe-input').forEach(inp => {
           inp.addEventListener('input', () => updateShiftTotal(shiftNum));
         });
+
+        // Enter key navigation: move to the same input type in the next nozzle row
+        // On last row (N6), jump to next shift's N1
+        tbody.querySelectorAll('input:not([readonly])').forEach(inp => {
+          inp.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              const currentRow = inp.closest('tr');
+              const nextRow = currentRow.nextElementSibling;
+
+              // Determine which class this input is
+              const inputClasses = ['row-closing-input', 'row-phonepe-input'];
+              let targetClass = '';
+              for (const cls of inputClasses) {
+                if (inp.classList.contains(cls)) { targetClass = cls; break; }
+              }
+
+              if (nextRow) {
+                // Same shift, next nozzle row
+                if (targetClass) {
+                  const nextInput = nextRow.querySelector('.' + targetClass);
+                  if (nextInput && !nextInput.readOnly) {
+                    nextInput.focus();
+                    nextInput.select();
+                    return;
+                  }
+                }
+                const nextEditable = nextRow.querySelector('input:not([readonly])');
+                if (nextEditable) {
+                  nextEditable.focus();
+                  nextEditable.select();
+                }
+              } else {
+                // Last row (N6) — jump to next shift's first row
+                const nextShiftNum = shiftNum + 1;
+                if (nextShiftNum <= 3) {
+                  const nextTbody = document.querySelector(`#porancha-hishob-table-shift-${nextShiftNum} .shift-tbody`);
+                  if (nextTbody) {
+                    const firstRow = nextTbody.querySelector('tr');
+                    if (firstRow) {
+                      const cls = targetClass || 'row-closing-input';
+                      const nextInput = firstRow.querySelector('.' + cls);
+                      if (nextInput && !nextInput.readOnly) {
+                        nextInput.focus();
+                        nextInput.select();
+                        return;
+                      }
+                      const fallback = firstRow.querySelector('input:not([readonly])');
+                      if (fallback) {
+                        fallback.focus();
+                        fallback.select();
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          });
+        });
       });
 
 
@@ -7544,32 +7533,32 @@ document.addEventListener('DOMContentLoaded', () => {
           const selectDisabled = isSaved ? 'disabled' : '';
           const phonepeReadonly = isSaved ? 'readonly tabindex="-1"' : '';
           const phonepeStyle = isSaved
-            ? 'width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 25px; border-radius: 0.2rem; background: rgba(255,255,255,0.02); color: var(--text-muted); border: 1px solid var(--panel-border); cursor: not-allowed;'
-            : 'width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 25px; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border);';
+            ? 'width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 22px; border-radius: 0.2rem; background: rgba(255,255,255,0.02); color: var(--text-muted); border: 1px solid var(--panel-border); cursor: not-allowed;'
+            : 'width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 22px; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border);';
 
-          const readonlyStyle = 'width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 25px; border-radius: 0.2rem; background: rgba(255,255,255,0.02); color: var(--text-muted); border: 1px solid var(--panel-border); cursor: not-allowed;';
+          const readonlyStyle = 'width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 22px; border-radius: 0.2rem; background: rgba(255,255,255,0.02); color: var(--text-muted); border: 1px solid var(--panel-border); cursor: not-allowed;';
 
           const tr = document.createElement('tr');
           tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
           tr.innerHTML = `
-            <td style="padding: 0.55rem 0.05rem; font-weight: 700; font-size: 0.72rem; color: var(--text-main);" data-nozzle="${noz.id}" data-product="${noz.product}" data-rate="${noz.rate}">N${noz.id}</td>
-            <td style="padding: 0.55rem 0.05rem;">
-              <select class="row-employee-select" ${selectDisabled} style="width: 100%; padding: 0.1rem; font-size: 0.7rem; height: 25px; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border);">
+            <td style="padding: 0.3rem 0.05rem; font-weight: 700; font-size: 0.72rem; color: var(--text-main);" data-nozzle="${noz.id}" data-product="${noz.product}" data-rate="${noz.rate}">N${noz.id}</td>
+            <td style="padding: 0.3rem 0.05rem;">
+              <select class="row-employee-select" ${selectDisabled} style="width: 100%; padding: 0.1rem; font-size: 0.7rem; height: 22px; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border);">
                 ${generateEmployeeOptionsHTML(activeEmployeeId)}
               </select>
             </td>
-            <td style="padding: 0.55rem 0.05rem;">
+            <td style="padding: 0.3rem 0.05rem;">
               <input type="number" step="0.01" class="row-testing-opening-input" value="${(dayReading ? dayReading.closing_reading - testingQty : 0).toFixed(2)}" readonly tabindex="-1" style="${readonlyStyle}">
             </td>
-            <td style="padding: 0.55rem 0.05rem;">
+            <td style="padding: 0.3rem 0.05rem;">
               <input type="number" step="0.01" class="row-testing-closing-input" value="${(dayReading ? dayReading.closing_reading : 0).toFixed(2)}" readonly tabindex="-1" style="${readonlyStyle}">
             </td>
-            <td style="padding: 0.55rem 0.05rem;">
-              <input type="number" step="0.01" class="row-testing-qty-input" value="${testingQty}" ${isSaved ? 'readonly tabindex="-1"' : ''} style="${isSaved ? readonlyStyle : 'width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 28px; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border);'}">
+            <td style="padding: 0.3rem 0.05rem;">
+              <input type="number" step="0.01" class="row-testing-qty-input" value="${testingQty}" ${isSaved ? 'readonly tabindex="-1"' : ''} style="${isSaved ? readonlyStyle : 'width: 100%; text-align: right; padding: 0.1rem; font-size: 0.7rem; height: 22px; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border);'}">
             </td>
-            <td style="padding: 0.55rem 0.05rem; text-align: right; font-size: 0.72rem; color: var(--text-muted); font-family: monospace;">${noz.rate.toFixed(2)}</td>
-            <td style="padding: 0.55rem 0.05rem; text-align: right; font-weight: 700; font-size: 0.72rem; color: var(--success);"><span class="row-testing-amount-val">₹ 0.00</span></td>
-            <td style="padding: 0.55rem 0.05rem;">
+            <td style="padding: 0.3rem 0.05rem; text-align: right; font-size: 0.72rem; color: var(--text-muted); font-family: monospace;">${noz.rate.toFixed(2)}</td>
+            <td style="padding: 0.3rem 0.05rem; text-align: right; font-weight: 700; font-size: 0.72rem; color: var(--success);"><span class="row-testing-amount-val">₹ 0.00</span></td>
+            <td style="padding: 0.3rem 0.05rem;">
               <input type="number" step="0.01" class="row-testing-phonepe-input" value="${phonepeVal}" ${phonepeReadonly} style="${phonepeStyle}">
             </td>
           `;
@@ -7779,6 +7768,598 @@ document.addEventListener('DOMContentLoaded', () => {
       } catch (err) {
         showToast(err.message, 'error');
       }
+    });
+  }
+
+  // ── Employee Shift Reconciliation Logic ──────────────────────────────────────
+  let reconShiftData = null;   // { entries: [], testing: [] }
+  let reconEmployeeMap = {};   // id -> name
+  let reconActiveShift = 1;
+  let reconDate = '';
+
+  // Navigate to reconciliation from porancha hishob
+  const btnGotoReconciliation = document.getElementById('btn-goto-reconciliation');
+  if (btnGotoReconciliation) {
+    btnGotoReconciliation.addEventListener('click', async () => {
+      const dateInput = document.getElementById('porancha-hishob-date');
+      if (!dateInput || !dateInput.value) {
+        showToast('Please select a date first.', 'warning');
+        return;
+      }
+      reconDate = dateInput.value;
+
+      // Verify shift data is saved
+      try {
+        const res = await fetch(`/api/porancha-hishob?date=${reconDate}`);
+        if (!res.ok) throw new Error('Failed to load shift data.');
+        const data = await res.json();
+        if (!data.entries || data.entries.length === 0) {
+          showToast('Shift data must be saved first before reconciliation.', 'warning');
+          return;
+        }
+        reconShiftData = data;
+
+        // Fetch employee names
+        const empRes = await fetch('/api/employees');
+        if (empRes.ok) {
+          const empData = await empRes.json();
+          reconEmployeeMap = {};
+          (empData.employees || []).forEach(e => { reconEmployeeMap[e.id] = e.name; });
+        }
+
+        reconActiveShift = 1;
+        showView('shift-reconciliation');
+        renderReconciliation();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+  }
+
+  // Back button
+  const btnBackToShifts = document.getElementById('btn-back-to-shifts');
+  if (btnBackToShifts) {
+    btnBackToShifts.addEventListener('click', () => {
+      showView('porancha-hishob');
+    });
+  }
+
+  // Shift tab clicks
+  document.querySelectorAll('.recon-shift-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      reconActiveShift = parseInt(tab.getAttribute('data-shift')) || 1;
+      renderReconciliation();
+    });
+  });
+
+  // Prev/Next shift buttons
+  const btnReconPrevShift = document.getElementById('btn-recon-prev-shift');
+  const btnReconNextShift = document.getElementById('btn-recon-next-shift');
+
+  if (btnReconPrevShift) {
+    btnReconPrevShift.addEventListener('click', () => {
+      if (reconActiveShift > 1) {
+        reconActiveShift--;
+        renderReconciliation();
+      }
+    });
+  }
+
+  if (btnReconNextShift) {
+    btnReconNextShift.addEventListener('click', () => {
+      if (reconActiveShift < 3) {
+        reconActiveShift++;
+        renderReconciliation();
+      } else {
+        // Shift 3 done — go back
+        showToast('All shift reconciliations reviewed!', 'success');
+        showView('porancha-hishob');
+      }
+    });
+  }
+
+  function renderReconciliation() {
+    if (!reconShiftData) return;
+
+    // Update date display
+    const dateDisplay = document.getElementById('recon-date-display');
+    if (dateDisplay) dateDisplay.textContent = reconDate;
+
+    // Update tab active states
+    document.querySelectorAll('.recon-shift-tab').forEach(tab => {
+      const s = parseInt(tab.getAttribute('data-shift'));
+      tab.classList.toggle('active', s === reconActiveShift);
+      // Style active tab
+      if (s === reconActiveShift) {
+        tab.style.background = 'var(--accent)';
+        tab.style.color = '#fff';
+        tab.style.borderColor = 'var(--accent)';
+      } else {
+        tab.style.background = 'var(--panel-bg)';
+        tab.style.color = 'var(--text-muted)';
+        tab.style.borderColor = 'var(--panel-border)';
+      }
+    });
+
+    // Update prev/next buttons
+    if (btnReconPrevShift) {
+      btnReconPrevShift.style.display = reconActiveShift > 1 ? 'inline-flex' : 'none';
+    }
+    if (btnReconNextShift) {
+      if (reconActiveShift === 3) {
+        btnReconNextShift.textContent = '✓ Finish Reconciliation';
+      } else {
+        btnReconNextShift.textContent = 'Next Shift →';
+      }
+    }
+
+    // Filter entries for active shift
+    const shiftEntries = reconShiftData.entries.filter(e => e.shift === reconActiveShift);
+
+    // Group by employee_id
+    const employeeGroups = {};
+    shiftEntries.forEach(entry => {
+      const empId = entry.employee_id || 0;
+      if (!employeeGroups[empId]) {
+        employeeGroups[empId] = {
+          employee_id: empId,
+          employee_name: empId ? (reconEmployeeMap[empId] || `Employee #${empId}`) : 'Unassigned',
+          nozzles: [],
+          totalAmount: 0,
+          totalPhonePe: 0
+        };
+      }
+      employeeGroups[empId].nozzles.push(entry);
+      employeeGroups[empId].totalAmount += entry.final_amount || 0;
+      employeeGroups[empId].totalPhonePe += entry.phonepe_amount || 0;
+    });
+
+    // Render employee cards
+    const container = document.getElementById('recon-employee-cards');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const fmt = (n) => '₹ ' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const empIds = Object.keys(employeeGroups);
+
+    if (empIds.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 3rem; color: var(--text-muted); font-size: 0.9rem;">
+          No shift entries found for Shift ${reconActiveShift}.
+        </div>`;
+      updateReconSummary();
+      return;
+    }
+
+    empIds.forEach(empId => {
+      const group = employeeGroups[empId];
+      const netAfterPhonePe = group.totalAmount - group.totalPhonePe;
+
+      const card = document.createElement('section');
+      card.className = 'card';
+      card.style.cssText = 'padding: 0.75rem 1rem; border-radius: 0.6rem;';
+      card.setAttribute('data-recon-emp-id', empId);
+
+      // Nozzle rows
+      let nozzleRowsHTML = '';
+      group.nozzles.forEach(n => {
+        nozzleRowsHTML += `
+          <tr style="border-bottom: 1px solid rgba(255,255,255,0.04);">
+            <td style="padding: 0.25rem 0.5rem; font-weight: 600; font-size: 0.75rem;">N${n.nozzle_index}</td>
+            <td style="padding: 0.25rem 0.5rem; font-size: 0.75rem; color: var(--text-muted);">${n.product}</td>
+            <td style="padding: 0.25rem 0.5rem; font-size: 0.75rem; text-align: right; font-family: monospace;">${(n.difference_sale || 0).toFixed(2)}</td>
+            <td style="padding: 0.25rem 0.5rem; font-size: 0.75rem; text-align: right; font-family: monospace;">${(n.rate || 0).toFixed(2)}</td>
+            <td style="padding: 0.25rem 0.5rem; font-size: 0.75rem; text-align: right; font-weight: 700; color: var(--success);">${fmt(n.final_amount)}</td>
+            <td style="padding: 0.25rem 0.5rem; font-size: 0.75rem; text-align: right; color: var(--accent);">${fmt(n.phonepe_amount)}</td>
+          </tr>`;
+      });
+
+      card.innerHTML = `
+        <!-- Employee Header -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; padding-bottom: 0.4rem; border-bottom: 2px solid rgba(255,255,255,0.06);">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <div style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6, #1d4ed8); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.7rem; color: #fff; flex-shrink: 0;">
+              ${group.employee_name.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <div style="font-weight: 700; font-size: 0.9rem; color: var(--text-main);">${group.employee_name}</div>
+              <div style="font-size: 0.68rem; color: var(--text-muted);">${group.nozzles.length} nozzle${group.nozzles.length > 1 ? 's' : ''} operated</div>
+            </div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 0.68rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em;">Total Sale</div>
+            <div style="font-size: 1.1rem; font-weight: 800; color: var(--success);">${fmt(group.totalAmount)}</div>
+          </div>
+        </div>
+
+        <!-- Nozzle Details Table -->
+        <div style="overflow-x: auto; margin-bottom: 0.6rem;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 0.78rem;">
+            <thead>
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.015);">
+                <th style="padding: 0.2rem 0.5rem; text-align: left; font-size: 0.65rem; color: var(--text-muted);">Nozzle</th>
+                <th style="padding: 0.2rem 0.5rem; text-align: left; font-size: 0.65rem; color: var(--text-muted);">Product</th>
+                <th style="padding: 0.2rem 0.5rem; text-align: right; font-size: 0.65rem; color: var(--text-muted);">Sale (L)</th>
+                <th style="padding: 0.2rem 0.5rem; text-align: right; font-size: 0.65rem; color: var(--text-muted);">Rate</th>
+                <th style="padding: 0.2rem 0.5rem; text-align: right; font-size: 0.65rem; color: var(--text-muted);">Amount</th>
+                <th style="padding: 0.2rem 0.5rem; text-align: right; font-size: 0.65rem; color: var(--text-muted);">PhonePe</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${nozzleRowsHTML}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Cash / Credit Sale Inputs -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 0.5rem; align-items: end;">
+          <!-- PhonePe (readonly) -->
+          <div>
+            <label style="display: block; font-size: 0.65rem; font-weight: 600; color: var(--accent); margin-bottom: 0.15rem; text-transform: uppercase; letter-spacing: 0.03em;">PhonePe</label>
+            <input type="text" readonly value="${fmt(group.totalPhonePe)}" style="width: 100%; padding: 0.3rem 0.4rem; font-size: 0.8rem; font-weight: 700; border-radius: 0.3rem; background: rgba(255,255,255,0.02); color: var(--accent); border: 1px solid var(--panel-border); cursor: not-allowed; text-align: right;">
+          </div>
+          <!-- Cash Sale -->
+          <div>
+            <label style="display: block; font-size: 0.65rem; font-weight: 600; color: var(--success); margin-bottom: 0.15rem; text-transform: uppercase; letter-spacing: 0.03em;">Cash Sale (₹)</label>
+            <input type="number" step="0.01" class="recon-cash-input" data-emp-id="${empId}" value="${netAfterPhonePe > 0 ? netAfterPhonePe.toFixed(2) : '0.00'}" style="width: 100%; padding: 0.3rem 0.4rem; font-size: 0.8rem; font-weight: 700; border-radius: 0.3rem; background: var(--panel-bg); border: 1px solid var(--panel-border); text-align: right; color: var(--success);">
+          </div>
+          <!-- Credit Sale -->
+          <div>
+            <label style="display: block; font-size: 0.65rem; font-weight: 600; color: var(--danger); margin-bottom: 0.15rem; text-transform: uppercase; letter-spacing: 0.03em;">Credit Sale (₹)</label>
+            <input type="number" step="0.01" class="recon-credit-input" data-emp-id="${empId}" value="0.00" style="width: 100%; padding: 0.3rem 0.4rem; font-size: 0.8rem; font-weight: 700; border-radius: 0.3rem; background: var(--panel-bg); border: 1px solid var(--panel-border); text-align: right; color: var(--danger);">
+          </div>
+          <!-- Difference -->
+          <div>
+            <label style="display: block; font-size: 0.65rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.15rem; text-transform: uppercase; letter-spacing: 0.03em;">Difference</label>
+            <div class="recon-diff-display" data-emp-id="${empId}" style="padding: 0.3rem 0.4rem; font-size: 0.8rem; font-weight: 800; border-radius: 0.3rem; background: rgba(0,0,0,0.15); border: 1px solid var(--panel-border); text-align: right; color: var(--text-muted); min-height: 28px; line-height: 1.4;">
+              ₹ 0.00
+            </div>
+          </div>
+        </div>
+      `;
+
+      container.appendChild(card);
+
+      // Attach input listeners
+      const cashInput = card.querySelector('.recon-cash-input');
+      const creditInput = card.querySelector('.recon-credit-input');
+      const diffDisplay = card.querySelector('.recon-diff-display');
+
+      function updateDiff() {
+        const cash = parseFloat(cashInput.value) || 0;
+        const credit = parseFloat(creditInput.value) || 0;
+        const total = group.totalAmount;
+        const phonePe = group.totalPhonePe;
+        const diff = total - phonePe - cash - credit;
+
+        if (Math.abs(diff) < 0.01) {
+          diffDisplay.innerHTML = '<span style="color: var(--success);">✓ ₹ 0.00</span>';
+          diffDisplay.style.borderColor = 'var(--success)';
+        } else if (diff > 0) {
+          diffDisplay.innerHTML = `<span style="color: var(--danger);">−${fmt(Math.abs(diff))}</span>`;
+          diffDisplay.style.borderColor = 'var(--danger)';
+        } else {
+          diffDisplay.innerHTML = `<span style="color: var(--accent);">+${fmt(Math.abs(diff))}</span>`;
+          diffDisplay.style.borderColor = 'var(--accent)';
+        }
+
+        updateReconSummary();
+      }
+
+      cashInput.addEventListener('input', updateDiff);
+      creditInput.addEventListener('input', updateDiff);
+
+      // Trigger initial diff calc
+      updateDiff();
+    });
+
+    updateReconSummary();
+  }
+
+  function updateReconSummary() {
+    const container = document.getElementById('recon-employee-cards');
+    if (!container) return;
+
+    let totalSale = 0;
+    let totalPhonePe = 0;
+    let totalCash = 0;
+    let totalCredit = 0;
+
+    // Sum from shift data
+    if (reconShiftData) {
+      reconShiftData.entries.filter(e => e.shift === reconActiveShift).forEach(entry => {
+        totalSale += entry.final_amount || 0;
+        totalPhonePe += entry.phonepe_amount || 0;
+      });
+    }
+
+    // Sum from inputs
+    container.querySelectorAll('.recon-cash-input').forEach(inp => {
+      totalCash += parseFloat(inp.value) || 0;
+    });
+    container.querySelectorAll('.recon-credit-input').forEach(inp => {
+      totalCredit += parseFloat(inp.value) || 0;
+    });
+
+    const fmt = (n) => '₹ ' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const elSale = document.getElementById('recon-shift-total-sale');
+    const elPhonePe = document.getElementById('recon-shift-total-phonepe');
+    const elCash = document.getElementById('recon-shift-total-cash');
+    const elCredit = document.getElementById('recon-shift-total-credit');
+
+    if (elSale) elSale.textContent = fmt(totalSale);
+    if (elPhonePe) elPhonePe.textContent = fmt(totalPhonePe);
+    if (elCash) elCash.textContent = fmt(totalCash);
+    if (elCredit) elCredit.textContent = fmt(totalCredit);
+  }
+
+  function validateDynamicPassword(input) {
+    if (!input) return false;
+    const cleanInput = input.trim();
+    const nowMs = Date.now();
+    const validPasswords = [];
+    for (let offset = -5; offset <= 5; offset++) {
+      const d = new Date(nowMs + offset * 60000);
+      const hh = String(d.getHours()).padStart(2, '0');
+      const mm = String(d.getMinutes()).padStart(2, '0');
+      
+      // Standard 4-digit 24-hr format (e.g., "0945" or "1045")
+      validPasswords.push(`${hh}${mm}`);
+      
+      // Tolerant 3-digit format for single digit hours (e.g., "945")
+      if (hh.startsWith('0')) {
+        validPasswords.push(`${hh.substring(1)}${mm}`);
+      }
+    }
+    return validPasswords.includes(cleanInput);
+  }
+
+  // Profit margins and calculation logic for the Secret page
+  const navSecret = document.getElementById('nav-secret');
+  if (navSecret) {
+    navSecret.addEventListener('click', (e) => {
+      e.preventDefault();
+      
+      const pwd = prompt('Enter password to access Secret Profit Calculator:');
+      if (pwd === null) return; // user cancelled prompt
+      
+      if (!validateDynamicPassword(pwd)) {
+        showToast('Access denied: Invalid password.', 'error');
+        return;
+      }
+      
+      showView('secret');
+      loadProfitData();
+    });
+  }
+
+  function initializeProfitMonthSelector() {
+    const profitMonthSelect = document.getElementById('profit-month-select');
+    if (!profitMonthSelect) return;
+    if (profitMonthSelect.children.length > 0) return;
+
+    const startYear = 2026;
+    const startMonth = 4; // May (0-indexed is April)
+    
+    const activeDateObj = new Date(activeDate + 'T00:00:00');
+    const endYear = activeDateObj.getFullYear();
+    const endMonth = activeDateObj.getMonth();
+
+    profitMonthSelect.innerHTML = '';
+
+    let curYear = endYear;
+    let curMonth = endMonth;
+
+    while (curYear > startYear || (curYear === startYear && curMonth >= startMonth)) {
+      const monthVal = `${curYear}-${String(curMonth + 1).padStart(2, '0')}`;
+      const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      const label = `${months[curMonth]} ${curYear}`;
+      
+      const opt = document.createElement('option');
+      opt.value = monthVal;
+      opt.textContent = label;
+      profitMonthSelect.appendChild(opt);
+
+      curMonth--;
+      if (curMonth < 0) {
+        curMonth = 11;
+        curYear--;
+      }
+    }
+  }
+
+  async function fetchProfitMargins(month) {
+    try {
+      const response = await fetch(`/api/profit-margins?month=${month}`);
+      if (response.ok) {
+        return await response.json();
+      }
+    } catch (err) {
+      console.error('Error fetching profit margins:', err);
+    }
+    return {
+      month: month,
+      dealer_power: 3.0,
+      dealer_petrol: 3.0,
+      dealer_diesel: 2.0,
+      diff_power: 0.5,
+      diff_petrol: 0.5,
+      diff_diesel: 0.2
+    };
+  }
+
+  async function loadProfitData() {
+    initializeProfitMonthSelector();
+    const monthSelect = document.getElementById('profit-month-select');
+    if (!monthSelect) return;
+    
+    const selectedMonth = monthSelect.value;
+    const margins = await fetchProfitMargins(selectedMonth);
+    
+    document.getElementById('margin-dealer-power').value = margins.dealer_power.toFixed(2);
+    document.getElementById('margin-dealer-petrol').value = margins.dealer_petrol.toFixed(2);
+    document.getElementById('margin-dealer-diesel').value = margins.dealer_diesel.toFixed(2);
+    document.getElementById('margin-diff-power').value = margins.diff_power.toFixed(2);
+    document.getElementById('margin-diff-petrol').value = margins.diff_petrol.toFixed(2);
+    document.getElementById('margin-diff-diesel').value = margins.diff_diesel.toFixed(2);
+
+    const tableBody = document.getElementById('profit-table-body');
+    const tableFooter = document.getElementById('profit-table-footer');
+    if (!tableBody) return;
+    
+    tableBody.innerHTML = `<tr><td colspan="12" style="text-align: center; padding: 2rem; color: var(--text-muted);">Calculating profits...</td></tr>`;
+    if (tableFooter) tableFooter.innerHTML = '';
+
+    try {
+      const response = await fetch(`/api/gst-report?month=${selectedMonth}`);
+      if (!response.ok) {
+        throw new Error('Failed to load sales data');
+      }
+      
+      const data = await response.json();
+      
+      if (data.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="12" style="text-align: center; padding: 3rem; color: var(--text-muted); font-size: 1rem;">No sales data available for this month.</td></tr>`;
+        return;
+      }
+
+      tableBody.innerHTML = '';
+      
+      let totalPowerQty = 0, totalPowerDealerProfit = 0, totalPowerDiffProfit = 0;
+      let totalPetrolQty = 0, totalPetrolDealerProfit = 0, totalPetrolDiffProfit = 0;
+      let totalDieselQty = 0, totalDieselDealerProfit = 0, totalDieselDiffProfit = 0;
+      let totalDealerProfitSum = 0;
+      let grandTotalProfit = 0;
+
+      data.forEach(row => {
+        const powerDealerProfit = row.power_qty * margins.dealer_power;
+        const powerDiffProfit = row.power_qty * margins.diff_power;
+        
+        const petrolDealerProfit = row.petrol_qty * margins.dealer_petrol;
+        const petrolDiffProfit = row.petrol_qty * margins.diff_petrol;
+        
+        const dieselDealerProfit = row.diesel_qty * margins.dealer_diesel;
+        const dieselDiffProfit = row.diesel_qty * margins.diff_diesel;
+        
+        const dealerTotalProfit = powerDealerProfit + petrolDealerProfit + dieselDealerProfit;
+        const totalProfit = dealerTotalProfit + powerDiffProfit + petrolDiffProfit + dieselDiffProfit;
+
+        totalPowerQty += row.power_qty;
+        totalPowerDealerProfit += powerDealerProfit;
+        totalPowerDiffProfit += powerDiffProfit;
+        
+        totalPetrolQty += row.petrol_qty;
+        totalPetrolDealerProfit += petrolDealerProfit;
+        totalPetrolDiffProfit += petrolDiffProfit;
+        
+        totalDieselQty += row.diesel_qty;
+        totalDieselDealerProfit += dieselDealerProfit;
+        totalDieselDiffProfit += dieselDiffProfit;
+        
+        totalDealerProfitSum += dealerTotalProfit;
+        grandTotalProfit += totalProfit;
+
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid rgba(255,255,255,0.03)';
+        tr.className = 'gst-row-hover';
+
+        tr.innerHTML = `
+          <td style="padding: 0.35rem 0.25rem; font-weight: 600; white-space: nowrap; border: 1px solid rgba(255,255,255,0.15); text-align: center;">${formatDate(row.date)}</td>
+          
+          <td style="padding: 0.35rem 0.25rem; text-align: center; color: var(--power-color); border: 1px solid rgba(255,255,255,0.15);">${row.power_qty > 0 ? row.power_qty.toFixed(2) : '-'}</td>
+          <td style="padding: 0.35rem 0.25rem; text-align: center; color: var(--power-color); font-weight: 600; border: 1px solid rgba(255,255,255,0.15);">${powerDealerProfit > 0 ? '₹' + powerDealerProfit.toFixed(2) : '-'}</td>
+          
+          <td style="padding: 0.35rem 0.25rem; text-align: center; color: var(--success); border: 1px solid rgba(255,255,255,0.15);">${row.petrol_qty > 0 ? row.petrol_qty.toFixed(2) : '-'}</td>
+          <td style="padding: 0.35rem 0.25rem; text-align: center; color: var(--success); font-weight: 600; border: 1px solid rgba(255,255,255,0.15);">${petrolDealerProfit > 0 ? '₹' + petrolDealerProfit.toFixed(2) : '-'}</td>
+          
+          <td style="padding: 0.35rem 0.25rem; text-align: center; color: var(--diesel-color); border: 1px solid rgba(255,255,255,0.15);">${row.diesel_qty > 0 ? row.diesel_qty.toFixed(2) : '-'}</td>
+          <td style="padding: 0.35rem 0.25rem; text-align: center; color: var(--diesel-color); font-weight: 600; border: 1px solid rgba(255,255,255,0.15);">${dieselDealerProfit > 0 ? '₹' + dieselDealerProfit.toFixed(2) : '-'}</td>
+          
+          <td style="padding: 0.35rem 0.35rem; text-align: center; color: var(--accent); font-weight: 700; border: 1px solid rgba(255,255,255,0.15);">₹${dealerTotalProfit.toFixed(2)}</td>
+          
+          <td style="padding: 0.35rem 0.25rem; text-align: center; color: var(--power-color); border: 1px solid rgba(255,255,255,0.15);">${powerDiffProfit > 0 ? '₹' + powerDiffProfit.toFixed(2) : '-'}</td>
+          <td style="padding: 0.35rem 0.25rem; text-align: center; color: var(--success); border: 1px solid rgba(255,255,255,0.15);">${petrolDiffProfit > 0 ? '₹' + petrolDiffProfit.toFixed(2) : '-'}</td>
+          <td style="padding: 0.35rem 0.25rem; text-align: center; color: var(--diesel-color); border: 1px solid rgba(255,255,255,0.15);">${dieselDiffProfit > 0 ? '₹' + dieselDiffProfit.toFixed(2) : '-'}</td>
+          
+          <td style="padding: 0.35rem 0.35rem; text-align: center; color: var(--accent); font-weight: 800; border: 1px solid rgba(255,255,255,0.15);">₹${totalProfit.toFixed(2)}</td>
+        `;
+        tableBody.appendChild(tr);
+      });
+
+      if (tableFooter) {
+        tableFooter.innerHTML = `
+          <td style="padding: 0.4rem 0.25rem; white-space: nowrap; border: 1px solid rgba(255,255,255,0.15); text-align: center;">TOTAL</td>
+          <td style="padding: 0.4rem 0.25rem; text-align: center; color: var(--power-color); border: 1px solid rgba(255,255,255,0.15);">${totalPowerQty.toFixed(2)}</td>
+          <td style="padding: 0.4rem 0.25rem; text-align: center; color: var(--power-color); font-weight: 700; border: 1px solid rgba(255,255,255,0.15);">₹${totalPowerDealerProfit.toFixed(2)}</td>
+          
+          <td style="padding: 0.4rem 0.25rem; text-align: center; color: var(--success); border: 1px solid rgba(255,255,255,0.15);">${totalPetrolQty.toFixed(2)}</td>
+          <td style="padding: 0.4rem 0.25rem; text-align: center; color: var(--success); font-weight: 700; border: 1px solid rgba(255,255,255,0.15);">₹${totalPetrolDealerProfit.toFixed(2)}</td>
+          
+          <td style="padding: 0.4rem 0.25rem; text-align: center; color: var(--diesel-color); border: 1px solid rgba(255,255,255,0.15);">${totalDieselQty.toFixed(2)}</td>
+          <td style="padding: 0.4rem 0.25rem; text-align: center; color: var(--diesel-color); font-weight: 700; border: 1px solid rgba(255,255,255,0.15);">₹${totalDieselDealerProfit.toFixed(2)}</td>
+          
+          <td style="padding: 0.4rem 0.35rem; text-align: center; color: var(--accent); font-weight: 800; border: 1px solid rgba(255,255,255,0.15);">₹${totalDealerProfitSum.toFixed(2)}</td>
+          
+          <td style="padding: 0.4rem 0.25rem; text-align: center; color: var(--power-color); border: 1px solid rgba(255,255,255,0.15);">₹${totalPowerDiffProfit.toFixed(2)}</td>
+          <td style="padding: 0.4rem 0.25rem; text-align: center; color: var(--success); border: 1px solid rgba(255,255,255,0.15);">₹${totalPetrolDiffProfit.toFixed(2)}</td>
+          <td style="padding: 0.4rem 0.25rem; text-align: center; color: var(--diesel-color); border: 1px solid rgba(255,255,255,0.15);">₹${totalDieselDiffProfit.toFixed(2)}</td>
+          
+          <td style="padding: 0.4rem 0.35rem; text-align: center; color: var(--accent); font-weight: 800; border: 1px solid rgba(255,255,255,0.15);">₹${grandTotalProfit.toFixed(2)}</td>
+        `;
+      }
+    } catch (err) {
+      console.error('Error loading profit report:', err);
+      showToast('Error loading profit data.', 'error');
+      tableBody.innerHTML = `<tr><td colspan="12" style="text-align: center; padding: 2rem; color: var(--danger);">Failed to load data.</td></tr>`;
+    }
+  }
+
+  async function saveProfitMargins() {
+    const monthSelect = document.getElementById('profit-month-select');
+    if (!monthSelect) return;
+    const selectedMonth = monthSelect.value;
+
+    const payload = {
+      month: selectedMonth,
+      dealer_power: parseFloat(document.getElementById('margin-dealer-power').value) || 0,
+      dealer_petrol: parseFloat(document.getElementById('margin-dealer-petrol').value) || 0,
+      dealer_diesel: parseFloat(document.getElementById('margin-dealer-diesel').value) || 0,
+      diff_power: parseFloat(document.getElementById('margin-diff-power').value) || 0,
+      diff_petrol: parseFloat(document.getElementById('margin-diff-petrol').value) || 0,
+      diff_diesel: parseFloat(document.getElementById('margin-diff-diesel').value) || 0
+    };
+
+    try {
+      const res = await fetch('/api/profit-margins', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        showToast('Margins saved and recalculated successfully.', 'success');
+        loadProfitData();
+      } else {
+        throw new Error('Failed to save margins');
+      }
+    } catch (err) {
+      console.error('Error saving margins:', err);
+      showToast('Error saving margins.', 'error');
+    }
+  }
+
+  const profitMonthSelect = document.getElementById('profit-month-select');
+  if (profitMonthSelect) {
+    profitMonthSelect.addEventListener('change', () => {
+      loadProfitData();
+    });
+  }
+
+  const btnSaveMargins = document.getElementById('btn-save-margins');
+  if (btnSaveMargins) {
+    btnSaveMargins.addEventListener('click', () => {
+      saveProfitMargins();
     });
   }
 

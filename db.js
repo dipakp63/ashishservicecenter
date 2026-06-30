@@ -353,6 +353,17 @@ async function initDatabase() {
         total_amount REAL NOT NULL
       )`,
     },
+    {
+      sql: `CREATE TABLE IF NOT EXISTS profit_margins (
+        month TEXT PRIMARY KEY,
+        dealer_petrol REAL DEFAULT 3.0,
+        dealer_diesel REAL DEFAULT 2.0,
+        dealer_power REAL DEFAULT 3.0,
+        diff_petrol REAL DEFAULT 0.5,
+        diff_diesel REAL DEFAULT 0.2,
+        diff_power REAL DEFAULT 0.5
+      )`,
+    },
   ];
 
   // Run each CREATE TABLE individually (batch may not work well with DDL on all backends)
@@ -393,6 +404,23 @@ async function initDatabase() {
     console.log('[DB] Migration: added remarks column to employee_transactions.');
   } catch (e) {
     // Column already exists — ignore
+  }
+
+  // Create secondary indexes for performance optimization
+  const indexStatements = [
+    `CREATE INDEX IF NOT EXISTS idx_debtor_transactions_id_date ON debtor_transactions(debtor_id, transaction_date)`,
+    `CREATE INDEX IF NOT EXISTS idx_employee_transactions_id_date ON employee_transactions(employee_id, transaction_date)`,
+    `CREATE INDEX IF NOT EXISTS idx_tt_transactions_date ON tt_transactions(date)`,
+    `CREATE INDEX IF NOT EXISTS idx_tt_trips_date ON tt_trips(date)`,
+    `CREATE INDEX IF NOT EXISTS idx_tt_entries_date ON tt_entries(date)`,
+    `CREATE INDEX IF NOT EXISTS idx_porancha_hishob_date ON porancha_hishob_entries(date)`
+  ];
+  for (const idxSql of indexStatements) {
+    try {
+      await run(idxSql);
+    } catch (e) {
+      console.error('[DB] Failed to create index:', e.message);
+    }
   }
 }
 

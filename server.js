@@ -225,9 +225,19 @@ async function recalculateHpclLedger() {
 // Endpoint to fetch the current active date for input
 app.get('/api/active-date', async (req, res) => {
   try {
-    const activeDate = await getActiveDate();
     const row = await db.get('SELECT MAX(date) AS latest_closed_date FROM cash_reconciliation');
-    res.json({ activeDate, latestClosedDate: row ? row.latest_closed_date : null });
+    const latestClosedDate = row ? row.latest_closed_date : null;
+    let activeDate = '2026-06-01';
+    if (latestClosedDate) {
+      const [y, m, d] = latestClosedDate.split('-');
+      const latestDate = new Date(Date.UTC(y, m - 1, d));
+      latestDate.setUTCDate(latestDate.getUTCDate() + 1);
+      const year = latestDate.getUTCFullYear();
+      const month = String(latestDate.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(latestDate.getUTCDate()).padStart(2, '0');
+      activeDate = `${year}-${month}-${day}`;
+    }
+    res.json({ activeDate, latestClosedDate });
   } catch (err) {
     console.error('Error fetching active date:', err.message);
     res.status(500).json({ error: 'Database error fetching active date.' });
@@ -273,8 +283,10 @@ app.get('/api/readings/opening', async (req, res) => {
       ORDER BY nozzle_id ASC
     `;
 
-    const todayRows = await db.all(todayQuery, [date]);
-    const yesterdayRows = await db.all(yesterdayQuery, [date]);
+    const [todayRows, yesterdayRows] = await Promise.all([
+      db.all(todayQuery, [date]),
+      db.all(yesterdayQuery, [date])
+    ]);
 
     res.json({
       isClosed: todayRows.length === 6,
@@ -382,8 +394,10 @@ app.get('/api/tanks/opening', async (req, res) => {
       ORDER BY tank_id ASC
     `;
 
-    const todayRows = await db.all(todayQuery, [date]);
-    const yesterdayRows = await db.all(yesterdayQuery, [date]);
+    const [todayRows, yesterdayRows] = await Promise.all([
+      db.all(todayQuery, [date]),
+      db.all(yesterdayQuery, [date])
+    ]);
 
     res.json({
       isClosed: todayRows.length === 3,
@@ -660,6 +674,10 @@ app.post('/api/cash', async (req, res) => {
         sql: `DELETE FROM employee_transactions WHERE transaction_date = ? AND description LIKE 'Employee Payment (Day Closing)%'`,
         args: [date],
       },
+      {
+        sql: `DELETE FROM tt_transactions WHERE date = ? AND source = 'AUTO' AND particular1 = 'Day Closing'`,
+        args: [date],
+      },
     ];
 
     // Add non-cash payment inserts
@@ -698,6 +716,15 @@ app.post('/api/cash', async (req, res) => {
               args: [employeeId, date, amount],
             });
           }
+        }
+
+        // Automatically create a DEBIT transaction in the TT ledger if this is a TT (MH-19-CY-5682) type payment
+        if (type === 'MH-19-CY-5682' && amount > 0) {
+          statements.push({
+            sql: `INSERT INTO tt_transactions (date, type, source, amount, particular1, description, notes)
+                  VALUES (?, 'DEBIT', 'AUTO', ?, 'Day Closing', ?, 'Auto-logged from Day Closing non-cash payments')`,
+            args: [date, amount, description],
+          });
         }
 
       }
@@ -863,6 +890,63 @@ app.get('/api/gst-report', async (req, res) => {
   }
 });
 
+// GET /api/profit-margins — Get margins for a specific month
+app.get('/api/profit-margins', async (req, res) => {
+  try {
+    const { month } = req.query;
+    if (!month || !/^\d{4}-\d{2}$/.test(month)) {
+      return res.status(400).json({ error: 'Month parameter in YYYY-MM format is required.' });
+    }
+
+    const row = await db.get('SELECT * FROM profit_margins WHERE month = ?', [month]);
+    if (row) {
+      return res.json(row);
+    }
+
+    // Default values if no entry exists
+    res.json({
+      month,
+      dealer_power: 3.0,
+      dealer_petrol: 3.0,
+      dealer_diesel: 2.0,
+      diff_power: 0.5,
+      diff_petrol: 0.5,
+      diff_diesel: 0.2
+    });
+  } catch (err) {
+    console.error('Error fetching profit margins:', err.message);
+    res.status(500).json({ error: 'Database error fetching profit margins.' });
+  }
+});
+
+// POST /api/profit-margins — Save or update margins for a specific month
+app.post('/api/profit-margins', async (req, res) => {
+  try {
+    const { month, dealer_power, dealer_petrol, dealer_diesel, diff_power, diff_petrol, diff_diesel } = req.body;
+    if (!month || !/^\d{4}-\d{2}$/.test(month)) {
+      return res.status(400).json({ error: 'Month parameter in YYYY-MM format is required.' });
+    }
+
+    const dPower = parseFloat(dealer_power) || 0;
+    const dPetrol = parseFloat(dealer_petrol) || 0;
+    const dDiesel = parseFloat(dealer_diesel) || 0;
+    const dfPower = parseFloat(diff_power) || 0;
+    const dfPetrol = parseFloat(diff_petrol) || 0;
+    const dfDiesel = parseFloat(diff_diesel) || 0;
+
+    await db.run(
+      `INSERT OR REPLACE INTO profit_margins (month, dealer_power, dealer_petrol, dealer_diesel, diff_power, diff_petrol, diff_diesel)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [month, dPower, dPetrol, dDiesel, dfPower, dfPetrol, dfDiesel]
+    );
+
+    res.json({ success: true, message: 'Margins saved successfully.' });
+  } catch (err) {
+    console.error('Error saving profit margins:', err.message);
+    res.status(500).json({ error: 'Database error saving profit margins.' });
+  }
+});
+
 // Endpoint to manually trigger sending the WhatsApp report for a month
 app.post('/api/send-gst-whatsapp', async (req, res) => {
   try {
@@ -884,18 +968,18 @@ app.post('/api/send-gst-whatsapp', async (req, res) => {
 // GET /api/hpcl/summary
 app.get('/api/hpcl/summary', async (req, res) => {
   try {
-    const configRow = await db.get(
-      `SELECT value FROM hpcl_config WHERE key = 'hpcl_opening_balance'`
-    );
-    const openingBalance = parseFloat((configRow && configRow.value) || '0');
+    const [configRow, summaryRow] = await Promise.all([
+      db.get(`SELECT value FROM hpcl_config WHERE key = 'hpcl_opening_balance'`),
+      db.get(`
+        SELECT 
+          SUM(CASE WHEN type = 'CREDIT' THEN amount ELSE 0 END) AS total_credits,
+          SUM(CASE WHEN type = 'DEBIT' THEN amount ELSE 0 END) AS total_debits,
+          (SELECT running_balance FROM hpcl_transactions ORDER BY date DESC, id DESC LIMIT 1) AS latest_balance
+        FROM hpcl_transactions
+      `)
+    ]);
 
-    const summaryRow = await db.get(`
-      SELECT 
-        SUM(CASE WHEN type = 'CREDIT' THEN amount ELSE 0 END) AS total_credits,
-        SUM(CASE WHEN type = 'DEBIT' THEN amount ELSE 0 END) AS total_debits,
-        (SELECT running_balance FROM hpcl_transactions ORDER BY date DESC, id DESC LIMIT 1) AS latest_balance
-      FROM hpcl_transactions
-    `);
+    const openingBalance = parseFloat((configRow && configRow.value) || '0');
 
     const totalCredits = summaryRow ? summaryRow.total_credits || 0 : 0;
     const totalDebits = summaryRow ? summaryRow.total_debits || 0 : 0;
@@ -2147,26 +2231,28 @@ app.get('/api/porancha-hishob', async (req, res) => {
     if (!date) {
       return res.status(400).json({ error: 'Date query parameter is required.' });
     }
-    const entries = await db.all(
-      `SELECT date, shift, nozzle_index, product, employee_id, opening_reading, closing_reading, difference_sale, rate, final_amount, phonepe_amount 
-       FROM porancha_hishob_entries 
-       WHERE date = ? 
-       ORDER BY shift ASC, nozzle_index ASC`,
-      [date]
-    );
-    const testing = await db.all(
-      `SELECT 
-         r.nozzle_id AS nozzle_index,
-         t.employee_id,
-         COALESCE(r.testing_qty, 0) AS testing_qty,
-         COALESCE(t.phonepe_amount, 0) AS phonepe_amount
-       FROM readings r
-       LEFT JOIN porancha_hishob_testing t 
-         ON r.date = t.date AND r.nozzle_id = t.nozzle_index
-       WHERE r.date = ?
-       ORDER BY r.nozzle_id ASC`,
-      [date]
-    );
+    const [entries, testing] = await Promise.all([
+      db.all(
+        `SELECT date, shift, nozzle_index, product, employee_id, opening_reading, closing_reading, difference_sale, rate, final_amount, phonepe_amount 
+         FROM porancha_hishob_entries 
+         WHERE date = ? 
+         ORDER BY shift ASC, nozzle_index ASC`,
+        [date]
+      ),
+      db.all(
+        `SELECT 
+           r.nozzle_id AS nozzle_index,
+           t.employee_id,
+           COALESCE(r.testing_qty, 0) AS testing_qty,
+           COALESCE(t.phonepe_amount, 0) AS phonepe_amount
+         FROM readings r
+         LEFT JOIN porancha_hishob_testing t 
+           ON r.date = t.date AND r.nozzle_id = t.nozzle_index
+         WHERE r.date = ?
+         ORDER BY r.nozzle_id ASC`,
+        [date]
+      )
+    ]);
     res.json({ entries, testing });
   } catch (err) {
     console.error('Error fetching shift entries:', err.message);
