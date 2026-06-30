@@ -366,10 +366,8 @@ async function initDatabase() {
     },
   ];
 
-  // Run each CREATE TABLE individually (batch may not work well with DDL on all backends)
-  for (const stmt of tableStatements) {
-    await run(stmt.sql, stmt.args || []);
-  }
+  // Run CREATE TABLE statements concurrently to avoid Vercel 10s timeouts on cold starts
+  await Promise.all(tableStatements.map(stmt => run(stmt.sql, stmt.args || [])));
 
   console.log('[DB] All tables initialized successfully.');
 
@@ -386,61 +384,26 @@ async function initDatabase() {
     { sql: `CREATE INDEX IF NOT EXISTS idx_tt_entries_date ON tt_entries(date)` },
     { sql: `CREATE INDEX IF NOT EXISTS idx_chillar_transactions_date ON chillar_transactions(date)` },
     { sql: `CREATE INDEX IF NOT EXISTS idx_porancha_hishob_entries_date ON porancha_hishob_entries(date)` },
+    { sql: `CREATE INDEX IF NOT EXISTS idx_debtor_transactions_id_date ON debtor_transactions(debtor_id, transaction_date)` },
+    { sql: `CREATE INDEX IF NOT EXISTS idx_employee_transactions_id_date ON employee_transactions(employee_id, transaction_date)` },
+    { sql: `CREATE INDEX IF NOT EXISTS idx_porancha_hishob_date ON porancha_hishob_entries(date)` }
   ];
-  for (const stmt of indexStatements) {
-    await run(stmt.sql, stmt.args || []);
-  }
+  await Promise.all(indexStatements.map(stmt => run(stmt.sql, stmt.args || [])));
   console.log('[DB] All indexes initialized successfully.');
 
   // ── Migrations ────────────────────────────────────────────────────────────
-  // Add particular1 column to tt_transactions if it doesn't exist
-  try {
-    await run(`ALTER TABLE tt_transactions ADD COLUMN particular1 TEXT DEFAULT ''`);
-    console.log('[DB] Migration: added particular1 column to tt_transactions.');
-  } catch (e) {
-    // Column already exists — ignore
-  }
 
-  // Add tt_decantation column to tank_readings if it doesn't exist
-  try {
-    await run(`ALTER TABLE tank_readings ADD COLUMN tt_decantation INTEGER DEFAULT 0`);
-    console.log('[DB] Migration: added tt_decantation column to tank_readings.');
-  } catch (e) {
-    // Column already exists — ignore
-  }
-
-  // Add remarks column to debtor_transactions if it doesn't exist
-  try {
-    await run(`ALTER TABLE debtor_transactions ADD COLUMN remarks TEXT`);
-    console.log('[DB] Migration: added remarks column to debtor_transactions.');
-  } catch (e) {
-    // Column already exists — ignore
-  }
-
-  // Add remarks column to employee_transactions if it doesn't exist
-  try {
-    await run(`ALTER TABLE employee_transactions ADD COLUMN remarks TEXT`);
-    console.log('[DB] Migration: added remarks column to employee_transactions.');
-  } catch (e) {
-    // Column already exists — ignore
-  }
-
-  // Create secondary indexes for performance optimization
-  const indexStatements = [
-    `CREATE INDEX IF NOT EXISTS idx_debtor_transactions_id_date ON debtor_transactions(debtor_id, transaction_date)`,
-    `CREATE INDEX IF NOT EXISTS idx_employee_transactions_id_date ON employee_transactions(employee_id, transaction_date)`,
-    `CREATE INDEX IF NOT EXISTS idx_tt_transactions_date ON tt_transactions(date)`,
-    `CREATE INDEX IF NOT EXISTS idx_tt_trips_date ON tt_trips(date)`,
-    `CREATE INDEX IF NOT EXISTS idx_tt_entries_date ON tt_entries(date)`,
-    `CREATE INDEX IF NOT EXISTS idx_porancha_hishob_date ON porancha_hishob_entries(date)`
-  ];
-  for (const idxSql of indexStatements) {
-    try {
-      await run(idxSql);
-    } catch (e) {
-      console.error('[DB] Failed to create index:', e.message);
-    }
-  }
+  // Run all migrations concurrently (failures are ignored if column already exists)
+  await Promise.allSettled([
+    run(`ALTER TABLE employee_transactions ADD COLUMN remarks TEXT`),
+    run(`CREATE INDEX IF NOT EXISTS idx_debtor_transactions_id_date ON debtor_transactions(debtor_id, transaction_date)`),
+    run(`CREATE INDEX IF NOT EXISTS idx_employee_transactions_id_date ON employee_transactions(employee_id, transaction_date)`),
+    run(`CREATE INDEX IF NOT EXISTS idx_tt_transactions_date ON tt_transactions(date)`),
+    run(`CREATE INDEX IF NOT EXISTS idx_tt_trips_date ON tt_trips(date)`),
+    run(`CREATE INDEX IF NOT EXISTS idx_tt_entries_date ON tt_entries(date)`),
+    run(`CREATE INDEX IF NOT EXISTS idx_porancha_hishob_date ON porancha_hishob_entries(date)`)
+  ]);
+  console.log('[DB] Migrations processed.');
 }
 
 module.exports = { run, get, all, batch, initDatabase };
