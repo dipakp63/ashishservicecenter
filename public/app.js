@@ -3494,8 +3494,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function loadGstReport(month) {
     if (!gstTableBody) return;
-    
-    gstTableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">Loading monthly report...</td></tr>`;
+    if (gstTableBody && (gstTableBody.children.length === 0 || gstTableBody.innerText.includes('Loading'))) {
+      gstTableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">Loading monthly report...</td></tr>`;
+    }
     if (gstTableFooter) gstTableFooter.innerHTML = '';
 
     try {
@@ -3674,7 +3675,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   async function fetchHpclTransactions() {
     if (!hpclTableBody) return;
-    if (hpclTableBody.children.length === 0 || hpclTableBody.innerText.includes('No transactions')) {
+    if (hpclTableBody.children.length === 0 || hpclTableBody.innerText.includes('Loading')) {
       hpclTableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);">Loading transactions...</td></tr>`;
     }
     
@@ -5026,7 +5027,9 @@ document.addEventListener('DOMContentLoaded', () => {
   async function fetchEmployees() {
     const tbody = document.getElementById('employee-list-tbody');
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:2rem; color:var(--text-muted);">Loading...</td></tr>';
+    if (tbody.children.length === 0 || tbody.innerText.includes('Loading')) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:2rem; color:var(--text-muted);">Loading...</td></tr>';
+    }
     try {
       const res = await fetch(`/api/employees?month=${empActiveMonth}`);
       const data = await res.json();
@@ -6019,7 +6022,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectors = document.querySelectorAll('.tt-month-select-shared');
     const selectedMonth = selectors.length > 0 ? selectors[0].value : (dateInput.value || activeDate).substring(0, 7);
     
-    if (ttStatementBody && (ttStatementBody.children.length === 0 || ttStatementBody.innerText.includes('No transactions'))) {
+    if (ttStatementBody && (ttStatementBody.children.length === 0 || ttStatementBody.innerText.includes('Loading'))) {
       ttStatementBody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Loading...</td></tr>';
     }
 
