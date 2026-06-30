@@ -664,20 +664,44 @@ document.addEventListener('DOMContentLoaded', () => {
     clearCashInputs();
 
     // Load opening readings, opening tank stocks, and rates for the new date
-    await fetchOpeningReadings(dateInput.value);
-    await fetchOpeningTankStocks(dateInput.value);
-    await fetchOpeningRates(dateInput.value);
-    await fetchOpeningCash(dateInput.value);
+    try {
+      const response = await fetch(`/api/day-data?date=${dateInput.value}`);
+      if (response.ok) {
+        const data = await response.json();
+        await Promise.all([
+          fetchOpeningReadings(dateInput.value, data.readings),
+          fetchOpeningTankStocks(dateInput.value, data.tanks),
+          fetchOpeningRates(dateInput.value, data.rates),
+          fetchOpeningCash(dateInput.value, data.cash)
+        ]);
+      } else {
+        throw new Error('Failed to fetch day data');
+      }
+    } catch (err) {
+      console.error(err);
+      // Fallback
+      await Promise.all([
+        fetchOpeningReadings(dateInput.value),
+        fetchOpeningTankStocks(dateInput.value),
+        fetchOpeningRates(dateInput.value),
+        fetchOpeningCash(dateInput.value)
+      ]);
+    }
   }
 
   // Fetch opening readings for selected date
-  async function fetchOpeningReadings(selectedDate) {
+  async function fetchOpeningReadings(selectedDate, prefetchedData = null) {
     try {
-      const response = await fetch(`/api/readings/opening?date=${selectedDate}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch opening readings');
+      let data;
+      if (prefetchedData) {
+        data = prefetchedData;
+      } else {
+        const response = await fetch(`/api/readings/opening?date=${selectedDate}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch opening readings');
+        }
+        data = await response.json();
       }
-      const data = await response.json();
       
       const readings = data.savedReadings;
       const openingData = data.openingReadings;
@@ -754,14 +778,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Fetch opening tank stocks for selected date (closing stock of previous day)
-  async function fetchOpeningTankStocks(selectedDate) {
+  // Fetch Opening Tank Stocks for selected date
+  async function fetchOpeningTankStocks(selectedDate, prefetchedData = null) {
     try {
-      const response = await fetch(`/api/tanks/opening?date=${selectedDate}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch opening tank stocks');
+      let data;
+      if (prefetchedData) {
+        data = prefetchedData;
+      } else {
+        const response = await fetch(`/api/tanks/opening?date=${selectedDate}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch opening tank stocks');
+        }
+        data = await response.json();
       }
-      const data = await response.json();
       
       const savedTanks = data.savedTanks;
       const openingTanks = data.openingTanks;
@@ -797,7 +826,7 @@ document.addEventListener('DOMContentLoaded', () => {
           openingDipInput.disabled = true;
           openingStockInput.disabled = true;
           closingDipInput.disabled = false; // Keep closing editable
-          closingStockInput.disabled = false;
+          closingDipInput.disabled = false;
 
           // Track decantation loads
           currentDecantation[t.product] = t.decantation_qty || 0;
@@ -921,14 +950,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Fetch opening rates for selected date
-  async function fetchOpeningRates(selectedDate) {
+  // Fetch Opening Rates for selected date
+  async function fetchOpeningRates(selectedDate, prefetchedData = null) {
     try {
-      const response = await fetch(`/api/rates/opening?date=${selectedDate}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch opening rates');
+      let data;
+      if (prefetchedData) {
+        data = prefetchedData;
+      } else {
+        const response = await fetch(`/api/rates/opening?date=${selectedDate}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch rates');
+        }
+        data = await response.json();
       }
-      const data = await response.json();
       
       const rates = data.rates;
       const isSaved = data.isSaved;
@@ -1263,10 +1297,21 @@ document.addEventListener('DOMContentLoaded', () => {
         formattedDisplay.textContent = formatDate(activeDate);
       }
       isDayClosed = false;
-      fetchOpeningReadings(activeDate);
-      fetchOpeningTankStocks(activeDate);
-      fetchOpeningRates(activeDate);
-      fetchOpeningCash(activeDate);
+      
+      try {
+        const response = await fetch(`/api/day-data?date=${activeDate}`);
+        if (response.ok) {
+          const data = await response.json();
+          await Promise.all([
+            fetchOpeningReadings(activeDate, data.readings),
+            fetchOpeningTankStocks(activeDate, data.tanks),
+            fetchOpeningRates(activeDate, data.rates),
+            fetchOpeningCash(activeDate, data.cash)
+          ]);
+        }
+      } catch (err) {
+        console.error(err);
+      }
       return;
     }
 
@@ -1288,10 +1333,20 @@ document.addEventListener('DOMContentLoaded', () => {
       clearCashInputs();
     }
 
-    fetchOpeningReadings(dateInput.value);
-    fetchOpeningTankStocks(dateInput.value);
-    fetchOpeningRates(dateInput.value);
-    fetchOpeningCash(dateInput.value);
+    try {
+      const response = await fetch(`/api/day-data?date=${dateInput.value}`);
+      if (response.ok) {
+        const data = await response.json();
+        await Promise.all([
+          fetchOpeningReadings(dateInput.value, data.readings),
+          fetchOpeningTankStocks(dateInput.value, data.tanks),
+          fetchOpeningRates(dateInput.value, data.rates),
+          fetchOpeningCash(dateInput.value, data.cash)
+        ]);
+      }
+    } catch (err) {
+      console.error(err);
+    }
   });
 
   // Decantation radio buttons toggle listener — update button label/destination on every change
@@ -2313,13 +2368,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let currentCashData = null;
 
-  async function fetchOpeningCash(selectedDate) {
+  async function fetchOpeningCash(selectedDate, prefetchedData = null) {
     try {
-      const response = await fetch(`/api/cash/opening?date=${selectedDate}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch cash reconciliation');
+      let data;
+      if (prefetchedData) {
+        data = prefetchedData;
+      } else {
+        const response = await fetch(`/api/cash/opening?date=${selectedDate}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch cash reconciliation');
+        }
+        data = await response.json();
       }
-      const data = await response.json();
       
       const cash = data.cash;
       if (cash) {
@@ -3013,30 +3073,53 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Set default date logic based on latest saved entry in database
   async function initializeDefaultDate() {
-    await fetchActiveDate();
-    
-    // Enforce minimum date as June 1, 2026
-    if (activeDate < '2026-06-01') {
-      activeDate = '2026-06-01';
-    }
-    
-    dateInput.value = activeDate;
-    dateInput.max = activeDate;
-    dateInput.min = '2026-06-01';
+    try {
+      const response = await fetch('/api/day-data');
+      if (!response.ok) throw new Error('Failed to fetch day data');
+      const data = await response.json();
+      
+      activeDate = data.activeDate;
+      
+      // Enforce minimum date as June 1, 2026
+      if (activeDate < '2026-06-01') {
+        activeDate = '2026-06-01';
+      }
+      
+      dateInput.value = data.targetDate;
+      dateInput.max = activeDate;
+      dateInput.min = '2026-06-01';
 
-    const formattedDisplay = document.getElementById('formatted-date-display');
-    if (formattedDisplay) {
-      formattedDisplay.textContent = formatDate(activeDate);
-    }
+      const formattedDisplay = document.getElementById('formatted-date-display');
+      if (formattedDisplay) {
+        formattedDisplay.textContent = formatDate(dateInput.value);
+      }
 
-    isDayClosed = false;
-    // Now load opening readings/stocks/rates/cash for the selected date
-    await Promise.all([
-      fetchOpeningReadings(dateInput.value),
-      fetchOpeningTankStocks(dateInput.value),
-      fetchOpeningRates(dateInput.value),
-      fetchOpeningCash(dateInput.value)
-    ]);
+      isDayClosed = false;
+      // Now load opening readings/stocks/rates/cash for the selected date
+      await Promise.all([
+        fetchOpeningReadings(dateInput.value, data.readings),
+        fetchOpeningTankStocks(dateInput.value, data.tanks),
+        fetchOpeningRates(dateInput.value, data.rates),
+        fetchOpeningCash(dateInput.value, data.cash)
+      ]);
+    } catch (error) {
+      console.error('Error initializing default date:', error);
+      // Fallback
+      await fetchActiveDate();
+      if (activeDate < '2026-06-01') activeDate = '2026-06-01';
+      dateInput.value = activeDate;
+      dateInput.max = activeDate;
+      dateInput.min = '2026-06-01';
+      const formattedDisplay = document.getElementById('formatted-date-display');
+      if (formattedDisplay) formattedDisplay.textContent = formatDate(activeDate);
+      isDayClosed = false;
+      await Promise.all([
+        fetchOpeningReadings(dateInput.value),
+        fetchOpeningTankStocks(dateInput.value),
+        fetchOpeningRates(dateInput.value),
+        fetchOpeningCash(dateInput.value)
+      ]);
+    }
 
     if (typeof window.updateTankerCalculator === 'function') {
       window.updateTankerCalculator(true);
@@ -4790,7 +4873,7 @@ document.addEventListener('DOMContentLoaded', () => {
       typeof loadTtLedger === 'function' ? loadTtLedger() : Promise.resolve(),
       typeof loadGstReport === 'function' ? loadGstReport(currentMonth) : Promise.resolve()
     ]).catch(console.error);
-  }, 1000); // 1-second delay so it doesn't block critical page render
+  }, 3000); // 3-second delay so it doesn't block critical page render
 
   // ── EMPLOYEE MANAGEMENT ──────────────────────────────────────────────────────
 

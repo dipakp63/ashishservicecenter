@@ -373,6 +373,25 @@ async function initDatabase() {
 
   console.log('[DB] All tables initialized successfully.');
 
+  // ── Indexes ────────────────────────────────────────────────────────────────
+  const indexStatements = [
+    { sql: `CREATE INDEX IF NOT EXISTS idx_readings_date ON readings(date)` },
+    { sql: `CREATE INDEX IF NOT EXISTS idx_tank_readings_date ON tank_readings(date)` },
+    { sql: `CREATE INDEX IF NOT EXISTS idx_non_cash_payments_date ON non_cash_payments(date)` },
+    { sql: `CREATE INDEX IF NOT EXISTS idx_hpcl_transactions_date ON hpcl_transactions(date)` },
+    { sql: `CREATE INDEX IF NOT EXISTS idx_debtor_transactions_debtor_date ON debtor_transactions(debtor_id, transaction_date)` },
+    { sql: `CREATE INDEX IF NOT EXISTS idx_employee_transactions_employee_date ON employee_transactions(employee_id, transaction_date)` },
+    { sql: `CREATE INDEX IF NOT EXISTS idx_tt_transactions_date ON tt_transactions(date)` },
+    { sql: `CREATE INDEX IF NOT EXISTS idx_tt_trips_date ON tt_trips(date)` },
+    { sql: `CREATE INDEX IF NOT EXISTS idx_tt_entries_date ON tt_entries(date)` },
+    { sql: `CREATE INDEX IF NOT EXISTS idx_chillar_transactions_date ON chillar_transactions(date)` },
+    { sql: `CREATE INDEX IF NOT EXISTS idx_porancha_hishob_entries_date ON porancha_hishob_entries(date)` },
+  ];
+  for (const stmt of indexStatements) {
+    await run(stmt.sql, stmt.args || []);
+  }
+  console.log('[DB] All indexes initialized successfully.');
+
   // ── Migrations ────────────────────────────────────────────────────────────
   // Add particular1 column to tt_transactions if it doesn't exist
   try {
