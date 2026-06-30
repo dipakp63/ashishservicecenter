@@ -2540,44 +2540,6 @@ app.delete('/api/chillar/transaction/:id', async (req, res) => {
 
 
 
-// ── Admin Reset Data ───────────────────────────────────────────────────────────
-
-app.get('/api/admin/backup', async (req, res) => {
-  if (req.query.secret !== 'RESET_DATA_JULY_2026') return res.status(403).send('Forbidden');
-  try {
-    const tables = [
-      'readings', 'tank_readings', 'rates', 'cash_reconciliation', 
-      'debtor_transactions', 'debtors', 'employees', 'employee_transactions', 'hpcl_transactions', 
-      'non_cash_payments', 'tt_transactions', 'tt_trips', 'tt_entries', 'chillar_transactions', 
-      'porancha_hishob_entries', 'porancha_hishob_testing', 'profit_margins', 'hpcl_config'
-    ];
-    const backup = {};
-    for (const table of tables) {
-      backup[table] = await db.all(`SELECT * FROM ${table}`);
-    }
-    res.json(backup);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.post('/api/admin/reset', async (req, res) => {
-  if (req.query.secret !== 'RESET_DATA_JULY_2026') return res.status(403).send('Forbidden');
-  try {
-    const tablesToClear = [
-      'readings', 'tank_readings', 'rates', 'cash_reconciliation', 
-      'debtor_transactions', 'employee_transactions', 'hpcl_transactions', 
-      'non_cash_payments', 'tt_transactions', 'tt_trips', 'tt_entries', 'chillar_transactions', 
-      'porancha_hishob_entries', 'porancha_hishob_testing'
-    ];
-    const statements = tablesToClear.map(table => ({ sql: `DELETE FROM ${table}` }));
-    await db.batch(statements);
-    res.json({ success: true, message: 'All transactional data wiped successfully.' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 // ── Server Start (local development only, skipped on Vercel) ────────────────
 
 if (!process.env.VERCEL) {
