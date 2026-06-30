@@ -2546,10 +2546,10 @@ app.get('/api/admin/backup', async (req, res) => {
   if (req.query.secret !== 'RESET_DATA_JULY_2026') return res.status(403).send('Forbidden');
   try {
     const tables = [
-      'readings', 'tank_readings', 'rates', 'cash_reconciliation', 'daily_cash_summaries', 'closing_status',
+      'readings', 'tank_readings', 'rates', 'cash_reconciliation', 
       'debtor_transactions', 'debtors', 'employees', 'employee_transactions', 'hpcl_transactions', 
       'non_cash_payments', 'tt_transactions', 'tt_trips', 'tt_entries', 'chillar_transactions', 
-      'porancha_hishob_entries', 'porancha_hishob_testing', 'profit_margins', 'hpcl_config', 'tt_config'
+      'porancha_hishob_entries', 'porancha_hishob_testing', 'profit_margins', 'hpcl_config'
     ];
     const backup = {};
     for (const table of tables) {
@@ -2565,7 +2565,7 @@ app.post('/api/admin/reset', async (req, res) => {
   if (req.query.secret !== 'RESET_DATA_JULY_2026') return res.status(403).send('Forbidden');
   try {
     const tablesToClear = [
-      'readings', 'tank_readings', 'rates', 'cash_reconciliation', 'daily_cash_summaries', 'closing_status',
+      'readings', 'tank_readings', 'rates', 'cash_reconciliation', 
       'debtor_transactions', 'employee_transactions', 'hpcl_transactions', 
       'non_cash_payments', 'tt_transactions', 'tt_trips', 'tt_entries', 'chillar_transactions', 
       'porancha_hishob_entries', 'porancha_hishob_testing'
