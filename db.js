@@ -221,7 +221,7 @@ async function initDatabase() {
       )`,
     },
     {
-      sql: `INSERT OR IGNORE INTO hpcl_config (key, value) VALUES ('hpcl_opening_balance', '4700')`,
+      sql: `INSERT OR IGNORE INTO hpcl_config (key, value) VALUES ('hpcl_opening_balance', '0')`,
     },
     {
       sql: `CREATE TABLE IF NOT EXISTS debtors (

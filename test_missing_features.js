@@ -100,7 +100,7 @@ const runTest = async () => {
     // ── Test 3: Chillar Manual CREDIT ──
     console.log('\nAdding Chillar Credit adjustment...');
     const creditPayload = {
-      date: '2026-06-16',
+      date: '2026-06-27',
       type: 'MANUAL_CREDIT',
       description: 'Found extra change',
       notes_10: 0,
@@ -121,7 +121,7 @@ const runTest = async () => {
     // ── Test 4: Chillar Manual DEBIT ──
     console.log('\nAdding Chillar Debit adjustment...');
     const debitPayload = {
-      date: '2026-06-16',
+      date: '2026-06-27',
       type: 'MANUAL_DEBIT',
       description: 'Used for office tea',
       notes_10: 0,
@@ -166,31 +166,31 @@ const runTest = async () => {
 
 
     // ── Test 7: Porancha Hishob (Blocked day check) ──
-    console.log('\nTesting Porancha Hishob for non-closed date 2026-06-16...');
-    const checkRes1 = await sendRequest('/api/readings/opening?date=2026-06-16', 'GET');
+    console.log('\nTesting Porancha Hishob for non-closed date 2026-06-27...');
+    const checkRes1 = await sendRequest('/api/readings/opening?date=2026-06-27', 'GET');
     console.log('Date closed state:', checkRes1.body.isClosed);
     if (checkRes1.body.isClosed) throw new Error('Expected date to be open.');
 
     // ── Test 8: Porancha Hishob with Finalized Day ──
-    console.log('\nSeeding database with finalized readings for 2026-06-16...');
+    console.log('\nSeeding database with finalized readings for 2026-06-27...');
     const testDb = new sqlite3.Database(dbPath);
     await new Promise((resolve, reject) => {
       testDb.serialize(() => {
         // Seed 6 nozzles
         const nozzleStmt = testDb.prepare('INSERT INTO readings (date, nozzle_id, product, opening_reading, closing_reading, testing_qty) VALUES (?, ?, ?, ?, ?, ?)');
-        nozzleStmt.run('2026-06-16', 1, 'Petrol', 10, 20, 5);
-        nozzleStmt.run('2026-06-16', 2, 'Petrol', 10, 20, 0);
-        nozzleStmt.run('2026-06-16', 3, 'Petrol', 10, 20, 0);
-        nozzleStmt.run('2026-06-16', 4, 'Diesel', 10, 20, 0);
-        nozzleStmt.run('2026-06-16', 5, 'Diesel', 10, 20, 0);
-        nozzleStmt.run('2026-06-16', 6, 'poWer', 10, 20, 0);
+        nozzleStmt.run('2026-06-27', 1, 'Petrol', 10, 20, 5);
+        nozzleStmt.run('2026-06-27', 2, 'Petrol', 10, 20, 0);
+        nozzleStmt.run('2026-06-27', 3, 'Petrol', 10, 20, 0);
+        nozzleStmt.run('2026-06-27', 4, 'Diesel', 10, 20, 0);
+        nozzleStmt.run('2026-06-27', 5, 'Diesel', 10, 20, 0);
+        nozzleStmt.run('2026-06-27', 6, 'poWer', 10, 20, 0);
         nozzleStmt.finalize();
 
         // Seed rates
-        testDb.run("INSERT INTO rates (date, rate_power, rate_petrol, rate_diesel) VALUES ('2026-06-16', 110, 100, 90)");
+        testDb.run("INSERT INTO rates (date, rate_power, rate_petrol, rate_diesel) VALUES ('2026-06-27', 110, 100, 90)");
 
         // Close day (cash_reconciliation)
-        testDb.run("INSERT INTO cash_reconciliation (date, total_sales_value, total_cash_received, shortfall) VALUES ('2026-06-16', 1000, 1000, 0)", (err) => {
+        testDb.run("INSERT INTO cash_reconciliation (date, total_sales_value, total_cash_received, shortfall) VALUES ('2026-06-27', 1000, 1000, 0)", (err) => {
           if (err) reject(err);
           else resolve();
         });
@@ -198,13 +198,13 @@ const runTest = async () => {
     });
     testDb.close();
 
-    const checkRes2 = await sendRequest('/api/readings/opening?date=2026-06-16', 'GET');
+    const checkRes2 = await sendRequest('/api/readings/opening?date=2026-06-27', 'GET');
     console.log('Date closed state after seeding:', checkRes2.body.isClosed);
     if (!checkRes2.body.isClosed) throw new Error('Expected date to be closed.');
 
     // ── Test 9: Get Shift entries for the date (should be empty initially but return testing nozzles) ──
     console.log('\nFetching initial shift details...');
-    const hishobGetRes1 = await sendRequest('/api/porancha-hishob?date=2026-06-16', 'GET');
+    const hishobGetRes1 = await sendRequest('/api/porancha-hishob?date=2026-06-27', 'GET');
     console.log('Entries length:', hishobGetRes1.body.entries.length);
     console.log('Testing entries length:', hishobGetRes1.body.testing.length);
     if (hishobGetRes1.body.entries.length !== 0) throw new Error('Expected no shift entries saved yet.');
@@ -213,7 +213,7 @@ const runTest = async () => {
     // ── Test 10: Saving shift entries and testing data ──
     console.log('\nSaving shift entries...');
     const hishobSavePayload = {
-      date: '2026-06-16',
+      date: '2026-06-27',
       entries: [
         { shift: 1, nozzle_index: 1, product: 'Petrol', employee_id: 1, opening_reading: 10, closing_reading: 15, difference_sale: 5, rate: 100, final_amount: 500, phonepe_amount: 0 },
         { shift: 2, nozzle_index: 1, product: 'Petrol', employee_id: 2, opening_reading: 15, closing_reading: 20, difference_sale: 5, rate: 100, final_amount: 500, phonepe_amount: 0 }
@@ -228,7 +228,7 @@ const runTest = async () => {
 
     // ── Test 11: Fetching saved shift entries ──
     console.log('\nFetching saved shift details...');
-    const hishobGetRes2 = await sendRequest('/api/porancha-hishob?date=2026-06-16', 'GET');
+    const hishobGetRes2 = await sendRequest('/api/porancha-hishob?date=2026-06-27', 'GET');
     console.log('Entries length after save:', hishobGetRes2.body.entries.length);
     console.log('Testing entries after save:', hishobGetRes2.body.testing);
     if (hishobGetRes2.body.entries.length !== 2) throw new Error('Expected 2 shift entries saved.');

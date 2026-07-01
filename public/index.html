@@ -152,7 +152,7 @@
       const passwordVal = '1161';
       
       // Check auth status immediately
-      if (localStorage.getItem(authKey) === 'verified') {
+      if (sessionStorage.getItem(authKey) === 'verified') {
         document.write('<style>.app-layout { display: flex !important; }</style>');
         document.addEventListener('DOMContentLoaded', () => {
           const lp = document.getElementById('landing-login-page');
@@ -167,7 +167,7 @@
         if (!pwdInput) return;
         
         if (pwdInput.value === passwordVal) {
-          localStorage.setItem(authKey, 'verified');
+          sessionStorage.setItem(authKey, 'verified');
           const lp = document.getElementById('landing-login-page');
           const app = document.getElementById('main-app-layout');
           if (lp) {

@@ -56,9 +56,9 @@ const db = new sqlite3.Database(dbPath, (err) => {
       else console.log('Table "hpcl_config" cleared.');
     });
 
-    db.run("INSERT INTO hpcl_config (key, value) VALUES ('hpcl_opening_balance', '4700')", (err) => {
+    db.run("INSERT INTO hpcl_config (key, value) VALUES ('hpcl_opening_balance', '0')", (err) => {
       if (err) console.error('Error seeding hpcl_opening_balance:', err.message);
-      else console.log('Seeded default opening balance ₹4,700.');
+      else console.log('Seeded default opening balance ₹0.');
     });
 
     db.run('DELETE FROM employee_transactions', (err) => {

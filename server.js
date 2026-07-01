@@ -37,7 +37,7 @@ async function getActiveDate() {
     const day = String(latestDate.getUTCDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   }
-  return '2026-06-01';
+  return '2026-06-26';
 }
 
 function isLastDayOfMonth(dateStr) {
@@ -222,12 +222,17 @@ async function recalculateHpclLedger() {
 
 // ── API Routes ──────────────────────────────────────────────────────────────
 
+// Endpoint to fetch the current server time (milliseconds since epoch)
+app.get('/api/server-time', (req, res) => {
+  res.json({ serverTime: Date.now() });
+});
+
 // Endpoint to fetch the current active date for input
 app.get('/api/active-date', async (req, res) => {
   try {
     const row = await db.get('SELECT MAX(date) AS latest_closed_date FROM cash_reconciliation');
     const latestClosedDate = row ? row.latest_closed_date : null;
-    let activeDate = '2026-06-01';
+    let activeDate = '2026-06-26';
     if (latestClosedDate) {
       const [y, m, d] = latestClosedDate.split('-');
       const latestDate = new Date(Date.UTC(y, m - 1, d));
@@ -2418,7 +2423,7 @@ app.post('/api/chillar/opening', async (req, res) => {
       { sql: `DELETE FROM chillar_transactions WHERE type = 'OPENING'` },
       {
         sql: `INSERT INTO chillar_transactions (date, type, description, notes_10, coins_20, coins_10, coins_5, coins_2, coins_1, total_amount)
-              VALUES ('2026-06-01', 'OPENING', 'Opening Balance', ?, ?, ?, ?, ?, ?, ?)`,
+              VALUES ('2026-06-26', 'OPENING', 'Opening Balance', ?, ?, ?, ?, ?, ?, ?)`,
         args: [n10, c20, c10, c5, c2, c1, total]
       }
     ]);

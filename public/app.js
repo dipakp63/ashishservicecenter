@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Global active date and closed state
-  let activeDate = '2026-06-01';
+  let activeDate = '2026-06-26';
   let latestClosedDate = null;
   let isDayClosed = false;
 
@@ -202,8 +202,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Set default starting date to 2026-06-01 for hard testing setup
-  dateInput.value = '2026-06-01';
+  // Set default starting date to 2026-06-26 for hard testing setup
+  dateInput.value = '2026-06-26';
 
   // Theme Switching Logic
   const themeBtns = document.querySelectorAll('.theme-btn');
@@ -732,7 +732,7 @@ document.addEventListener('DOMContentLoaded', () => {
           });
           showToast('Fetched opening readings from database.', 'success');
         } else {
-          // Day 1 / No previous readings: Enable editing and default to 10
+          // Day 1 / No previous readings: Lock opening readings to 10
           for (let id = 1; id <= 6; id++) {
             const openingInput = document.getElementById(`nozzle-${id}-opening`);
             const closingInput = document.getElementById(`nozzle-${id}-closing`);
@@ -740,7 +740,7 @@ document.addEventListener('DOMContentLoaded', () => {
             openingInput.value = parseFloat(10).toFixed(3);
             closingInput.value = '';
             
-            openingInput.disabled = false; // Make editable for Day 1 setup
+            openingInput.disabled = true; // Lock opening readings to 10
             closingInput.disabled = false;
             updateDifference(id);
           }
@@ -889,8 +889,7 @@ document.addEventListener('DOMContentLoaded', () => {
           });
           showToast('Fetched opening tank stocks from database.', 'success');
         } else {
-          // Day 1 / No previous readings: Default to HALF of the tank capacity
-          const capacities = { 1: 9000, 2: 16000, 3: 35000 };
+          // Day 1 / No previous readings: Default to 0.00 opening stock
           for (let id = 1; id <= 3; id++) {
             const openingDipInput = document.getElementById(`tank-${id}-opening-dip`);
             const openingStockInput = document.getElementById(`tank-${id}-opening`);
@@ -898,16 +897,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const closingStockInput = document.getElementById(`tank-${id}-closing`);
             
             openingDipInput.value = parseFloat(0).toFixed(1);
-            openingStockInput.value = parseFloat(capacities[id] / 2).toFixed(2);
+            openingStockInput.value = parseFloat(0).toFixed(2);
             closingDipInput.value = '';
             closingStockInput.value = '';
             
-            openingDipInput.disabled = false; // Make editable for Day 1 setup
-            openingStockInput.disabled = false;
+            openingDipInput.disabled = true; // Lock opening values
+            openingStockInput.disabled = true;
             closingDipInput.disabled = false;
             closingStockInput.disabled = false;
           }
-          showToast('No previous tank stocks found. Initialized with half-capacity default opening stocks.', 'warning');
+          showToast('No previous tank stocks found. Initialized opening stocks to 0.00.', 'warning');
         }
       }
       
@@ -3015,14 +3014,14 @@ document.addEventListener('DOMContentLoaded', () => {
   async function initializeDefaultDate() {
     await fetchActiveDate();
     
-    // Enforce minimum date as June 1, 2026
-    if (activeDate < '2026-06-01') {
-      activeDate = '2026-06-01';
+    // Enforce minimum date as June 26, 2026
+    if (activeDate < '2026-06-26') {
+      activeDate = '2026-06-26';
     }
     
     dateInput.value = activeDate;
     dateInput.max = activeDate;
-    dateInput.min = '2026-06-01';
+    dateInput.min = '2026-06-26';
 
     const formattedDisplay = document.getElementById('formatted-date-display');
     if (formattedDisplay) {
@@ -8095,15 +8094,31 @@ document.addEventListener('DOMContentLoaded', () => {
     if (elCredit) elCredit.textContent = fmt(totalCredit);
   }
 
-  function validateDynamicPassword(input) {
+  async function validateDynamicPassword(input) {
     if (!input) return false;
     const cleanInput = input.trim();
-    const nowMs = Date.now();
+    
+    let nowMs = Date.now();
+    try {
+      const response = await fetch('/api/server-time');
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.serverTime) {
+          nowMs = data.serverTime;
+        }
+      }
+    } catch (err) {
+      console.warn('[AUTH] Failed to fetch server time, falling back to local client time.', err);
+    }
+
     const validPasswords = [];
     for (let offset = -5; offset <= 5; offset++) {
       const d = new Date(nowMs + offset * 60000);
-      const hh = String(d.getHours()).padStart(2, '0');
-      const mm = String(d.getMinutes()).padStart(2, '0');
+      
+      // Shift UTC time to IST (UTC + 5:30)
+      const istTime = new Date(d.getTime() + 19800000);
+      const hh = String(istTime.getUTCHours()).padStart(2, '0');
+      const mm = String(istTime.getUTCMinutes()).padStart(2, '0');
       
       // Standard 4-digit 24-hr format (e.g., "0945" or "1045")
       validPasswords.push(`${hh}${mm}`);
@@ -8119,13 +8134,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // Profit margins and calculation logic for the Secret page
   const navSecret = document.getElementById('nav-secret');
   if (navSecret) {
-    navSecret.addEventListener('click', (e) => {
+    navSecret.addEventListener('click', async (e) => {
       e.preventDefault();
       
       const pwd = prompt('Enter password to access Secret Profit Calculator:');
       if (pwd === null) return; // user cancelled prompt
       
-      if (!validateDynamicPassword(pwd)) {
+      const isValid = await validateDynamicPassword(pwd);
+      if (!isValid) {
         showToast('Access denied: Invalid password.', 'error');
         return;
       }
