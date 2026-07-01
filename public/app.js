@@ -5835,65 +5835,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // ── AVERAGE LOGIC ─────────────────────────────────────────────────────────────
-
-  async function loadTtAverage() {
-    const tbody = document.getElementById('tt-average-table-body');
-    if (tbody && (tbody.children.length === 0 || tbody.innerText.includes('No trip data'))) {
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Loading...</td></tr>';
-    }
+  // Delete Trip
+  window.deleteTtTrip = async function(id) {
+    if (!confirm('Are you sure you want to delete this trip?')) return;
 
     try {
-      const res = await fetch('/api/tt/average');
-      if (!res.ok) throw new Error('Failed to fetch averages.');
+      const res = await fetch(`/api/tt/trips/${id}`, { method: 'DELETE' });
       const data = await res.json();
-
-      const last10Avg = data.last10Average || 0;
-      const lifetimeAvgCard = document.getElementById('tt-avg-lifetime');
-      if (lifetimeAvgCard) {
-        lifetimeAvgCard.innerHTML = `${last10Avg.toFixed(2)} <span style="font-size: 1rem; font-weight: 600; color: var(--text-muted);">KM/L</span>`;
-      }
-
-      if (tbody) {
-        if (!data.trips || data.trips.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:1.5rem; color:var(--text-muted); font-style:italic;">No trip data available yet.</td></tr>';
-          return;
-        }
-
-        let html = '';
-        data.trips.forEach(t => {
-          const fuelAvg = t.fuel_filled > 0 ? (t.run_km / t.fuel_filled).toFixed(2) : '0.00';
-          const isEditable = true; // Category B TT trips are always editable
-          html += `
-            <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);"
-                data-id="${t.id}"
-                data-date="${t.date}"
-                data-start-km="${t.start_km}"
-                data-end-km="${t.end_km}"
-                data-fuel-filled="${t.fuel_filled || 0}"
-                data-load-qty="${t.load_qty || 0}"
-                data-driver-name="${t.driver_name || ''}"
-                data-notes="${t.notes || ''}">
-              <td style="padding:0.65rem 0.85rem; font-weight:600; color:var(--text-main);">${formatDate(t.date)}</td>
-              <td style="padding:0.65rem 0.85rem; text-align:right;">${t.start_km}</td>
-              <td style="padding:0.65rem 0.85rem; text-align:right;">${t.end_km}</td>
-              <td style="padding:0.65rem 0.85rem; text-align:right; font-weight:700; color:var(--accent);">${t.run_km.toLocaleString('en-IN')} KM</td>
-              <td style="padding:0.65rem 0.85rem; text-align:right; font-weight:700; color:var(--accent);">${t.fuel_filled || '0'}</td>
-              <td style="padding:0.65rem 0.85rem; text-align:right; font-weight:700; color:var(--success);">${fuelAvg} KM/L</td>
-              <td style="padding:0.65rem 0.85rem; text-align:center;">
-                ${isEditable ? `<button class="btn btn-secondary btn-icon" title="Edit" onclick="openEditTripModal(${t.id}, '${t.date}', ${t.start_km}, ${t.end_km}, ${t.fuel_filled || 0})" style="padding: 0.15rem 0.45rem; font-size: 0.75rem; border: none; border-radius: 0.4rem; cursor: pointer; background: var(--accent); color: var(--bg-main);">Edit</button>` : ''}
-              </td>
-            </tr>
-          `;
-        });
-        tbody.innerHTML = html;
+      if (res.ok) {
+        showToast(data.message || 'Trip deleted successfully.', 'success');
+        loadTtAverage();
+      } else {
+        showToast(data.error || 'Failed to delete trip.', 'error');
       }
     } catch (err) {
       console.error(err);
-      showToast('Error loading average data: ' + err.message, 'error');
-      if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--danger);">${err.message}</td></tr>`;
+      showToast('Network error deleting trip.', 'error');
     }
-  }
+  };
+
+  // ── AVERAGE LOGIC ─────────────────────────────────────────────────────────────
 
   async function handleAverageFuelEdit(trRow, cell) {
     const tripId = trRow.dataset.id;
@@ -5999,8 +5960,11 @@ document.addEventListener('DOMContentLoaded', () => {
               <td style="padding:0.65rem 0.85rem; text-align:right; font-weight:700; color:var(--accent);">${t.run_km.toLocaleString('en-IN')} KM</td>
               <td style="padding:0.65rem 0.85rem; text-align:right; font-weight:700; color:var(--accent);">${t.fuel_filled || '0'}</td>
               <td style="padding:0.65rem 0.85rem; text-align:right; font-weight:700; color:var(--success);">${fuelAvg} KM/L</td>
-              <td style="padding:0.65rem 0.85rem; text-align:center;">
-                ${isEditable ? `<button class="btn btn-secondary btn-icon" title="Edit" onclick="openEditTripModal(${t.id}, '${t.date}', ${t.start_km}, ${t.end_km}, ${t.fuel_filled || 0})" style="padding: 0.15rem 0.45rem; font-size: 0.75rem; border: none; border-radius: 0.4rem; cursor: pointer; background: var(--accent); color: var(--bg-main);">Edit</button>` : ''}
+              <td style="padding:0.65rem 0.85rem; text-align:center; display: flex; gap: 0.35rem; justify-content: center;">
+                ${isEditable ? `
+                  <button class="btn btn-secondary btn-icon" title="Edit" onclick="openEditTripModal(${t.id}, '${t.date}', ${t.start_km}, ${t.end_km}, ${t.fuel_filled || 0})" style="padding: 0.15rem 0.45rem; font-size: 0.75rem; border: none; border-radius: 0.4rem; cursor: pointer; background: var(--accent); color: var(--bg-main);">Edit</button>
+                  <button class="btn btn-danger btn-icon" title="Delete" onclick="deleteTtTrip(${t.id})" style="padding: 0.15rem 0.45rem; font-size: 0.75rem; border: none; border-radius: 0.4rem; cursor: pointer; background: var(--danger); color: #fff;">Delete</button>
+                ` : ''}
               </td>
             </tr>
           `;

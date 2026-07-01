@@ -55,6 +55,72 @@ async function getActiveDate() {
   return activeDateCache.date;
 }
 
+async function realignTtTrips(baseTripId, action) {
+  try {
+    // Fetch all trips in chronological order
+    const trips = await db.all(`SELECT * FROM tt_trips ORDER BY date ASC, id ASC`);
+    if (trips.length === 0) return;
+
+    if (action === 'DELETE') {
+      // If a trip was deleted, ensure forward continuity from the first trip to the last.
+      for (let i = 1; i < trips.length; i++) {
+        const prev = trips[i - 1];
+        const curr = trips[i];
+        if (curr.start_km !== prev.end_km) {
+          const runKm = curr.end_km - curr.start_km;
+          const newStart = prev.end_km;
+          const newEnd = newStart + runKm;
+          await db.run(
+            `UPDATE tt_trips SET start_km = ?, end_km = ?, run_km = ? WHERE id = ?`,
+            [newStart, newEnd, runKm, curr.id]
+          );
+          curr.start_km = newStart;
+          curr.end_km = newEnd;
+        }
+      }
+    } else if (action === 'EDIT' && baseTripId) {
+      // Find the index of the edited trip
+      const idx = trips.findIndex(t => t.id === parseInt(baseTripId));
+      if (idx === -1) return;
+
+      // Propagate backwards from idx to 0
+      for (let i = idx; i > 0; i--) {
+        const curr = trips[i];
+        const prev = trips[i - 1];
+        if (prev.end_km !== curr.start_km) {
+          const newEnd = curr.start_km;
+          const newRun = newEnd - prev.start_km;
+          await db.run(
+            `UPDATE tt_trips SET end_km = ?, run_km = ? WHERE id = ?`,
+            [newEnd, newRun, prev.id]
+          );
+          prev.end_km = newEnd;
+          prev.run_km = newRun;
+        }
+      }
+
+      // Propagate forwards from idx to the end
+      for (let i = idx; i < trips.length - 1; i++) {
+        const curr = trips[i];
+        const next = trips[i + 1];
+        if (next.start_km !== curr.end_km) {
+          const runKm = next.end_km - next.start_km;
+          const newStart = curr.end_km;
+          const newEnd = newStart + runKm;
+          await db.run(
+            `UPDATE tt_trips SET start_km = ?, end_km = ?, run_km = ? WHERE id = ?`,
+            [newStart, newEnd, runKm, next.id]
+          );
+          next.start_km = newStart;
+          next.end_km = newEnd;
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Error in realignTtTrips:', err.message);
+  }
+}
+
 function isLastDayOfMonth(dateStr) {
   if (!dateStr || dateStr.length !== 10) return false;
   const [y, m, d] = dateStr.split('-');
@@ -2193,11 +2259,13 @@ app.post('/api/tt/trips', async (req, res) => {
     const fuelFilled = parseFloat(fuel_filled) || 0;
     const loadQty = parseFloat(load_qty) || 0;
 
-    await db.run(
+    const result = await db.run(
       `INSERT INTO tt_trips (date, start_km, end_km, run_km, fuel_filled, load_qty, driver_name, notes)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [date, startKm, endKm, runKm, fuelFilled, loadQty, driver_name || '', notes || '']
     );
+
+    await realignTtTrips(result.lastInsertRowid, 'EDIT');
 
     res.json({ success: true, message: 'Trip recorded successfully.' });
   } catch (err) {
@@ -2230,6 +2298,8 @@ app.put('/api/tt/trips/:id', async (req, res) => {
       [date, startKm, endKm, runKm, fuelFilled, loadQty, driver_name || '', notes || '', id]
     );
 
+    await realignTtTrips(id, 'EDIT');
+
     res.json({ success: true, message: 'Trip updated successfully.' });
   } catch (err) {
     console.error('Error updating TT trip:', err.message);
@@ -2244,6 +2314,9 @@ app.delete('/api/tt/trips/:id', async (req, res) => {
     // Bypassed lock validation for Category B TT trips
 
     await db.run(`DELETE FROM tt_trips WHERE id = ?`, [id]);
+
+    await realignTtTrips(null, 'DELETE');
+
     res.json({ success: true, message: 'Trip deleted successfully.' });
   } catch (err) {
     console.error('Error deleting TT trip:', err.message);
