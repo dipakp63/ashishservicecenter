@@ -2034,14 +2034,14 @@ body.theme-hpcl #hpcl-modal input {
   border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
-/* Delete button in debtor table */
-.btn-delete-debtor {
-  padding: 0.15rem 0.4rem;
-  font-size: 0.65rem;
+/* Edit/Delete buttons in debtor table */
+.btn-edit-debtor {
+  padding: 0.25rem 0.45rem;
+  font-size: 0.8rem;
   min-height: auto;
   width: auto;
-  color: var(--danger);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: var(--accent);
+  border: 1px solid rgba(251, 191, 36, 0.25);
   background: transparent;
   border-radius: 0.25rem;
   cursor: pointer;
@@ -2049,11 +2049,39 @@ body.theme-hpcl #hpcl-modal input {
   transition: all 0.15s ease;
   line-height: 1;
   font-family: var(--font-body);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.35rem;
+}
+
+.btn-edit-debtor:hover {
+  background: rgba(251, 191, 36, 0.1);
+  border-color: rgba(251, 191, 36, 0.45);
+}
+
+.btn-delete-debtor {
+  padding: 0.25rem 0.45rem;
+  font-size: 0.8rem;
+  min-height: auto;
+  width: auto;
+  color: var(--danger);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  background: transparent;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.15s ease;
+  line-height: 1;
+  font-family: var(--font-body);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-delete-debtor:hover {
   background: rgba(239, 68, 68, 0.1);
-  border-color: rgba(239, 68, 68, 0.4);
+  border-color: rgba(239, 68, 68, 0.45);
 }
 
 /* Udhari content body layout */

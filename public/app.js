@@ -4090,12 +4090,8 @@ document.addEventListener('DOMContentLoaded', () => {
           <td style="padding: 0.45rem 0.75rem;">${d.address || '—'}</td>
           <td style="padding: 0.45rem 0.75rem; text-align: right; ${outstandingStyle}">${outstandingFormatted}</td>
           <td style="padding: 0.45rem 0.75rem; text-align: center;">
-            <button type="button" class="btn-edit-debtor" data-id="${d.id}" data-name="${d.debtor_name}" data-mobile="${d.mobile || ''}" data-address="${d.address || ''}" style="margin-right: 0.5rem;">
-              Edit ✏️
-            </button>
-            <button type="button" class="btn-delete-debtor" data-id="${d.id}" data-name="${d.debtor_name}">
-              Delete 🗑️
-            </button>
+            <button type="button" class="btn-edit-debtor" data-id="${d.id}" data-name="${d.debtor_name}" data-mobile="${d.mobile || ''}" data-address="${d.address || ''}" title="Edit Debtor">✏️</button>
+            <button type="button" class="btn-delete-debtor" data-id="${d.id}" data-name="${d.debtor_name}" title="Delete Debtor">🗑️</button>
           </td>
         `;
         udhariMasterTableBody.appendChild(tr);
