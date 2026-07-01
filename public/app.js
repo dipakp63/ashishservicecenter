@@ -664,20 +664,44 @@ document.addEventListener('DOMContentLoaded', () => {
     clearCashInputs();
 
     // Load opening readings, opening tank stocks, and rates for the new date
-    await fetchOpeningReadings(dateInput.value);
-    await fetchOpeningTankStocks(dateInput.value);
-    await fetchOpeningRates(dateInput.value);
-    await fetchOpeningCash(dateInput.value);
+    try {
+      const response = await fetch(`/api/day-data?date=${dateInput.value}`);
+      if (response.ok) {
+        const data = await response.json();
+        await Promise.all([
+          fetchOpeningReadings(dateInput.value, data.readings),
+          fetchOpeningTankStocks(dateInput.value, data.tanks),
+          fetchOpeningRates(dateInput.value, data.rates),
+          fetchOpeningCash(dateInput.value, data.cash)
+        ]);
+      } else {
+        throw new Error('Failed to fetch day data');
+      }
+    } catch (err) {
+      console.error(err);
+      // Fallback
+      await Promise.all([
+        fetchOpeningReadings(dateInput.value),
+        fetchOpeningTankStocks(dateInput.value),
+        fetchOpeningRates(dateInput.value),
+        fetchOpeningCash(dateInput.value)
+      ]);
+    }
   }
 
   // Fetch opening readings for selected date
-  async function fetchOpeningReadings(selectedDate) {
+  async function fetchOpeningReadings(selectedDate, prefetchedData = null) {
     try {
-      const response = await fetch(`/api/readings/opening?date=${selectedDate}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch opening readings');
+      let data;
+      if (prefetchedData) {
+        data = prefetchedData;
+      } else {
+        const response = await fetch(`/api/readings/opening?date=${selectedDate}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch opening readings');
+        }
+        data = await response.json();
       }
-      const data = await response.json();
       
       const readings = data.savedReadings;
       const openingData = data.openingReadings;
@@ -754,14 +778,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Fetch opening tank stocks for selected date (closing stock of previous day)
-  async function fetchOpeningTankStocks(selectedDate) {
+  // Fetch Opening Tank Stocks for selected date
+  async function fetchOpeningTankStocks(selectedDate, prefetchedData = null) {
     try {
-      const response = await fetch(`/api/tanks/opening?date=${selectedDate}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch opening tank stocks');
+      let data;
+      if (prefetchedData) {
+        data = prefetchedData;
+      } else {
+        const response = await fetch(`/api/tanks/opening?date=${selectedDate}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch opening tank stocks');
+        }
+        data = await response.json();
       }
-      const data = await response.json();
       
       const savedTanks = data.savedTanks;
       const openingTanks = data.openingTanks;
@@ -797,7 +826,7 @@ document.addEventListener('DOMContentLoaded', () => {
           openingDipInput.disabled = true;
           openingStockInput.disabled = true;
           closingDipInput.disabled = false; // Keep closing editable
-          closingStockInput.disabled = false;
+          closingDipInput.disabled = false;
 
           // Track decantation loads
           currentDecantation[t.product] = t.decantation_qty || 0;
@@ -920,14 +949,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Fetch opening rates for selected date
-  async function fetchOpeningRates(selectedDate) {
+  // Fetch Opening Rates for selected date
+  async function fetchOpeningRates(selectedDate, prefetchedData = null) {
     try {
-      const response = await fetch(`/api/rates/opening?date=${selectedDate}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch opening rates');
+      let data;
+      if (prefetchedData) {
+        data = prefetchedData;
+      } else {
+        const response = await fetch(`/api/rates/opening?date=${selectedDate}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch rates');
+        }
+        data = await response.json();
       }
-      const data = await response.json();
       
       const rates = data.rates;
       const isSaved = data.isSaved;
@@ -1253,7 +1287,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Date input change handler
-  dateInput.addEventListener('change', () => {
+  dateInput.addEventListener('change', async () => {
     if (dateInput.value > activeDate) {
       showToast(`Date ${formatDate(dateInput.value)} is locked. Please complete calculations for ${formatDate(activeDate)} first.`, 'error');
       dateInput.value = activeDate;
@@ -1262,10 +1296,21 @@ document.addEventListener('DOMContentLoaded', () => {
         formattedDisplay.textContent = formatDate(activeDate);
       }
       isDayClosed = false;
-      fetchOpeningReadings(activeDate);
-      fetchOpeningTankStocks(activeDate);
-      fetchOpeningRates(activeDate);
-      fetchOpeningCash(activeDate);
+      
+      try {
+        const response = await fetch(`/api/day-data?date=${activeDate}`);
+        if (response.ok) {
+          const data = await response.json();
+          await Promise.all([
+            fetchOpeningReadings(activeDate, data.readings),
+            fetchOpeningTankStocks(activeDate, data.tanks),
+            fetchOpeningRates(activeDate, data.rates),
+            fetchOpeningCash(activeDate, data.cash)
+          ]);
+        }
+      } catch (err) {
+        console.error(err);
+      }
       return;
     }
 
@@ -1287,10 +1332,20 @@ document.addEventListener('DOMContentLoaded', () => {
       clearCashInputs();
     }
 
-    fetchOpeningReadings(dateInput.value);
-    fetchOpeningTankStocks(dateInput.value);
-    fetchOpeningRates(dateInput.value);
-    fetchOpeningCash(dateInput.value);
+    try {
+      const response = await fetch(`/api/day-data?date=${dateInput.value}`);
+      if (response.ok) {
+        const data = await response.json();
+        await Promise.all([
+          fetchOpeningReadings(dateInput.value, data.readings),
+          fetchOpeningTankStocks(dateInput.value, data.tanks),
+          fetchOpeningRates(dateInput.value, data.rates),
+          fetchOpeningCash(dateInput.value, data.cash)
+        ]);
+      }
+    } catch (err) {
+      console.error(err);
+    }
   });
 
   // Decantation radio buttons toggle listener — update button label/destination on every change
@@ -2312,13 +2367,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let currentCashData = null;
 
-  async function fetchOpeningCash(selectedDate) {
+  async function fetchOpeningCash(selectedDate, prefetchedData = null) {
     try {
-      const response = await fetch(`/api/cash/opening?date=${selectedDate}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch cash reconciliation');
+      let data;
+      if (prefetchedData) {
+        data = prefetchedData;
+      } else {
+        const response = await fetch(`/api/cash/opening?date=${selectedDate}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch cash reconciliation');
+        }
+        data = await response.json();
       }
-      const data = await response.json();
       
       const cash = data.cash;
       if (cash) {
@@ -3012,30 +3072,53 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Set default date logic based on latest saved entry in database
   async function initializeDefaultDate() {
-    await fetchActiveDate();
-    
-    // Enforce minimum date as June 26, 2026
-    if (activeDate < '2026-06-26') {
-      activeDate = '2026-06-26';
-    }
-    
-    dateInput.value = activeDate;
-    dateInput.max = activeDate;
-    dateInput.min = '2026-06-26';
+    try {
+      const response = await fetch('/api/day-data');
+      if (!response.ok) throw new Error('Failed to fetch day data');
+      const data = await response.json();
+      
+      activeDate = data.activeDate;
+      
+      // Enforce minimum date as June 26, 2026
+      if (activeDate < '2026-06-26') {
+        activeDate = '2026-06-26';
+      }
+      
+      dateInput.value = data.targetDate < '2026-06-26' ? '2026-06-26' : data.targetDate;
+      dateInput.max = activeDate;
+      dateInput.min = '2026-06-26';
 
-    const formattedDisplay = document.getElementById('formatted-date-display');
-    if (formattedDisplay) {
-      formattedDisplay.textContent = formatDate(activeDate);
-    }
+      const formattedDisplay = document.getElementById('formatted-date-display');
+      if (formattedDisplay) {
+        formattedDisplay.textContent = formatDate(dateInput.value);
+      }
 
-    isDayClosed = false;
-    // Now load opening readings/stocks/rates/cash for the selected date
-    await Promise.all([
-      fetchOpeningReadings(dateInput.value),
-      fetchOpeningTankStocks(dateInput.value),
-      fetchOpeningRates(dateInput.value),
-      fetchOpeningCash(dateInput.value)
-    ]);
+      isDayClosed = false;
+      // Now load opening readings/stocks/rates/cash for the selected date
+      await Promise.all([
+        fetchOpeningReadings(dateInput.value, data.readings),
+        fetchOpeningTankStocks(dateInput.value, data.tanks),
+        fetchOpeningRates(dateInput.value, data.rates),
+        fetchOpeningCash(dateInput.value, data.cash)
+      ]);
+    } catch (error) {
+      console.error('Error initializing default date:', error);
+      // Fallback
+      await fetchActiveDate();
+      if (activeDate < '2026-06-01') activeDate = '2026-06-01';
+      dateInput.value = activeDate;
+      dateInput.max = activeDate;
+      dateInput.min = '2026-06-01';
+      const formattedDisplay = document.getElementById('formatted-date-display');
+      if (formattedDisplay) formattedDisplay.textContent = formatDate(activeDate);
+      isDayClosed = false;
+      await Promise.all([
+        fetchOpeningReadings(dateInput.value),
+        fetchOpeningTankStocks(dateInput.value),
+        fetchOpeningRates(dateInput.value),
+        fetchOpeningCash(dateInput.value)
+      ]);
+    }
 
     if (typeof window.updateTankerCalculator === 'function') {
       window.updateTankerCalculator(true);
@@ -3410,8 +3493,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function loadGstReport(month) {
     if (!gstTableBody) return;
-    
-    gstTableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">Loading monthly report...</td></tr>`;
+    if (gstTableBody && (gstTableBody.children.length === 0 || gstTableBody.innerText.includes('Loading'))) {
+      gstTableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">Loading monthly report...</td></tr>`;
+    }
     if (gstTableFooter) gstTableFooter.innerHTML = '';
 
     try {
@@ -3590,7 +3674,9 @@ document.addEventListener('DOMContentLoaded', () => {
   
   async function fetchHpclTransactions() {
     if (!hpclTableBody) return;
-    hpclTableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);">Loading transactions...</td></tr>`;
+    if (hpclTableBody.children.length === 0 || hpclTableBody.innerText.includes('Loading')) {
+      hpclTableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);">Loading transactions...</td></tr>`;
+    }
     
     try {
       const response = await fetch('/api/hpcl/transactions?limit=15');
@@ -4774,22 +4860,6 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchGlobalDebtorsList();
   fetchGlobalEmployeesList();
 
-  // Background Preload of all views to eliminate "0000" visual latency on first click (Stale-While-Revalidate pattern)
-  setTimeout(() => {
-    const currentMonth = typeof activeDate !== 'undefined' && activeDate ? activeDate.substring(0, 7) : new Date().toISOString().substring(0, 7);
-    Promise.allSettled([
-      typeof loadHpclData === 'function' ? loadHpclData() : Promise.resolve(),
-      typeof loadDebtorMaster === 'function' ? loadDebtorMaster() : Promise.resolve(),
-      typeof loadActiveOrInactiveDebtors === 'function' ? loadActiveOrInactiveDebtors(showingActiveDebtorsTab) : Promise.resolve(),
-      typeof loadDateWiseReport === 'function' ? loadDateWiseReport() : Promise.resolve(),
-      typeof loadDebtorSummary === 'function' ? loadDebtorSummary() : Promise.resolve(),
-      typeof loadChillarData === 'function' ? loadChillarData() : Promise.resolve(),
-      typeof loadPoranchaHishob === 'function' ? loadPoranchaHishob() : Promise.resolve(),
-      typeof fetchEmployees === 'function' ? fetchEmployees() : Promise.resolve(),
-      typeof loadTtLedger === 'function' ? loadTtLedger() : Promise.resolve(),
-      typeof loadGstReport === 'function' ? loadGstReport(currentMonth) : Promise.resolve()
-    ]).catch(console.error);
-  }, 1000); // 1-second delay so it doesn't block critical page render
 
   // ── EMPLOYEE MANAGEMENT ──────────────────────────────────────────────────────
 
@@ -4956,7 +5026,9 @@ document.addEventListener('DOMContentLoaded', () => {
   async function fetchEmployees() {
     const tbody = document.getElementById('employee-list-tbody');
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:2rem; color:var(--text-muted);">Loading...</td></tr>';
+    if (tbody.children.length === 0 || tbody.innerText.includes('Loading')) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:2rem; color:var(--text-muted);">Loading...</td></tr>';
+    }
     try {
       const res = await fetch(`/api/employees?month=${empActiveMonth}`);
       const data = await res.json();
@@ -5598,7 +5670,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectedMonth = selectors.length > 0 ? selectors[0].value : (dateInput.value || activeDate).substring(0, 7);
     
     const tbody = document.getElementById('tt-trips-table-body');
-    if (tbody) {
+    if (tbody && (tbody.children.length === 0 || tbody.innerText.includes('No entries'))) {
       tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Loading...</td></tr>';
     }
 
@@ -5767,7 +5839,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function loadTtAverage() {
     const tbody = document.getElementById('tt-average-table-body');
-    if (tbody) {
+    if (tbody && (tbody.children.length === 0 || tbody.innerText.includes('No trip data'))) {
       tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Loading...</td></tr>';
     }
 
@@ -5886,7 +5958,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function loadTtAverage() {
     const tbody = document.getElementById('tt-average-table-body');
-    if (tbody) {
+    if (tbody && (tbody.children.length === 0 || tbody.innerText.includes('No trip data'))) {
       tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Loading...</td></tr>';
     }
 
@@ -5949,7 +6021,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectors = document.querySelectorAll('.tt-month-select-shared');
     const selectedMonth = selectors.length > 0 ? selectors[0].value : (dateInput.value || activeDate).substring(0, 7);
     
-    if (ttStatementBody) {
+    if (ttStatementBody && (ttStatementBody.children.length === 0 || ttStatementBody.innerText.includes('Loading'))) {
       ttStatementBody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Loading...</td></tr>';
     }
 

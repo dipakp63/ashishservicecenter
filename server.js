@@ -26,7 +26,17 @@ app.use(async (req, res, next) => {
 
 // ── Helper Functions ────────────────────────────────────────────────────────
 
+let activeDateCache = {
+  date: null,
+  timestamp: 0
+};
+
 async function getActiveDate() {
+  const now = Date.now();
+  if (activeDateCache.date && (now - activeDateCache.timestamp < 5000)) {
+    return activeDateCache.date;
+  }
+
   const row = await db.get('SELECT MAX(date) AS latest_closed_date FROM cash_reconciliation');
   if (row && row.latest_closed_date) {
     const [y, m, d] = row.latest_closed_date.split('-');
@@ -35,9 +45,13 @@ async function getActiveDate() {
     const year = latestDate.getUTCFullYear();
     const month = String(latestDate.getUTCMonth() + 1).padStart(2, '0');
     const day = String(latestDate.getUTCDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
-  return '2026-06-26';
+    
+    activeDateCache.date = `${year}-${month}-${day}`;
+    activeDateCache.timestamp = now;
+    return activeDateCache.date;
+  activeDateCache.date = '2026-06-26';
+  activeDateCache.timestamp = now;
+  return activeDateCache.date;
 }
 
 function isLastDayOfMonth(dateStr) {
@@ -225,6 +239,83 @@ async function recalculateHpclLedger() {
 // Endpoint to fetch the current server time (milliseconds since epoch)
 app.get('/api/server-time', (req, res) => {
   res.json({ serverTime: Date.now() });
+});
+
+// Combined Endpoint to fetch all necessary data for the day closing view in one call
+app.get('/api/day-data', async (req, res) => {
+  try {
+    const { date } = req.query;
+    const activeDate = await getActiveDate();
+    const targetDate = date || activeDate;
+
+    // Fetch these in parallel from the DB
+    const [
+      readingsResponse,
+      tanksResponse,
+      ratesResponse,
+      cashResponse
+    ] = await Promise.all([
+      // get readings
+      (async () => {
+        const todayRows = await db.all(
+          `SELECT nozzle_id, product, opening_reading, closing_reading, testing_qty FROM readings WHERE date = ? ORDER BY nozzle_id ASC`,
+          [targetDate]
+        );
+        const yesterdayRows = await db.all(
+          `SELECT nozzle_id, product, closing_reading AS opening_reading FROM readings WHERE date = (SELECT MAX(date) FROM readings WHERE date < ?) ORDER BY nozzle_id ASC`,
+          [targetDate]
+        );
+        return { isClosed: todayRows.length === 6, savedReadings: todayRows, openingReadings: yesterdayRows };
+      })(),
+      
+      // get tanks
+      (async () => {
+        const todayRows = await db.all(
+          `SELECT tank_id, tank_name, product, capacity, opening_dip, opening_stock, closing_dip, closing_stock, decantation_qty, tt_decantation FROM tank_readings WHERE date = ? ORDER BY tank_id ASC`,
+          [targetDate]
+        );
+        const yesterdayRows = await db.all(
+          `SELECT tank_id, tank_name, product, capacity, closing_dip AS opening_dip, closing_stock AS opening_stock FROM tank_readings WHERE date = (SELECT MAX(date) FROM tank_readings WHERE date < ?) ORDER BY tank_id ASC`,
+          [targetDate]
+        );
+        return { isClosed: todayRows.length === 3, savedTanks: todayRows, openingTanks: yesterdayRows };
+      })(),
+      
+      // get rates
+      (async () => {
+        const todayRow = await db.get(`SELECT rate_power, rate_petrol, rate_diesel FROM rates WHERE date = ?`, [targetDate]);
+        if (todayRow) return { isSaved: true, rates: todayRow };
+        const previousRow = await db.get(`SELECT rate_power, rate_petrol, rate_diesel FROM rates WHERE date = (SELECT MAX(date) FROM rates WHERE date < ?)`, [targetDate]);
+        if (previousRow) return { isSaved: false, rates: previousRow };
+        return { isSaved: false, rates: { rate_power: 110.0, rate_petrol: 100.0, rate_diesel: 90.0 } };
+      })(),
+      
+      // get cash
+      (async () => {
+        const row = await db.get(
+          `SELECT total_sales_value, total_cash_received, shortfall, notes_500, notes_200, notes_100, notes_50, notes_20, notes_10, coins, coins_20, coins_10, coins_5, coins_2, coins_1 FROM cash_reconciliation WHERE date = ?`,
+          [targetDate]
+        );
+        const nonCashRows = await db.all(
+          `SELECT type, description, amount FROM non_cash_payments WHERE date = ? ORDER BY entry_index ASC`,
+          [targetDate]
+        );
+        return { isSaved: !!row, cash: row || null, nonCashPayments: nonCashRows || [] };
+      })()
+    ]);
+
+    res.json({
+      activeDate,
+      targetDate,
+      readings: readingsResponse,
+      tanks: tanksResponse,
+      rates: ratesResponse,
+      cash: cashResponse
+    });
+  } catch (err) {
+    console.error('Error fetching combined day data:', err.message);
+    res.status(500).json({ error: 'Database error fetching day data.' });
+  }
 });
 
 // Endpoint to fetch the current active date for input
@@ -809,6 +900,9 @@ app.post('/api/cash', async (req, res) => {
     } catch (err) {
       console.error('[CHILLAR] Failed to auto-sync day closing cash:', err.message);
     }
+
+    // Invalidate active date cache
+    activeDateCache.timestamp = 0;
 
     // End-of-month check to automatically trigger GST report
     if (isLastDayOfMonth(date)) {
