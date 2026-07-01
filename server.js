@@ -49,6 +49,7 @@ async function getActiveDate() {
     activeDateCache.date = `${year}-${month}-${day}`;
     activeDateCache.timestamp = now;
     return activeDateCache.date;
+  }
   activeDateCache.date = '2026-06-26';
   activeDateCache.timestamp = now;
   return activeDateCache.date;
