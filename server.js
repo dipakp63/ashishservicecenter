@@ -37,7 +37,7 @@ async function getActiveDate() {
     return activeDateCache.date;
   }
 
-  const row = await db.get('SELECT MAX(date) AS latest_closed_date FROM cash_reconciliation');
+  const row = await db.get("SELECT MAX(date) AS latest_closed_date FROM cash_reconciliation WHERE date >= '2026-06-26'");
   if (row && row.latest_closed_date) {
     const [y, m, d] = row.latest_closed_date.split('-');
     const latestDate = new Date(Date.UTC(y, m - 1, d));
@@ -263,7 +263,7 @@ app.get('/api/day-data', async (req, res) => {
           [targetDate]
         );
         const yesterdayRows = await db.all(
-          `SELECT nozzle_id, product, closing_reading AS opening_reading FROM readings WHERE date = (SELECT MAX(date) FROM readings WHERE date < ?) ORDER BY nozzle_id ASC`,
+          `SELECT nozzle_id, product, closing_reading AS opening_reading FROM readings WHERE date = (SELECT MAX(date) FROM readings WHERE date < ? AND date >= '2026-06-26') ORDER BY nozzle_id ASC`,
           [targetDate]
         );
         return { isClosed: todayRows.length === 6, savedReadings: todayRows, openingReadings: yesterdayRows };
@@ -276,7 +276,7 @@ app.get('/api/day-data', async (req, res) => {
           [targetDate]
         );
         const yesterdayRows = await db.all(
-          `SELECT tank_id, tank_name, product, capacity, closing_dip AS opening_dip, closing_stock AS opening_stock FROM tank_readings WHERE date = (SELECT MAX(date) FROM tank_readings WHERE date < ?) ORDER BY tank_id ASC`,
+          `SELECT tank_id, tank_name, product, capacity, closing_dip AS opening_dip, closing_stock AS opening_stock FROM tank_readings WHERE date = (SELECT MAX(date) FROM tank_readings WHERE date < ? AND date >= '2026-06-26') ORDER BY tank_id ASC`,
           [targetDate]
         );
         return { isClosed: todayRows.length === 3, savedTanks: todayRows, openingTanks: yesterdayRows };
@@ -286,7 +286,7 @@ app.get('/api/day-data', async (req, res) => {
       (async () => {
         const todayRow = await db.get(`SELECT rate_power, rate_petrol, rate_diesel FROM rates WHERE date = ?`, [targetDate]);
         if (todayRow) return { isSaved: true, rates: todayRow };
-        const previousRow = await db.get(`SELECT rate_power, rate_petrol, rate_diesel FROM rates WHERE date = (SELECT MAX(date) FROM rates WHERE date < ?)`, [targetDate]);
+        const previousRow = await db.get(`SELECT rate_power, rate_petrol, rate_diesel FROM rates WHERE date = (SELECT MAX(date) FROM rates WHERE date < ? AND date >= '2026-06-26')`, [targetDate]);
         if (previousRow) return { isSaved: false, rates: previousRow };
         return { isSaved: false, rates: { rate_power: 110.0, rate_petrol: 100.0, rate_diesel: 90.0 } };
       })(),
@@ -375,7 +375,7 @@ app.get('/api/readings/opening', async (req, res) => {
       SELECT nozzle_id, product, closing_reading AS opening_reading
       FROM readings
       WHERE date = (
-        SELECT MAX(date) FROM readings WHERE date < ?
+        SELECT MAX(date) FROM readings WHERE date < ? AND date >= '2026-06-26'
       )
       ORDER BY nozzle_id ASC
     `;
@@ -486,7 +486,7 @@ app.get('/api/tanks/opening', async (req, res) => {
       SELECT tank_id, tank_name, product, capacity, closing_dip AS opening_dip, closing_stock AS opening_stock
       FROM tank_readings
       WHERE date = (
-        SELECT MAX(date) FROM tank_readings WHERE date < ?
+        SELECT MAX(date) FROM tank_readings WHERE date < ? AND date >= '2026-06-26'
       )
       ORDER BY tank_id ASC
     `;
@@ -593,7 +593,7 @@ app.get('/api/rates/opening', async (req, res) => {
     }
 
     const previousRow = await db.get(
-      `SELECT rate_power, rate_petrol, rate_diesel FROM rates WHERE date = (SELECT MAX(date) FROM rates WHERE date < ?)`,
+      `SELECT rate_power, rate_petrol, rate_diesel FROM rates WHERE date = (SELECT MAX(date) FROM rates WHERE date < ? AND date >= '2026-06-26')`,
       [date]
     );
 
