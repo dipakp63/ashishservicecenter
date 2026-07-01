@@ -44,7 +44,7 @@ const runTest = async () => {
   console.log('--- Profit Margin API Verification Test ---');
 
   // Test 1: Fetch default margins (use a future month to avoid pre-existing database records)
-  const testMonth = '2027-11';
+  const testMonth = '2099-' + String(Math.floor(10 + Math.random() * 88));
   console.log(`\nTesting: Get Default Margins for ${testMonth}...`);
   const resGetDefault = await sendRequest(`/api/profit-margins?month=${testMonth}`, 'GET');
   console.log('Status Code:', resGetDefault.statusCode);

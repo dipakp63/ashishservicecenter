@@ -8257,7 +8257,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const tableFooter = document.getElementById('profit-table-footer');
     if (!tableBody) return;
     
-    tableBody.innerHTML = `<tr><td colspan="12" style="text-align: center; padding: 2rem; color: var(--text-muted);">Calculating profits...</td></tr>`;
+    tableBody.innerHTML = `<tr><td colspan="13" style="text-align: center; padding: 2rem; color: var(--text-muted);">Calculating profits...</td></tr>`;
     if (tableFooter) tableFooter.innerHTML = '';
 
     try {
@@ -8269,7 +8269,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await response.json();
       
       if (data.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="12" style="text-align: center; padding: 3rem; color: var(--text-muted); font-size: 1rem;">No sales data available for this month.</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="13" style="text-align: center; padding: 3rem; color: var(--text-muted); font-size: 1rem;">No sales data available for this month.</td></tr>`;
         return;
       }
 
@@ -8292,7 +8292,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const dieselDiffProfit = row.diesel_qty * margins.diff_diesel;
         
         const dealerTotalProfit = powerDealerProfit + petrolDealerProfit + dieselDealerProfit;
-        const totalProfit = dealerTotalProfit + powerDiffProfit + petrolDiffProfit + dieselDiffProfit;
+        const diffTotalProfit = powerDiffProfit + petrolDiffProfit + dieselDiffProfit;
+        const totalProfit = dealerTotalProfit + diffTotalProfit;
 
         totalPowerQty += row.power_qty;
         totalPowerDealerProfit += powerDealerProfit;
@@ -8314,53 +8315,56 @@ document.addEventListener('DOMContentLoaded', () => {
         tr.className = 'gst-row-hover';
 
         tr.innerHTML = `
-          <td style="padding: 0.35rem 0.25rem; font-weight: 600; white-space: nowrap; border: 1px solid rgba(255,255,255,0.15); text-align: center;">${formatDate(row.date)}</td>
+          <td style="padding: 0.35rem 0.15rem; font-weight: 600; white-space: nowrap; border: 1px solid rgba(255,255,255,0.15); text-align: center;">${formatDate(row.date)}</td>
           
-          <td style="padding: 0.35rem 0.25rem; text-align: center; color: var(--power-color); border: 1px solid rgba(255,255,255,0.15);">${row.power_qty > 0 ? row.power_qty.toFixed(2) : '-'}</td>
-          <td style="padding: 0.35rem 0.25rem; text-align: center; color: var(--power-color); font-weight: 600; border: 1px solid rgba(255,255,255,0.15);">${powerDealerProfit > 0 ? '₹' + powerDealerProfit.toFixed(2) : '-'}</td>
+          <td style="padding: 0.35rem 0.15rem; text-align: center; color: var(--power-color); border: 1px solid rgba(255,255,255,0.15);">${row.power_qty > 0 ? row.power_qty.toFixed(2) : '-'}</td>
+          <td style="padding: 0.35rem 0.15rem; text-align: center; color: var(--power-color); font-weight: 600; border: 1px solid rgba(255,255,255,0.15);">${powerDealerProfit > 0 ? '₹' + powerDealerProfit.toFixed(2) : '-'}</td>
           
-          <td style="padding: 0.35rem 0.25rem; text-align: center; color: var(--success); border: 1px solid rgba(255,255,255,0.15);">${row.petrol_qty > 0 ? row.petrol_qty.toFixed(2) : '-'}</td>
-          <td style="padding: 0.35rem 0.25rem; text-align: center; color: var(--success); font-weight: 600; border: 1px solid rgba(255,255,255,0.15);">${petrolDealerProfit > 0 ? '₹' + petrolDealerProfit.toFixed(2) : '-'}</td>
+          <td style="padding: 0.35rem 0.15rem; text-align: center; color: var(--success); border: 1px solid rgba(255,255,255,0.15);">${row.petrol_qty > 0 ? row.petrol_qty.toFixed(2) : '-'}</td>
+          <td style="padding: 0.35rem 0.15rem; text-align: center; color: var(--success); font-weight: 600; border: 1px solid rgba(255,255,255,0.15);">${petrolDealerProfit > 0 ? '₹' + petrolDealerProfit.toFixed(2) : '-'}</td>
           
-          <td style="padding: 0.35rem 0.25rem; text-align: center; color: var(--diesel-color); border: 1px solid rgba(255,255,255,0.15);">${row.diesel_qty > 0 ? row.diesel_qty.toFixed(2) : '-'}</td>
-          <td style="padding: 0.35rem 0.25rem; text-align: center; color: var(--diesel-color); font-weight: 600; border: 1px solid rgba(255,255,255,0.15);">${dieselDealerProfit > 0 ? '₹' + dieselDealerProfit.toFixed(2) : '-'}</td>
+          <td style="padding: 0.35rem 0.15rem; text-align: center; color: var(--diesel-color); border: 1px solid rgba(255,255,255,0.15);">${row.diesel_qty > 0 ? row.diesel_qty.toFixed(2) : '-'}</td>
+          <td style="padding: 0.35rem 0.15rem; text-align: center; color: var(--diesel-color); font-weight: 600; border: 1px solid rgba(255,255,255,0.15);">${dieselDealerProfit > 0 ? '₹' + dieselDealerProfit.toFixed(2) : '-'}</td>
           
-          <td style="padding: 0.35rem 0.35rem; text-align: center; color: var(--accent); font-weight: 700; border: 1px solid rgba(255,255,255,0.15);">₹${dealerTotalProfit.toFixed(2)}</td>
+          <td style="padding: 0.35rem 0.15rem; text-align: center; color: var(--accent); font-weight: 700; border: 1px solid rgba(255,255,255,0.15);">₹${dealerTotalProfit.toFixed(2)}</td>
           
-          <td style="padding: 0.35rem 0.25rem; text-align: center; color: var(--power-color); border: 1px solid rgba(255,255,255,0.15);">${powerDiffProfit > 0 ? '₹' + powerDiffProfit.toFixed(2) : '-'}</td>
-          <td style="padding: 0.35rem 0.25rem; text-align: center; color: var(--success); border: 1px solid rgba(255,255,255,0.15);">${petrolDiffProfit > 0 ? '₹' + petrolDiffProfit.toFixed(2) : '-'}</td>
-          <td style="padding: 0.35rem 0.25rem; text-align: center; color: var(--diesel-color); border: 1px solid rgba(255,255,255,0.15);">${dieselDiffProfit > 0 ? '₹' + dieselDiffProfit.toFixed(2) : '-'}</td>
+          <td style="padding: 0.35rem 0.15rem; text-align: center; color: var(--power-color); border: 1px solid rgba(255,255,255,0.15);">${powerDiffProfit > 0 ? '₹' + powerDiffProfit.toFixed(2) : '-'}</td>
+          <td style="padding: 0.35rem 0.15rem; text-align: center; color: var(--success); border: 1px solid rgba(255,255,255,0.15);">${petrolDiffProfit > 0 ? '₹' + petrolDiffProfit.toFixed(2) : '-'}</td>
+          <td style="padding: 0.35rem 0.15rem; text-align: center; color: var(--diesel-color); border: 1px solid rgba(255,255,255,0.15);">${dieselDiffProfit > 0 ? '₹' + dieselDiffProfit.toFixed(2) : '-'}</td>
           
-          <td style="padding: 0.35rem 0.35rem; text-align: center; color: var(--accent); font-weight: 800; border: 1px solid rgba(255,255,255,0.15);">₹${totalProfit.toFixed(2)}</td>
+          <td style="padding: 0.35rem 0.15rem; text-align: center; color: var(--accent); font-weight: 700; border: 1px solid rgba(255,255,255,0.15);">₹${diffTotalProfit.toFixed(2)}</td>
+          <td style="padding: 0.35rem 0.15rem; text-align: center; color: var(--accent); font-weight: 800; border: 1px solid rgba(255,255,255,0.15);">₹${totalProfit.toFixed(2)}</td>
         `;
         tableBody.appendChild(tr);
       });
 
       if (tableFooter) {
+        const totalDiffProfitSum = totalPowerDiffProfit + totalPetrolDiffProfit + totalDieselDiffProfit;
         tableFooter.innerHTML = `
-          <td style="padding: 0.4rem 0.25rem; white-space: nowrap; border: 1px solid rgba(255,255,255,0.15); text-align: center;">TOTAL</td>
-          <td style="padding: 0.4rem 0.25rem; text-align: center; color: var(--power-color); border: 1px solid rgba(255,255,255,0.15);">${totalPowerQty.toFixed(2)}</td>
-          <td style="padding: 0.4rem 0.25rem; text-align: center; color: var(--power-color); font-weight: 700; border: 1px solid rgba(255,255,255,0.15);">₹${totalPowerDealerProfit.toFixed(2)}</td>
+          <td style="padding: 0.4rem 0.15rem; white-space: nowrap; border: 1px solid rgba(255,255,255,0.15); text-align: center;">TOTAL</td>
+          <td style="padding: 0.4rem 0.15rem; text-align: center; color: var(--power-color); border: 1px solid rgba(255,255,255,0.15);">${totalPowerQty.toFixed(2)}</td>
+          <td style="padding: 0.4rem 0.15rem; text-align: center; color: var(--power-color); font-weight: 700; border: 1px solid rgba(255,255,255,0.15);">₹${totalPowerDealerProfit.toFixed(2)}</td>
           
-          <td style="padding: 0.4rem 0.25rem; text-align: center; color: var(--success); border: 1px solid rgba(255,255,255,0.15);">${totalPetrolQty.toFixed(2)}</td>
-          <td style="padding: 0.4rem 0.25rem; text-align: center; color: var(--success); font-weight: 700; border: 1px solid rgba(255,255,255,0.15);">₹${totalPetrolDealerProfit.toFixed(2)}</td>
+          <td style="padding: 0.4rem 0.15rem; text-align: center; color: var(--success); border: 1px solid rgba(255,255,255,0.15);">${totalPetrolQty.toFixed(2)}</td>
+          <td style="padding: 0.4rem 0.15rem; text-align: center; color: var(--success); font-weight: 700; border: 1px solid rgba(255,255,255,0.15);">₹${totalPetrolDealerProfit.toFixed(2)}</td>
           
-          <td style="padding: 0.4rem 0.25rem; text-align: center; color: var(--diesel-color); border: 1px solid rgba(255,255,255,0.15);">${totalDieselQty.toFixed(2)}</td>
-          <td style="padding: 0.4rem 0.25rem; text-align: center; color: var(--diesel-color); font-weight: 700; border: 1px solid rgba(255,255,255,0.15);">₹${totalDieselDealerProfit.toFixed(2)}</td>
+          <td style="padding: 0.4rem 0.15rem; text-align: center; color: var(--diesel-color); border: 1px solid rgba(255,255,255,0.15);">${totalDieselQty.toFixed(2)}</td>
+          <td style="padding: 0.4rem 0.15rem; text-align: center; color: var(--diesel-color); font-weight: 700; border: 1px solid rgba(255,255,255,0.15);">₹${totalDieselDealerProfit.toFixed(2)}</td>
           
-          <td style="padding: 0.4rem 0.35rem; text-align: center; color: var(--accent); font-weight: 800; border: 1px solid rgba(255,255,255,0.15);">₹${totalDealerProfitSum.toFixed(2)}</td>
+          <td style="padding: 0.4rem 0.15rem; text-align: center; color: var(--accent); font-weight: 800; border: 1px solid rgba(255,255,255,0.15);">₹${totalDealerProfitSum.toFixed(2)}</td>
           
-          <td style="padding: 0.4rem 0.25rem; text-align: center; color: var(--power-color); border: 1px solid rgba(255,255,255,0.15);">₹${totalPowerDiffProfit.toFixed(2)}</td>
-          <td style="padding: 0.4rem 0.25rem; text-align: center; color: var(--success); border: 1px solid rgba(255,255,255,0.15);">₹${totalPetrolDiffProfit.toFixed(2)}</td>
-          <td style="padding: 0.4rem 0.25rem; text-align: center; color: var(--diesel-color); border: 1px solid rgba(255,255,255,0.15);">₹${totalDieselDiffProfit.toFixed(2)}</td>
+          <td style="padding: 0.4rem 0.15rem; text-align: center; color: var(--power-color); border: 1px solid rgba(255,255,255,0.15);">₹${totalPowerDiffProfit.toFixed(2)}</td>
+          <td style="padding: 0.4rem 0.15rem; text-align: center; color: var(--success); border: 1px solid rgba(255,255,255,0.15);">₹${totalPetrolDiffProfit.toFixed(2)}</td>
+          <td style="padding: 0.4rem 0.15rem; text-align: center; color: var(--diesel-color); border: 1px solid rgba(255,255,255,0.15);">₹${totalDieselDiffProfit.toFixed(2)}</td>
           
-          <td style="padding: 0.4rem 0.35rem; text-align: center; color: var(--accent); font-weight: 800; border: 1px solid rgba(255,255,255,0.15);">₹${grandTotalProfit.toFixed(2)}</td>
+          <td style="padding: 0.4rem 0.15rem; text-align: center; color: var(--accent); font-weight: 800; border: 1px solid rgba(255,255,255,0.15);">₹${totalDiffProfitSum.toFixed(2)}</td>
+          <td style="padding: 0.4rem 0.15rem; text-align: center; color: var(--accent); font-weight: 800; border: 1px solid rgba(255,255,255,0.15);">₹${grandTotalProfit.toFixed(2)}</td>
         `;
       }
     } catch (err) {
       console.error('Error loading profit report:', err);
       showToast('Error loading profit data.', 'error');
-      tableBody.innerHTML = `<tr><td colspan="12" style="text-align: center; padding: 2rem; color: var(--danger);">Failed to load data.</td></tr>`;
+      tableBody.innerHTML = `<tr><td colspan="13" style="text-align: center; padding: 2rem; color: var(--danger);">Failed to load data.</td></tr>`;
     }
   }
 
