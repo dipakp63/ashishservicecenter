@@ -56,7 +56,7 @@
     [_empPrevMonth, _empCurrMonth].forEach(ym => {
       const btn = document.createElement('button');
       btn.className = 'btn ' + (ym === empActiveMonth ? 'btn-primary' : 'btn-secondary');
-      btn.style.cssText = 'padding:0.4rem 1.2rem; font-size:0.85rem; border-radius:2rem; margin-right:0.5rem;';
+      btn.style.cssText = 'padding:0.4rem 1.2rem; font-size:0.85rem; border-radius:2rem; margin-right:0.5rem; flex:none; white-space:nowrap;';
       btn.textContent = empMonthLabel(ym);
       btn.addEventListener('click', () => {
         empActiveMonth = ym;

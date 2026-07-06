@@ -949,19 +949,20 @@ app.post('/api/cash', async (req, res) => {
     // Sync with Chillar Record
     try {
       await db.run(`DELETE FROM chillar_transactions WHERE date = ? AND type = 'DAY_CLOSE'`, [date]);
+      const chillarNotes20 = parseInt(notes_20 || 0, 10);
       const chillarNotes10 = parseInt(notes_10 || 0, 10);
       const chillarCoins20 = parseInt(coins_20 || 0, 10);
       const chillarCoins10 = parseInt(coins_10 || 0, 10);
       const chillarCoins5 = parseInt(coins_5 || 0, 10);
       const chillarCoins2 = parseInt(coins_2 || 0, 10);
       const chillarCoins1 = parseInt(coins_1 || 0, 10);
-      const chillarTotal = (chillarNotes10 * 10) + (chillarCoins20 * 20) + (chillarCoins10 * 10) + (chillarCoins5 * 5) + (chillarCoins2 * 2) + (chillarCoins1 * 1);
+      const chillarTotal = (chillarNotes20 * 20) + (chillarNotes10 * 10) + (chillarCoins20 * 20) + (chillarCoins10 * 10) + (chillarCoins5 * 5) + (chillarCoins2 * 2) + (chillarCoins1 * 1);
       
-      if (chillarTotal > 0 || chillarNotes10 > 0 || chillarCoins20 > 0 || chillarCoins10 > 0 || chillarCoins5 > 0 || chillarCoins2 > 0 || chillarCoins1 > 0) {
+      if (chillarTotal > 0 || chillarNotes20 > 0 || chillarNotes10 > 0 || chillarCoins20 > 0 || chillarCoins10 > 0 || chillarCoins5 > 0 || chillarCoins2 > 0 || chillarCoins1 > 0) {
         await db.run(
-          `INSERT INTO chillar_transactions (date, type, description, notes_10, coins_20, coins_10, coins_5, coins_2, coins_1, total_amount)
-           VALUES (?, 'DAY_CLOSE', ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [date, `Day Closing Chillar Entry`, chillarNotes10, chillarCoins20, chillarCoins10, chillarCoins5, chillarCoins2, chillarCoins1, chillarTotal]
+          `INSERT INTO chillar_transactions (date, type, description, notes_20, notes_10, coins_20, coins_10, coins_5, coins_2, coins_1, total_amount)
+           VALUES (?, 'DAY_CLOSE', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [date, `Day Closing Chillar Entry`, chillarNotes20, chillarNotes10, chillarCoins20, chillarCoins10, chillarCoins5, chillarCoins2, chillarCoins1, chillarTotal]
         );
       }
     } catch (err) {
@@ -2084,10 +2085,19 @@ app.post('/api/tt/entries', async (req, res) => {
       return res.status(400).json({ error: 'Trip For and Entry Given are required.' });
     }
 
-    await db.run(
+    const runRes = await db.run(
       `INSERT INTO tt_entries (date, trip_for, entry_given, remark1, remark2)
        VALUES (?, ?, ?, ?, ?)`,
       [date, trip_for, entry_given, remark1 || '', remark2 || '']
+    );
+    const lastID = runRes.lastInsertRowid;
+
+    // Automatically sync to tt_transactions (expenses ledger)
+    const tripAmount = parseFloat(remark1) || 750;
+    await db.run(
+      `INSERT INTO tt_transactions (date, type, source, amount, description, tt_entry_id)
+       VALUES (?, 'DEBIT', 'Trip', ?, ?, ?)`,
+      [date, tripAmount, `Trip to ${trip_for} (Given: ${entry_given})`, lastID]
     );
 
     res.json({ success: true, message: 'Entry recorded successfully.' });
@@ -2116,6 +2126,24 @@ app.put('/api/tt/entries/:id', async (req, res) => {
       [date, trip_for, entry_given, remark1 || '', remark2 || '', id]
     );
 
+    // Automatically sync to tt_transactions (expenses ledger)
+    const tripAmount = parseFloat(remark1) || 750;
+    const existingTx = await db.get(`SELECT id FROM tt_transactions WHERE tt_entry_id = ?`, [id]);
+    if (existingTx) {
+      await db.run(
+        `UPDATE tt_transactions
+         SET date = ?, amount = ?, description = ?
+         WHERE tt_entry_id = ?`,
+        [date, tripAmount, `Trip to ${trip_for} (Given: ${entry_given})`, id]
+      );
+    } else {
+      await db.run(
+        `INSERT INTO tt_transactions (date, type, source, amount, description, tt_entry_id)
+         VALUES (?, 'DEBIT', 'Trip', ?, ?, ?)`,
+        [date, tripAmount, `Trip to ${trip_for} (Given: ${entry_given})`, id]
+      );
+    }
+
     res.json({ success: true, message: 'Entry updated successfully.' });
   } catch (err) {
     console.error('Error updating TT entry:', err.message);
@@ -2130,6 +2158,9 @@ app.delete('/api/tt/entries/:id', async (req, res) => {
     // Bypassed lock validation for Category B TT entries
 
     await db.run(`DELETE FROM tt_entries WHERE id = ?`, [id]);
+    // Automatically delete from tt_transactions (expenses ledger)
+    await db.run(`DELETE FROM tt_transactions WHERE tt_entry_id = ?`, [id]);
+
     res.json({ success: true, message: 'Entry deleted successfully.' });
   } catch (err) {
     console.error('Error deleting TT entry:', err.message);
@@ -2499,6 +2530,7 @@ app.get('/api/chillar/status', async (req, res) => {
   try {
     const status = await db.get(`
       SELECT 
+        COALESCE(SUM(notes_20), 0) AS notes_20,
         COALESCE(SUM(notes_10), 0) AS notes_10,
         COALESCE(SUM(coins_20), 0) AS coins_20,
         COALESCE(SUM(coins_10), 0) AS coins_10,
@@ -2519,7 +2551,7 @@ app.get('/api/chillar/status', async (req, res) => {
 app.get('/api/chillar/transactions', async (req, res) => {
   try {
     const rows = await db.all(`
-      SELECT id, date, type, description, notes_10, coins_20, coins_10, coins_5, coins_2, coins_1, total_amount 
+      SELECT id, date, type, description, notes_20, notes_10, coins_20, coins_10, coins_5, coins_2, coins_1, total_amount 
       FROM chillar_transactions 
       ORDER BY date ASC, id ASC
     `);
@@ -2546,7 +2578,7 @@ app.get('/api/chillar/transactions', async (req, res) => {
 // POST /api/chillar/transaction — Create a manual credit/debit transaction
 app.post('/api/chillar/transaction', async (req, res) => {
   try {
-    const { date, type, description, notes_10, coins_20, coins_10, coins_5, coins_2, coins_1 } = req.body;
+    const { date, type, description, notes_20, notes_10, coins_20, coins_10, coins_5, coins_2, coins_1 } = req.body;
     if (!date || !type || !description) {
       return res.status(400).json({ error: 'Date, type, and description are required.' });
     }
@@ -2554,6 +2586,7 @@ app.post('/api/chillar/transaction', async (req, res) => {
     const isDebit = type === 'MANUAL_DEBIT';
     const factor = isDebit ? -1 : 1;
 
+    const n20 = parseInt(notes_20 || 0, 10) * factor;
     const n10 = parseInt(notes_10 || 0, 10) * factor;
     const c20 = parseInt(coins_20 || 0, 10) * factor;
     const c10 = parseInt(coins_10 || 0, 10) * factor;
@@ -2561,12 +2594,12 @@ app.post('/api/chillar/transaction', async (req, res) => {
     const c2 = parseInt(coins_2 || 0, 10) * factor;
     const c1 = parseInt(coins_1 || 0, 10) * factor;
 
-    const total = ((n10 * 10) + (c20 * 20) + (c10 * 10) + (c5 * 5) + (c2 * 2) + (c1 * 1));
+    const total = ((n20 * 20) + (n10 * 10) + (c20 * 20) + (c10 * 10) + (c5 * 5) + (c2 * 2) + (c1 * 1));
 
     await db.run(`
-      INSERT INTO chillar_transactions (date, type, description, notes_10, coins_20, coins_10, coins_5, coins_2, coins_1, total_amount)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [date, type, description, n10, c20, c10, c5, c2, c1, total]);
+      INSERT INTO chillar_transactions (date, type, description, notes_20, notes_10, coins_20, coins_10, coins_5, coins_2, coins_1, total_amount)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [date, type, description, n20, n10, c20, c10, c5, c2, c1, total]);
 
     res.json({ success: true, message: 'Chillar transaction saved successfully.' });
   } catch (err) {
@@ -2578,21 +2611,22 @@ app.post('/api/chillar/transaction', async (req, res) => {
 // POST /api/chillar/opening — Reset initial opening balance
 app.post('/api/chillar/opening', async (req, res) => {
   try {
-    const { notes_10, coins_20, coins_10, coins_5, coins_2, coins_1 } = req.body;
+    const { notes_20, notes_10, coins_20, coins_10, coins_5, coins_2, coins_1 } = req.body;
+    const n20 = parseInt(notes_20 || 0, 10);
     const n10 = parseInt(notes_10 || 0, 10);
     const c20 = parseInt(coins_20 || 0, 10);
     const c10 = parseInt(coins_10 || 0, 10);
     const c5 = parseInt(coins_5 || 0, 10);
     const c2 = parseInt(coins_2 || 0, 10);
     const c1 = parseInt(coins_1 || 0, 10);
-    const total = (n10 * 10) + (c20 * 20) + (c10 * 10) + (c5 * 5) + (c2 * 2) + (c1 * 1);
+    const total = (n20 * 20) + (n10 * 10) + (c20 * 20) + (c10 * 10) + (c5 * 5) + (c2 * 2) + (c1 * 1);
 
     await db.batch([
       { sql: `DELETE FROM chillar_transactions WHERE type = 'OPENING'` },
       {
-        sql: `INSERT INTO chillar_transactions (date, type, description, notes_10, coins_20, coins_10, coins_5, coins_2, coins_1, total_amount)
-              VALUES ('2026-06-26', 'OPENING', 'Opening Balance', ?, ?, ?, ?, ?, ?, ?)`,
-        args: [n10, c20, c10, c5, c2, c1, total]
+        sql: `INSERT INTO chillar_transactions (date, type, description, notes_20, notes_10, coins_20, coins_10, coins_5, coins_2, coins_1, total_amount)
+              VALUES ('2026-06-26', 'OPENING', 'Opening Balance', ?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [n20, n10, c20, c10, c5, c2, c1, total]
       }
     ]);
 
@@ -2612,6 +2646,17 @@ app.delete('/api/chillar/transaction/:id', async (req, res) => {
   } catch (err) {
     console.error('Error deleting chillar transaction:', err.message);
     res.status(500).json({ error: 'Database error deleting transaction.' });
+  }
+});
+
+// POST /api/chillar/clear — Clear all chillar transactions (reconciled to zero)
+app.post('/api/chillar/clear', async (req, res) => {
+  try {
+    await db.run(`DELETE FROM chillar_transactions`);
+    res.json({ success: true, message: 'All chillar records cleared to zero.' });
+  } catch (err) {
+    console.error('Error clearing chillar records:', err.message);
+    res.status(500).json({ error: 'Database error clearing chillar records.' });
   }
 });
 

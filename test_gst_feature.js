@@ -71,7 +71,7 @@ const runTest = async () => {
     });
   });
 
-  console.log('Seeding database with May 1 to May 30 data...');
+  console.log('Seeding database with July 1 to July 30 data...');
   const insertStmtReadings = db.prepare('INSERT INTO readings (date, nozzle_id, product, opening_reading, closing_reading, testing_qty) VALUES (?, ?, ?, ?, ?, ?)');
   const insertStmtRates = db.prepare('INSERT INTO rates (date, rate_power, rate_petrol, rate_diesel) VALUES (?, ?, ?, ?)');
   const insertStmtCash = db.prepare('INSERT INTO cash_reconciliation (date, total_sales_value, total_cash_received, shortfall) VALUES (?, ?, ?, ?)');
@@ -81,7 +81,7 @@ const runTest = async () => {
       db.run('BEGIN TRANSACTION');
       
       for (let day = 1; day <= 30; day++) {
-        const dateStr = `2026-05-${String(day).padStart(2, '0')}`;
+        const dateStr = `2026-07-${String(day).padStart(2, '0')}`;
         
         // Insert readings (6 nozzles)
         for (let nozzle = 1; nozzle <= 6; nozzle++) {
@@ -107,21 +107,21 @@ const runTest = async () => {
   insertStmtRates.finalize();
   insertStmtCash.finalize();
   db.close();
-  console.log('Database seeding complete. May 31 is now the active open date.');
+  console.log('Database seeding complete. July 31 is now the active open date.');
 
   try {
-    // 2. Fetch active date from API to verify it is May 31st
+    // 2. Fetch active date from API to verify it is July 31st
     console.log('\nFetching active date from server...');
     const activeDateRes = await sendRequest('/api/active-date', 'GET');
     console.log('Active date:', activeDateRes.body.activeDate);
-    if (activeDateRes.body.activeDate !== '2026-05-31') {
-      throw new Error(`Expected active date to be 2026-05-31, got ${activeDateRes.body.activeDate}`);
+    if (activeDateRes.body.activeDate !== '2026-07-31') {
+      throw new Error(`Expected active date to be 2026-07-31, got ${activeDateRes.body.activeDate}`);
     }
 
-    // 3. Save readings for May 31st (using the API)
-    console.log('\nSaving readings for May 31st...');
+    // 3. Save readings for July 31st (using the API)
+    console.log('\nSaving readings for July 31st...');
     const readingsPayload = {
-      date: '2026-05-31',
+      date: '2026-07-31',
       readings: [
         { nozzle_id: 1, product: 'Petrol', opening_reading: 100.0, closing_reading: 150.0, testing_qty: 5.0 },
         { nozzle_id: 2, product: 'Petrol', opening_reading: 100.0, closing_reading: 150.0, testing_qty: 5.0 },
@@ -136,10 +136,10 @@ const runTest = async () => {
       throw new Error(`Failed to save readings: ${JSON.stringify(saveReadingsRes.body)}`);
     }
 
-    // 4. Save rates for May 31st (using the API)
-    console.log('Saving rates for May 31st...');
+    // 4. Save rates for July 31st (using the API)
+    console.log('Saving rates for July 31st...');
     const ratesPayload = {
-      date: '2026-05-31',
+      date: '2026-07-31',
       rate_power: 110.0,
       rate_petrol: 100.0,
       rate_diesel: 90.0
@@ -149,11 +149,11 @@ const runTest = async () => {
       throw new Error(`Failed to save rates: ${JSON.stringify(saveRatesRes.body)}`);
     }
 
-    // 5. Close May 31st by saving Cash Reconciliation (using the API)
+    // 5. Close July 31st by saving Cash Reconciliation (using the API)
     // This is the last day of the month and should trigger the automatic GST monthly report generation and WhatsApp trigger!
-    console.log('Saving cash reconciliation to close May 31st (Last day of month)...');
+    console.log('Saving cash reconciliation to close July 31st (Last day of month)...');
     const cashPayload = {
-      date: '2026-05-31',
+      date: '2026-07-31',
       total_sales_value: 26100.0, // Calculated value: (135L * 100) + (90L * 90) + (45L * 110) = 13500 + 8100 + 4950 = 26550. Let's send the correct totals:
       total_cash_received: 26550.0,
       shortfall: 0.0,
@@ -167,7 +167,7 @@ const runTest = async () => {
     };
     const saveCashRes = await sendRequest('/api/cash', 'POST', cashPayload);
     if (saveCashRes.statusCode !== 200) {
-      throw new Error(`Failed to close May 31st: ${JSON.stringify(saveCashRes.body)}`);
+      throw new Error(`Failed to close July 31st: ${JSON.stringify(saveCashRes.body)}`);
     }
     console.log('Server response:', saveCashRes.body);
     
@@ -176,7 +176,7 @@ const runTest = async () => {
 
     // 6. Verify that report was generated on disk
     console.log('\nChecking if the monthly report CSV file was generated...');
-    const reportFilePath = path.join(__dirname, 'reports', 'GST_Report_2026-05.csv');
+    const reportFilePath = path.join(__dirname, 'reports', 'GST_Report_2026-07.csv');
     if (!fs.existsSync(reportFilePath)) {
       throw new Error('Monthly GST CSV report was not created on disk!');
     }
@@ -190,8 +190,8 @@ const runTest = async () => {
     console.log(csvContent.trim().split('\n').slice(-1)[0]);
 
     // 7. Verify the GET /api/gst-report endpoint
-    console.log('\nFetching report via GET /api/gst-report?month=2026-05...');
-    const getReportRes = await sendRequest('/api/gst-report?month=2026-05', 'GET');
+    console.log('\nFetching report via GET /api/gst-report?month=2026-07...');
+    const getReportRes = await sendRequest('/api/gst-report?month=2026-07', 'GET');
     if (getReportRes.statusCode !== 200) {
       throw new Error(`Failed to get GST report: ${JSON.stringify(getReportRes.body)}`);
     }
@@ -204,12 +204,12 @@ const runTest = async () => {
 
     // Verify last day's pivoted calculations
     const lastDay = reportData[30];
-    console.log('May 31st data returned by API:', lastDay);
+    console.log('July 31st data returned by API:', lastDay);
     if (lastDay.petrol_qty !== 135.0 || lastDay.diesel_qty !== 90.0 || lastDay.power_qty !== 45.0) {
-      throw new Error('May 31st quantities do not match nozzle calculations!');
+      throw new Error('July 31st quantities do not match nozzle calculations!');
     }
     if (lastDay.is_closed !== true) {
-      throw new Error('Expected May 31st to be marked as closed!');
+      throw new Error('Expected July 31st to be marked as closed!');
     }
 
     console.log('\n🎉 ALL GST FEATURE AUTOMATED TESTS PASSED SUCCESSFULLY!');

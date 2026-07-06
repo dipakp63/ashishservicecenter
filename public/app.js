@@ -72,6 +72,51 @@ document.addEventListener('DOMContentLoaded', () => {
     select.value = currentVal;
   }
 
+  function updateRowDisplay(row) {
+    const typeSelect = row.querySelector('.non-cash-type-input');
+    const descInput = row.querySelector('.non-cash-desc-input');
+    const debtorSelect = row.querySelector('.non-cash-debtor-select');
+    const employeeSelect = row.querySelector('.non-cash-employee-select');
+    const mhSelect = row.querySelector('.non-cash-mh-select');
+    if (!typeSelect || !descInput || !debtorSelect || !employeeSelect || !mhSelect) return;
+
+    if (typeSelect.value === 'Old Credit') {
+      descInput.style.display = 'none';
+      debtorSelect.style.display = 'block';
+      employeeSelect.style.display = 'none';
+      mhSelect.style.display = 'none';
+      populateRowDebtorSelect(debtorSelect);
+    } else if (typeSelect.value === 'Employee') {
+      descInput.style.display = 'none';
+      debtorSelect.style.display = 'none';
+      employeeSelect.style.display = 'block';
+      mhSelect.style.display = 'none';
+      populateRowEmployeeSelect(employeeSelect);
+    } else if (typeSelect.value === 'MH-19-CY-5682') {
+      descInput.style.display = 'none';
+      debtorSelect.style.display = 'none';
+      employeeSelect.style.display = 'none';
+      mhSelect.style.display = 'block';
+      const val = descInput.value || '';
+      if (val === 'MH-19-CY-5682 (Diesel)' || val === 'Other') {
+        mhSelect.value = val;
+      } else {
+        mhSelect.value = 'MH-19-CY-5682 (Diesel)';
+        descInput.value = 'MH-19-CY-5682 (Diesel)';
+      }
+    } else {
+      descInput.style.display = 'block';
+      debtorSelect.style.display = 'none';
+      employeeSelect.style.display = 'none';
+      mhSelect.style.display = 'none';
+      if (typeSelect.value === 'Fresh Credit') {
+        descInput.placeholder = "Enter new customer name (mandatory)";
+      } else {
+        descInput.placeholder = "e.g. UPI Ref / Customer Name";
+      }
+    }
+  }
+
   // Dynamic row generation for non-cash payments
   function adjustNonCashRows(targetCount) {
     const container = document.getElementById('other-payments-rows');
@@ -106,6 +151,10 @@ document.addEventListener('DOMContentLoaded', () => {
             <select class="non-cash-employee-select" style="display: none; width: 100%; padding: 0.4rem; font-size: 0.95rem; height: 38px; border-radius: 0.35rem; appearance: auto;">
               <option value="">— Select Employee —</option>
             </select>
+            <select class="non-cash-mh-select" style="display: none; width: 100%; padding: 0.4rem; font-size: 0.95rem; height: 38px; border-radius: 0.35rem; appearance: auto;">
+              <option value="MH-19-CY-5682 (Diesel)">MH-19-CY-5682 (Diesel)</option>
+              <option value="Other">Other</option>
+            </select>
           </td>
           <td style="padding: 0.5rem;">
             <input type="number" class="non-cash-amount-input" placeholder="0.00" min="0" step="0.01" style="width: 100%; padding: 0.4rem 0.6rem; text-align: right; font-size: 0.95rem; height: 38px; font-weight: 600; border-radius: 0.35rem;">
@@ -117,28 +166,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const descInput = row.querySelector('.non-cash-desc-input');
         const debtorSelect = row.querySelector('.non-cash-debtor-select');
         const employeeSelect = row.querySelector('.non-cash-employee-select');
+        const mhSelect = row.querySelector('.non-cash-mh-select');
         
         typeSelect.addEventListener('change', () => {
-          if (typeSelect.value === 'Old Credit') {
-            descInput.style.display = 'none';
-            debtorSelect.style.display = 'block';
-            employeeSelect.style.display = 'none';
-            populateRowDebtorSelect(debtorSelect);
-          } else if (typeSelect.value === 'Employee') {
-            descInput.style.display = 'none';
-            debtorSelect.style.display = 'none';
-            employeeSelect.style.display = 'block';
-            populateRowEmployeeSelect(employeeSelect);
-          } else {
-            descInput.style.display = 'block';
-            debtorSelect.style.display = 'none';
-            employeeSelect.style.display = 'none';
-            if (typeSelect.value === 'Fresh Credit') {
-              descInput.placeholder = "Enter new customer name (mandatory)";
-            } else {
-              descInput.placeholder = "e.g. UPI Ref / Customer Name";
-            }
-          }
+          updateRowDisplay(row);
+        });
+
+        mhSelect.addEventListener('change', () => {
+          descInput.value = mhSelect.value;
         });
 
         // Wire amount input to recalculate live
@@ -297,7 +332,7 @@ document.addEventListener('DOMContentLoaded', () => {
       set('calc-count-200', window.lastClosedCashData.notes200);
       set('calc-count-100', window.lastClosedCashData.notes100);
       set('calc-count-50',  window.lastClosedCashData.notes50);
-      set('calc-count-20',  window.lastClosedCashData.notes20);
+      set('calc-count-20',  0);
       set('calc-count-10',  0);
 
       showView('cash-calc');
@@ -372,7 +407,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (viewTankerLabelWizard) viewTankerLabelWizard.style.display = viewName === 'tanker-label-wizard' ? 'block' : 'none';
 
     const viewChillarRecord = document.getElementById('view-chillar-record');
-    if (viewChillarRecord) viewChillarRecord.style.display = viewName === 'chillar-record' ? 'block' : 'none';
+    if (viewChillarRecord) viewChillarRecord.style.display = viewName === 'chillar-record' ? 'flex' : 'none';
 
     const viewPoranchaHishob = document.getElementById('view-porancha-hishob');
     if (viewPoranchaHishob) viewPoranchaHishob.style.display = viewName === 'porancha-hishob' ? 'block' : 'none';
@@ -442,31 +477,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       Promise.all([fetchGlobalDebtorsList(), fetchGlobalEmployeesList()]).then(() => {
         document.querySelectorAll('#other-payments-rows tr').forEach(row => {
-          const typeSelect = row.querySelector('.non-cash-type-input');
-          const debtorSelect = row.querySelector('.non-cash-debtor-select');
-          const employeeSelect = row.querySelector('.non-cash-employee-select');
-          const descInput = row.querySelector('.non-cash-desc-input');
-          if (typeSelect) {
-            if (typeSelect.value === 'Old Credit') {
-              if (descInput) descInput.style.display = 'none';
-              if (debtorSelect) {
-                debtorSelect.style.display = 'block';
-                populateRowDebtorSelect(debtorSelect);
-              }
-              if (employeeSelect) employeeSelect.style.display = 'none';
-            } else if (typeSelect.value === 'Employee') {
-              if (descInput) descInput.style.display = 'none';
-              if (debtorSelect) debtorSelect.style.display = 'none';
-              if (employeeSelect) {
-                employeeSelect.style.display = 'block';
-                populateRowEmployeeSelect(employeeSelect);
-              }
-            } else {
-              if (descInput) descInput.style.display = 'block';
-              if (debtorSelect) debtorSelect.style.display = 'none';
-              if (employeeSelect) employeeSelect.style.display = 'none';
-            }
-          }
+          updateRowDisplay(row);
         });
         enforceFreezeState();
       });
@@ -1964,7 +1975,7 @@ document.addEventListener('DOMContentLoaded', () => {
     rows.forEach(row => {
       const type = row.querySelector('.non-cash-type-input').value;
       let description = row.querySelector('.non-cash-desc-input').value;
-      if (type === 'Credit') {
+      if (type === 'Old Credit') {
         const debtorSelect = row.querySelector('.non-cash-debtor-select');
         if (debtorSelect && debtorSelect.value) {
           const debtorId = parseInt(debtorSelect.value, 10);
@@ -1973,11 +1984,24 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
           description = 'Unspecified Debtor';
         }
+      } else if (type === 'Employee') {
+        const employeeSelect = row.querySelector('.non-cash-employee-select');
+        if (employeeSelect && employeeSelect.value) {
+          const employeeId = parseInt(employeeSelect.value, 10);
+          const found = globalEmployeesList.find(e => e.id === employeeId);
+          description = found ? found.name : 'Selected Employee';
+        } else {
+          description = 'Unspecified Employee';
+        }
+      } else if (type === 'MH-19-CY-5682') {
+        const mhSelect = row.querySelector('.non-cash-mh-select');
+        description = mhSelect ? (mhSelect.value || 'MH-19-CY-5682 (Diesel)') : 'MH-19-CY-5682 (Diesel)';
       }
       const amount = parseFloat(row.querySelector('.non-cash-amount-input').value) || 0;
 
       if (amount > 0 || description.trim() !== '') {
-        nonCashEntries.push({ type, description, amount });
+        const displayLabel = description.trim() !== '' ? description.trim() : type;
+        nonCashEntries.push({ type, description: displayLabel, amount });
         totalNonCash += amount;
       }
     });
@@ -2032,7 +2056,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const nonCashListEl = document.getElementById('summary-other-payments-list');
     if (nonCashEntries.length > 0) {
-      const entryStrings = nonCashEntries.map(e => `[${e.type}] ${e.description}: ₹ ${Number(e.amount).toLocaleString("en-IN", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`);
+      const entryStrings = nonCashEntries.map(e => `${e.description}: ₹ ${Number(e.amount).toLocaleString("en-IN", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`);
       nonCashListEl.innerHTML = `<strong>Non-Cash Settlement Logs:</strong> ` + entryStrings.join(' | ');
     } else {
       nonCashListEl.innerHTML = `<strong>Non-Cash Settlement Logs:</strong> None recorded`;
@@ -2142,7 +2166,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('#other-payments-rows tr').forEach(row => {
       const type   = row.querySelector('.non-cash-type-input').value;
       let desc   = row.querySelector('.non-cash-desc-input').value;
-      if (type === 'Credit') {
+      if (type === 'Old Credit') {
         const debtorSelect = row.querySelector('.non-cash-debtor-select');
         if (debtorSelect && debtorSelect.value) {
           const debtorId = parseInt(debtorSelect.value, 10);
@@ -2151,9 +2175,25 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
           desc = 'Unspecified Debtor';
         }
+      } else if (type === 'Employee') {
+        const employeeSelect = row.querySelector('.non-cash-employee-select');
+        if (employeeSelect && employeeSelect.value) {
+          const employeeId = parseInt(employeeSelect.value, 10);
+          const found = globalEmployeesList.find(e => e.id === employeeId);
+          desc = found ? found.name : 'Selected Employee';
+        } else {
+          desc = 'Unspecified Employee';
+        }
+      } else if (type === 'MH-19-CY-5682') {
+        const mhSelect = row.querySelector('.non-cash-mh-select');
+        desc = mhSelect ? (mhSelect.value || 'MH-19-CY-5682 (Diesel)') : 'MH-19-CY-5682 (Diesel)';
       }
       const amount = parseFloat(row.querySelector('.non-cash-amount-input').value) || 0;
-      if (amount > 0 || desc.trim() !== '') { nonCashEntries.push({ type, desc, amount }); totalNonCash += amount; }
+      if (amount > 0 || desc.trim() !== '') {
+        const displayLabel = desc.trim() !== '' ? desc.trim() : type;
+        nonCashEntries.push({ type, desc: displayLabel, amount });
+        totalNonCash += amount;
+      }
     });
 
     const shortfall = totalSalesValue - (totalCashReceived + totalNonCash);
@@ -2193,7 +2233,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const ncListEl = el('preview-other-payments-list');
     if (ncListEl) {
       if (nonCashEntries.length > 0) {
-        ncListEl.innerHTML = `<strong>Non-Cash Settlement Logs:</strong> ` + nonCashEntries.map(e => `[${e.type}] ${e.desc}: ₹ ${Number(e.amount).toLocaleString("en-IN", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`).join(' | ');
+        ncListEl.innerHTML = `<strong>Non-Cash Settlement Logs:</strong> ` + nonCashEntries.map(e => `${e.desc}: ₹ ${Number(e.amount).toLocaleString("en-IN", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`).join(' | ');
       } else {
         ncListEl.innerHTML = `<strong>Non-Cash Settlement Logs:</strong> None recorded`;
       }
@@ -2455,41 +2495,26 @@ document.addEventListener('DOMContentLoaded', () => {
               const debtorId = p.description.split(':')[1];
               if (descInput) {
                 descInput.value = p.description;
-                descInput.style.display = 'none';
               }
               if (debtorSelect) {
-                debtorSelect.style.display = 'block';
-                populateRowDebtorSelect(debtorSelect);
                 debtorSelect.value = debtorId;
-              }
-              if (employeeSelect) {
-                employeeSelect.style.display = 'none';
               }
             } else if (p.type === 'Employee' && p.description && p.description.startsWith('employee_id:')) {
               const employeeId = p.description.split(':')[1];
               if (descInput) {
                 descInput.value = p.description;
-                descInput.style.display = 'none';
-              }
-              if (debtorSelect) {
-                debtorSelect.style.display = 'none';
               }
               if (employeeSelect) {
-                employeeSelect.style.display = 'block';
-                populateRowEmployeeSelect(employeeSelect);
                 employeeSelect.value = employeeId;
               }
             } else {
               if (descInput) {
                 descInput.value = p.description || '';
-                descInput.style.display = 'block';
               }
-              if (debtorSelect) {
-                debtorSelect.style.display = 'none';
-              }
-              if (employeeSelect) {
-                employeeSelect.style.display = 'none';
-              }
+            }
+
+            if (row) {
+              updateRowDisplay(row);
             }
           }
         });
@@ -2506,17 +2531,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (decantYes && ownYes) {
         const typeInputs = document.querySelectorAll('.non-cash-type-input');
-        const descInputs = document.querySelectorAll('.non-cash-desc-input');
         if (typeInputs.length > 1) {
           const typeSelect = typeInputs[1];
-          const descInput = descInputs[1];
+          const row = typeSelect.closest('tr');
+          const descInput = row ? row.querySelector('.non-cash-desc-input') : null;
           if (typeSelect) {
             typeSelect.value = 'MH-19-CY-5682';
-            typeSelect.dispatchEvent(new Event('change'));
-            if (descInput && (!descInput.value || descInput.value.trim() === '')) {
-              descInput.value = 'MH-19-CY-5682';
-              descInput.style.display = 'block';
+            if (descInput && (!descInput.value || descInput.value.trim() === '' || descInput.value === 'MH-19-CY-5682')) {
+              descInput.value = 'MH-19-CY-5682 (Diesel)';
             }
+            updateRowDisplay(row);
           }
         }
       }
@@ -2557,6 +2581,9 @@ document.addEventListener('DOMContentLoaded', () => {
             input.classList.contains('coin-count-input') ||
             input.classList.contains('non-cash-type-input') ||
             input.classList.contains('non-cash-desc-input') ||
+            input.classList.contains('non-cash-debtor-select') ||
+            input.classList.contains('non-cash-employee-select') ||
+            input.classList.contains('non-cash-mh-select') ||
             input.classList.contains('non-cash-amount-input') ||
             input.id === 'coins-amount' ||
             input.name === 'decantation-toggle' ||
@@ -4915,7 +4942,7 @@ document.addEventListener('DOMContentLoaded', () => {
     [_empPrevMonth, _empCurrMonth].forEach(ym => {
       const btn = document.createElement('button');
       btn.className = 'btn ' + (ym === empActiveMonth ? 'btn-primary' : 'btn-secondary');
-      btn.style.cssText = 'padding:0.4rem 1.2rem; font-size:0.85rem; border-radius:2rem; margin-right:0.5rem;';
+      btn.style.cssText = 'padding:0.4rem 1.2rem; font-size:0.85rem; border-radius:2rem; margin-right:0.5rem; flex:none; white-space:nowrap;';
       btn.textContent = empMonthLabel(ym);
       btn.addEventListener('click', () => {
         empActiveMonth = ym;
@@ -5280,51 +5307,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const ttStatClosing = document.getElementById('tt-stat-closing');
 
   // ── Load TT Ledger (Expenses) ────────────────────────────────────────────
-  async function loadTtLedger() {
-    if (!ttStatementBody) return;
-    const selectors = document.querySelectorAll('.tt-month-select-shared');
-    const month = selectors.length > 0 ? selectors[0].value : '';
-    if (!month) {
-      ttStatementBody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted);">Select a month to view TT ledger.</td></tr>';
-      return;
-    }
-    try {
-      const res = await fetch(`/api/tt/transactions?month=${month}`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to load');
-      const txns = data.transactions || [];
-      if (txns.length === 0) {
-        ttStatementBody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted);">No transactions for this month.</td></tr>';
-        return;
-      }
-      let html = '';
-      txns.forEach(tx => {
-        const d = tx.date || '';
-        const p1 = tx.particular1 || '';
-        const p2 = tx.description || '';
-        const debit = tx.type === 'DEBIT' ? `₹ ${parseFloat(tx.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '';
-        const credit = tx.type === 'CREDIT' ? `₹ ${parseFloat(tx.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '';
-        const bal = parseFloat(tx.running_balance);
-        const balColor = bal >= 0 ? 'var(--success)' : 'var(--danger)';
-        const balStr = `₹ ${Math.abs(bal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
-        html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
-          <td style="padding:0.6rem 0.85rem;font-size:0.85rem;">${d}</td>
-          <td style="padding:0.6rem 0.85rem;font-size:0.85rem;">${p1}</td>
-          <td style="padding:0.6rem 0.85rem;font-size:0.85rem;">${p2}</td>
-          <td style="padding:0.6rem 0.85rem;text-align:right;font-size:0.85rem;color:var(--danger);font-weight:600;">${debit}</td>
-          <td style="padding:0.6rem 0.85rem;text-align:right;font-size:0.85rem;color:var(--success);font-weight:600;">${credit}</td>
-          <td style="padding:0.6rem 0.85rem;text-align:right;font-size:0.85rem;color:${balColor};font-weight:600;">${balStr}</td>
-          <td style="padding:0.6rem 0.85rem;text-align:center;">
-            <button class="btn-icon" title="Delete" onclick="deleteTtTransaction(${tx.id})" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:0.9rem;">🗑️</button>
-          </td>
-        </tr>`;
-      });
-      ttStatementBody.innerHTML = html;
-    } catch (err) {
-      console.error('Error loading TT ledger:', err);
-      ttStatementBody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--danger);">Error loading ledger data.</td></tr>';
-    }
-  }
+  // Old loadTtLedger stub — superseded by the full version below
+  // (intentionally left as a no-op; the real implementation is further down)
 
   // Global function for inline onclick delete buttons
   window.deleteTtTransaction = async function(id) {
@@ -5603,7 +5587,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('tt-trip-date').value = dateInput.value || new Date().toISOString().split('T')[0];
       document.getElementById('tt-trip-for').value = 'Pimpalgaon';
       document.getElementById('tt-entry-given').value = 'Yes';
-      document.getElementById('tt-trip-remark1').value = '';
+      document.getElementById('tt-trip-remark1').value = '750';
       document.getElementById('tt-trip-remark2').value = '';
 
       if (modalTtAddTrip) modalTtAddTrip.style.display = 'flex';
@@ -5683,21 +5667,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let html = '';
         data.entries.forEach(tr => {
-          const isEditable = true; // Category B TT entries are always editable
-          const tripForHtml = `
-            <select class="cell-trip-for-select" ${isEditable ? '' : 'disabled'} style="font-size: 0.85rem; padding: 0.2rem 0.4rem; border-radius: 0.25rem; cursor: pointer; width: 100%;">
-              <option value="Pimpalgaon" ${tr.trip_for === 'Pimpalgaon' ? 'selected' : ''}>Pimpalgaon</option>
-              <option value="Wakod" ${tr.trip_for === 'Wakod' ? 'selected' : ''}>Wakod</option>
-              <option value="Other" ${tr.trip_for === 'Other' ? 'selected' : ''}>Other</option>
-            </select>
-          `;
-          const entryGivenHtml = `
-            <select class="cell-entry-given-select" ${isEditable ? '' : 'disabled'} style="font-size: 0.85rem; padding: 0.2rem 0.4rem; border-radius: 0.25rem; cursor: pointer; width: 100%;">
-              <option value="Yes" ${tr.entry_given === 'Yes' ? 'selected' : ''}>Yes</option>
-              <option value="No" ${tr.entry_given === 'No' ? 'selected' : ''}>No</option>
-            </select>
-          `;
-          const deleteButton = isEditable ? `<button style="padding:0.15rem 0.45rem; font-size:0.75rem; background:var(--danger); color:#fff; border:none; border-radius:0.4rem; cursor:pointer;" onclick="deleteTtEntry(${tr.id})">Del</button>` : '';
+          const editButton = `<button type="button" class="btn-icon" onclick="openEditTtEntryModal(${tr.id})" style="background:none; border:none; cursor:pointer; font-size:1.1rem; padding:0.1rem;" title="Edit">✏️</button>`;
+          const deleteButton = `<button type="button" class="btn-icon" onclick="deleteTtEntry(${tr.id})" style="background:none; border:none; cursor:pointer; font-size:1.1rem; padding:0.1rem; margin-left:0.4rem;" title="Delete">🗑</button>`;
 
           html += `
             <tr style="border-bottom:1px solid rgba(255,255,255,0.03);" 
@@ -5707,34 +5678,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 data-entry-given="${tr.entry_given}"
                 data-remark1="${tr.remark1 || ''}"
                 data-remark2="${tr.remark2 || ''}">
-              <td class="${isEditable ? 'editable-cell' : ''} cell-trip-date" ${isEditable ? 'contenteditable="true"' : ''} style="padding:0.65rem 0.85rem; font-weight:600; white-space:nowrap;">${formatDate(tr.date)}</td>
-              <td style="padding:0.65rem 0.85rem;">${tripForHtml}</td>
-              <td style="padding:0.65rem 0.85rem;">${entryGivenHtml}</td>
-              <td class="${isEditable ? 'editable-cell' : ''} cell-trip-remark1" ${isEditable ? 'contenteditable="true"' : ''} style="padding:0.65rem 0.85rem;">${escapeHtml(tr.remark1 || '')}</td>
-              <td class="${isEditable ? 'editable-cell' : ''} cell-trip-remark2" ${isEditable ? 'contenteditable="true"' : ''} style="padding:0.65rem 0.85rem;">${escapeHtml(tr.remark2 || '')}</td>
-              <td style="padding:0.65rem 0.85rem; text-align:center;">
+              <td style="padding:0.65rem 0.85rem; font-weight:600; white-space:nowrap;">${formatDate(tr.date)}</td>
+              <td style="padding:0.65rem 0.85rem;">${escapeHtml(tr.trip_for || '')}</td>
+              <td style="padding:0.65rem 0.85rem;">${escapeHtml(tr.entry_given || '')}</td>
+              <td style="padding:0.65rem 0.85rem;">${escapeHtml(tr.remark1 || '')}</td>
+              <td style="padding:0.65rem 0.85rem;">${escapeHtml(tr.remark2 || '')}</td>
+              <td style="padding:0.65rem 0.85rem; text-align:center; white-space:nowrap;">
+                ${editButton}
                 ${deleteButton}
               </td>
             </tr>
           `;
         });
         tbody.innerHTML = html;
-
-        // Register event listeners
-        tbody.querySelectorAll('tr').forEach(trRow => {
-          trRow.querySelectorAll('.editable-cell').forEach(cell => {
-            cell.addEventListener('keydown', (evt) => {
-              if (evt.key === 'Enter') {
-                evt.preventDefault();
-                evt.target.blur();
-              }
-            });
-            cell.addEventListener('blur', () => handleEntryCellEdit(trRow, cell));
-          });
-          trRow.querySelectorAll('select').forEach(sel => {
-            sel.addEventListener('change', () => handleEntryCellEdit(trRow, sel));
-          });
-        });
       }
     } catch (err) {
       console.error(err);
@@ -5743,73 +5699,71 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Handle inline entries editing
-  async function handleEntryCellEdit(trRow, triggeredElement) {
-    const entryId = trRow.dataset.id;
-    if (!entryId) return;
+  // Open edit modal for a TT entry
+  window.openEditTtEntryModal = function(entryId) {
+    const trRow = document.querySelector(`#tt-trips-table-body tr[data-id="${entryId}"]`);
+    if (!trRow) return;
 
-    const dateEl = trRow.querySelector('.cell-trip-date');
-    const tripForSel = trRow.querySelector('.cell-trip-for-select');
-    const entryGivenSel = trRow.querySelector('.cell-entry-given-select');
-    const remark1El = trRow.querySelector('.cell-trip-remark1');
-    const remark2El = trRow.querySelector('.cell-trip-remark2');
+    const modal = document.getElementById('modal-tt-edit-entry');
+    if (!modal) return;
 
-    const dateVal = parseInputDate(dateEl.textContent.trim());
-    const tripForVal = tripForSel.value;
-    const entryGivenVal = entryGivenSel.value;
-    const remark1Val = remark1El.textContent.trim();
-    const remark2Val = remark2El.textContent.trim();
+    document.getElementById('edit-entry-id').value = entryId;
+    document.getElementById('edit-entry-date').value = trRow.dataset.date || '';
+    document.getElementById('edit-entry-trip-for').value = trRow.dataset.tripFor || 'Pimpalgaon';
+    document.getElementById('edit-entry-given').value = trRow.dataset.entryGiven || 'Yes';
+    document.getElementById('edit-entry-remark1').value = trRow.dataset.remark1 || '';
+    document.getElementById('edit-entry-remark2').value = trRow.dataset.remark2 || '';
 
-    if (!dateVal) {
-      showToast('Please enter a valid date.', 'error');
-      loadTtTrips();
-      return;
-    }
+    modal.style.display = 'flex';
+  };
 
-    // Check if anything actually changed
-    const oldDate = trRow.dataset.date;
-    const oldTripFor = trRow.dataset.tripFor;
-    const oldEntryGiven = trRow.dataset.entryGiven;
-    const oldRemark1 = trRow.dataset.remark1 || '';
-    const oldRemark2 = trRow.dataset.remark2 || '';
+  // Handle edit entry form submission
+  const formEditEntry = document.getElementById('form-tt-edit-entry');
+  if (formEditEntry) {
+    formEditEntry.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const entryId = document.getElementById('edit-entry-id').value;
+      const dateVal = document.getElementById('edit-entry-date').value;
+      const tripForVal = document.getElementById('edit-entry-trip-for').value;
+      const entryGivenVal = document.getElementById('edit-entry-given').value;
+      const remark1Val = document.getElementById('edit-entry-remark1').value.trim();
+      const remark2Val = document.getElementById('edit-entry-remark2').value.trim();
 
-    if (
-      dateVal === oldDate &&
-      tripForVal === oldTripFor &&
-      entryGivenVal === oldEntryGiven &&
-      remark1Val === oldRemark1 &&
-      remark2Val === oldRemark2
-    ) {
-      return;
-    }
+      if (!dateVal || !tripForVal || !entryGivenVal) {
+        showToast('Please fill in Date, Trip For, and Entry Given.', 'error');
+        return;
+      }
 
-    try {
-      const res = await fetch(`/api/tt/entries/${entryId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          date: dateVal,
-          trip_for: tripForVal,
-          entry_given: entryGivenVal,
-          remark1: remark1Val,
-          remark2: remark2Val
-        })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to update entry.');
-      
-      // Sync attributes
-      trRow.dataset.date = dateVal;
-      trRow.dataset.tripFor = tripForVal;
-      trRow.dataset.entryGiven = entryGivenVal;
-      trRow.dataset.remark1 = remark1Val;
-      trRow.dataset.remark2 = remark2Val;
+      try {
+        const res = await fetch(`/api/tt/entries/${entryId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            date: dateVal,
+            trip_for: tripForVal,
+            entry_given: entryGivenVal,
+            remark1: remark1Val,
+            remark2: remark2Val
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to update entry.');
 
-      showToast('Entry updated successfully.', 'success');
-    } catch (err) {
-      showToast(err.message, 'error');
-      loadTtTrips();
-    }
+        showToast('Entry updated successfully.', 'success');
+        document.getElementById('modal-tt-edit-entry').style.display = 'none';
+        loadTtTrips();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+  }
+
+  // Cancel edit entry modal
+  const btnCancelEditEntry = document.getElementById('btn-cancel-edit-entry');
+  if (btnCancelEditEntry) {
+    btnCancelEditEntry.addEventListener('click', () => {
+      document.getElementById('modal-tt-edit-entry').style.display = 'none';
+    });
   }
 
   // Delete Entry
@@ -6036,8 +5990,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
           let desc = t.description || '';
           let notesStr = t.notes || '';
-          const isEditable = true; // Category B TT transactions are always editable
-          const deleteButton = isEditable ? `<button style="padding:0.15rem 0.45rem; font-size:0.75rem; background:var(--danger); color:#fff; border:none; border-radius:0.4rem; cursor:pointer;" onclick="deleteTtTxn(${t.id})">Del</button>` : '';
+          const isEditable = true;
+          const editButton = `<button type="button" class="btn-icon" onclick="openEditTtLedgerModal(${t.id})" style="background:none; border:none; cursor:pointer; font-size:1.1rem; padding:0.1rem;" title="Edit">✏️</button>`;
+          const deleteButton = isEditable ? `<button type="button" class="btn-icon" onclick="deleteTtTxn(${t.id})" style="background:none; border:none; cursor:pointer; font-size:1.1rem; padding:0.1rem; margin-left:0.3rem;" title="Delete">🗑</button>` : '';
 
           html += `
             <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.03);"
@@ -6047,35 +6002,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 data-notes="${notesStr}"
                 data-type="${t.type}"
                 data-amount="${amt}">
-              <td class="${isEditable ? 'editable-cell' : ''} cell-txn-date" ${isEditable ? 'contenteditable="true"' : ''} style="padding: 0.65rem 0.85rem; font-weight:600; white-space:nowrap;">${formatDate(t.date)}</td>
-              <td class="${isEditable ? 'editable-cell' : ''} cell-txn-particulars" ${isEditable ? 'contenteditable="true"' : ''} style="padding: 0.65rem 0.85rem;">
-                ${desc}
+              <td style="padding: 0.65rem 0.85rem; font-weight:600; white-space:nowrap;">${formatDate(t.date)}</td>
+              <td style="padding: 0.65rem 0.85rem;">
+                ${escapeHtml(desc)}
                 ${notesStr ? `<div style="font-size:0.75rem; color:var(--text-muted); font-style:italic; margin-top:0.15rem;">Note: ${escapeHtml(notesStr)}</div>` : ''}
               </td>
-              <td style="padding: 0.65rem 0.85rem; color: var(--text-muted);"></td>
-              <td class="${isEditable ? 'editable-cell' : ''} cell-txn-debit text-right" ${isEditable ? 'contenteditable="true"' : ''} style="padding: 0.65rem 0.85rem; text-align:right; color:var(--danger); font-weight:600;">${debitVal}</td>
-              <td class="${isEditable ? 'editable-cell' : ''} cell-txn-credit text-right" ${isEditable ? 'contenteditable="true"' : ''} style="padding: 0.65rem 0.85rem; text-align:right; color:var(--success); font-weight:600;">${creditVal}</td>
+
+              <td class="cell-txn-debit text-right" style="padding: 0.65rem 0.85rem; text-align:right; color:var(--danger); font-weight:600;">${debitVal}</td>
+              <td class="cell-txn-credit text-right" style="padding: 0.65rem 0.85rem; text-align:right; color:var(--success); font-weight:600;">${creditVal}</td>
               <td class="cell-txn-balance text-right" style="padding: 0.65rem 0.85rem; text-align:right; font-weight:700; color:var(--text-main);">₹ ${Math.round(currentBal).toLocaleString('en-IN')}</td>
-              <td style="padding: 0.65rem 0.85rem; text-align:center;">
+              <td style="padding: 0.65rem 0.85rem; text-align:center; white-space:nowrap;">
+                ${editButton}
                 ${deleteButton}
               </td>
             </tr>
           `;
         });
         ttStatementBody.innerHTML = html;
-
-        // Register edit handlers
-        ttStatementBody.querySelectorAll('tr').forEach(trRow => {
-          trRow.querySelectorAll('.editable-cell').forEach(cell => {
-            cell.addEventListener('keydown', (evt) => {
-              if (evt.key === 'Enter') {
-                evt.preventDefault();
-                evt.target.blur();
-              }
-            });
-            cell.addEventListener('blur', () => handleLedgerCellEdit(trRow, cell));
-          });
-        });
       }
     } catch (err) {
       console.error(err);
@@ -6086,127 +6029,75 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Handle inline ledger cell editing
-  async function handleLedgerCellEdit(trRow, cell) {
-    const txnId = trRow.dataset.id;
-    if (!txnId) return;
+  // Open edit modal for a TT ledger transaction
+  window.openEditTtLedgerModal = function(txnId) {
+    const trRow = document.querySelector(`#tt-statement-body tr[data-id="${txnId}"]`);
+    if (!trRow) return;
 
-    const dateEl = trRow.querySelector('.cell-txn-date');
-    const partEl = trRow.querySelector('.cell-txn-particulars');
-    const debitEl = trRow.querySelector('.cell-txn-debit');
-    const creditEl = trRow.querySelector('.cell-txn-credit');
+    const modal = document.getElementById('modal-tt-edit-ledger');
+    if (!modal) return;
 
-    const dateVal = parseInputDate(dateEl.textContent.trim());
-    
-    // Extract particulars description without notes preview div
-    const partClone = partEl.cloneNode(true);
-    const notesDiv = partClone.querySelector('div');
-    if (notesDiv) notesDiv.remove();
-    const description = partClone.textContent.trim();
+    document.getElementById('edit-ledger-id').value = txnId;
+    document.getElementById('edit-ledger-date').value = trRow.dataset.date || '';
+    document.getElementById('edit-ledger-description').value = trRow.dataset.description || '';
+    document.getElementById('edit-ledger-notes').value = trRow.dataset.notes || '';
+    document.getElementById('edit-ledger-type').value = trRow.dataset.type || 'DEBIT';
+    document.getElementById('edit-ledger-amount').value = trRow.dataset.amount || '';
 
-    let debitVal = parseFloat(debitEl.textContent.replace(/[^\d.-]/g, '')) || 0;
-    let creditVal = parseFloat(creditEl.textContent.replace(/[^\d.-]/g, '')) || 0;
+    modal.style.display = 'flex';
+  };
 
-    const oldType = trRow.dataset.type;
-    const oldAmount = parseFloat(trRow.dataset.amount) || 0;
+  // Handle edit ledger form submission
+  const formEditLedger = document.getElementById('form-tt-edit-ledger');
+  if (formEditLedger) {
+    formEditLedger.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const txnId = document.getElementById('edit-ledger-id').value;
+      const dateVal = document.getElementById('edit-ledger-date').value;
+      const description = document.getElementById('edit-ledger-description').value.trim();
+      const notes = document.getElementById('edit-ledger-notes').value.trim();
+      const type = document.getElementById('edit-ledger-type').value;
+      const amount = parseFloat(document.getElementById('edit-ledger-amount').value) || 0;
 
-    let type = oldType;
-    let amount = oldAmount;
-
-    if (cell.classList.contains('cell-txn-debit')) {
-      if (debitVal > 0) {
-        type = 'DEBIT';
-        amount = debitVal;
-        creditEl.textContent = ''; 
-      } else if (creditVal > 0) {
-        type = 'CREDIT';
-        amount = creditVal;
-      } else {
-        showToast('Amount must be positive.', 'error');
-        loadTtLedger();
+      if (!dateVal) {
+        showToast('Please enter a valid date.', 'error');
         return;
       }
-    } else if (cell.classList.contains('cell-txn-credit')) {
-      if (creditVal > 0) {
-        type = 'CREDIT';
-        amount = creditVal;
-        debitEl.textContent = ''; 
-      } else if (debitVal > 0) {
-        type = 'DEBIT';
-        amount = debitVal;
-      } else {
+      if (amount <= 0) {
         showToast('Amount must be positive.', 'error');
-        loadTtLedger();
         return;
       }
-    } else {
-      // Date or Particulars was edited
-      if (debitVal > 0 && creditVal === 0) {
-        type = 'DEBIT';
-        amount = debitVal;
-      } else if (creditVal > 0 && debitVal === 0) {
-        type = 'CREDIT';
-        amount = creditVal;
-      } else if (debitVal > 0 && creditVal > 0) {
-        if (type === 'DEBIT') {
-          amount = debitVal;
-          creditEl.textContent = '';
-        } else {
-          amount = creditVal;
-          debitEl.textContent = '';
-        }
+
+      try {
+        const res = await fetch(`/api/tt/transactions/${txnId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            date: dateVal,
+            description: description,
+            type: type,
+            amount: amount,
+            notes: notes
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to update transaction.');
+
+        showToast('Transaction updated successfully.', 'success');
+        document.getElementById('modal-tt-edit-ledger').style.display = 'none';
+        loadTtLedger();
+      } catch (err) {
+        showToast(err.message, 'error');
       }
-    }
+    });
+  }
 
-    if (!dateVal) {
-      showToast('Please enter a valid date.', 'error');
-      loadTtLedger();
-      return;
-    }
-
-    // Recalculate balances dynamically in UI
-    recalculateLedgerBalancesOnline();
-
-    // Check if changed
-    const oldDate = trRow.dataset.date;
-    const oldDesc = trRow.dataset.description;
-    const oldNotes = trRow.dataset.notes || '';
-
-    if (
-      dateVal === oldDate &&
-      description === oldDesc &&
-      type === oldType &&
-      amount === oldAmount
-    ) {
-      return;
-    }
-
-    try {
-      const res = await fetch(`/api/tt/transactions/${txnId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          date: dateVal,
-          description: description,
-          type: type,
-          amount: amount,
-          notes: oldNotes
-        })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to update transaction.');
-      
-      // Update data attributes
-      trRow.dataset.date = dateVal;
-      trRow.dataset.description = description;
-      trRow.dataset.type = type;
-      trRow.dataset.amount = amount;
-
-      showToast('Transaction updated successfully.', 'success');
-    } catch (err) {
-      showToast(err.message, 'error');
-      loadTtLedger();
-    }
+  // Cancel edit ledger modal
+  const btnCancelEditLedger = document.getElementById('btn-cancel-edit-ledger');
+  if (btnCancelEditLedger) {
+    btnCancelEditLedger.addEventListener('click', () => {
+      document.getElementById('modal-tt-edit-ledger').style.display = 'none';
+    });
   }
 
   // Recalculate Ledger Running Balances locally
@@ -6996,7 +6887,20 @@ document.addEventListener('DOMContentLoaded', () => {
         totalBalanceEl.textContent = `₹ ${status.total_amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
       }
 
+      function formatChillarDate(dateStr) {
+        if (!dateStr) return '';
+        const parts = dateStr.split('-');
+        if (parts.length !== 3) return dateStr;
+        const year = parts[0];
+        const monthIndex = parseInt(parts[1], 10) - 1;
+        const day = parseInt(parts[2], 10);
+        const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        const monthName = months[monthIndex] || parts[1];
+        return `${day}-${monthName}-${year}`;
+      }
+
       const statusMap = {
+        'status-notes-20': status.notes_20,
         'status-notes-10': status.notes_10,
         'status-coins-20': status.coins_20,
         'status-coins-10': status.coins_10,
@@ -7035,6 +6939,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Format denomination log
             const logParts = [];
+            if (tx.notes_20) logParts.push(`₹20 x ${tx.notes_20}`);
             if (tx.notes_10) logParts.push(`₹10 x ${tx.notes_10}`);
             if (tx.coins_20) logParts.push(`₹20 x ${tx.coins_20}`);
             if (tx.coins_10) logParts.push(`₹10 x ${tx.coins_10}`);
@@ -7067,19 +6972,19 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Action
-            const showDelete = tx.type !== 'OPENING' && tx.type !== 'DAY_CLOSE';
+            const showDelete = true;
             const actionTd = showDelete 
               ? `<button type="button" class="btn btn-secondary btn-delete-chillar-tx" data-id="${tx.id}" style="padding: 0.15rem 0.4rem; font-size: 0.7rem; min-height: auto; border-radius: 0.25rem;">🗑 Delete</button>`
               : '—';
 
             tr.innerHTML = `
-              <td style="padding: 0.5rem; white-space: nowrap;">${tx.date}</td>
-              <td style="padding: 0.5rem;">${typeBadge}</td>
-              <td style="padding: 0.5rem;">${tx.description || ''}</td>
-              <td style="padding: 0.5rem; font-family: monospace; font-size: 0.75rem; color: var(--text-muted);">${denomLog}</td>
-              <td style="padding: 0.5rem; text-align: right; ${amountStyle}">${amountText}</td>
-              <td style="padding: 0.5rem; text-align: right; font-weight: 600;">₹ ${tx.running_balance.toFixed(2)}</td>
-              <td style="padding: 0.5rem; text-align: center;">${actionTd}</td>
+              <td style="padding: 0.4rem 0.25rem; white-space: nowrap;">${formatChillarDate(tx.date)}</td>
+              <td style="padding: 0.4rem 0.25rem; white-space: nowrap;">${typeBadge}</td>
+              <td style="padding: 0.4rem 0.25rem;">${tx.description || ''}</td>
+              <td style="padding: 0.4rem 0.25rem; font-family: monospace; font-size: 0.7rem; color: var(--text-muted); white-space: nowrap;">${denomLog}</td>
+              <td style="padding: 0.4rem 0.25rem; text-align: right; white-space: nowrap; ${amountStyle}">${amountText}</td>
+              <td style="padding: 0.4rem 0.25rem; text-align: right; font-weight: 600; white-space: nowrap;">₹ ${tx.running_balance.toFixed(2)}</td>
+              <td style="padding: 0.4rem 0.25rem; text-align: center; white-space: nowrap;">${actionTd}</td>
             `;
 
             tbody.appendChild(tr);
@@ -7089,7 +6994,7 @@ document.addEventListener('DOMContentLoaded', () => {
           document.querySelectorAll('.btn-delete-chillar-tx').forEach(btn => {
             btn.addEventListener('click', async (e) => {
               const txId = e.currentTarget.getAttribute('data-id');
-              if (confirm('Are you sure you want to delete this manual chillar transaction?')) {
+              if (confirm('Are you sure you want to delete this chillar transaction?')) {
                 try {
                   const deleteRes = await fetch(`/api/chillar/transaction/${txId}`, { method: 'DELETE' });
                   if (!deleteRes.ok) throw new Error('Failed to delete transaction.');
@@ -7111,13 +7016,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Real-time calculations for chillar adjustments
   function calcChillarAdjustmentTotal() {
+    const n20 = parseInt(document.getElementById('adj-notes-20').value) || 0;
     const n10 = parseInt(document.getElementById('adj-notes-10').value) || 0;
     const c20 = parseInt(document.getElementById('adj-coins-20').value) || 0;
     const c10 = parseInt(document.getElementById('adj-coins-10').value) || 0;
     const c5 = parseInt(document.getElementById('adj-coins-5').value) || 0;
     const c2 = parseInt(document.getElementById('adj-coins-2').value) || 0;
     const c1 = parseInt(document.getElementById('adj-coins-1').value) || 0;
-    const total = (n10 * 10) + (c20 * 20) + (c10 * 10) + (c5 * 5) + (c2 * 2) + (c1 * 1);
+    const total = (n20 * 20) + (n10 * 10) + (c20 * 20) + (c10 * 10) + (c5 * 5) + (c2 * 2) + (c1 * 1);
     
     const adjTotalValEl = document.getElementById('chillar-adj-total-val');
     if (adjTotalValEl) adjTotalValEl.textContent = `₹ ${total.toFixed(2)}`;
@@ -7134,6 +7040,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const date = document.getElementById('chillar-adj-date').value;
       const type = document.getElementById('chillar-adj-type').value;
       const description = document.getElementById('chillar-adj-desc').value.trim();
+      const notes_20 = parseInt(document.getElementById('adj-notes-20').value) || 0;
       const notes_10 = parseInt(document.getElementById('adj-notes-10').value) || 0;
       const coins_20 = parseInt(document.getElementById('adj-coins-20').value) || 0;
       const coins_10 = parseInt(document.getElementById('adj-coins-10').value) || 0;
@@ -7150,7 +7057,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const res = await fetch('/api/chillar/transaction', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ date, type, description, notes_10, coins_20, coins_10, coins_5, coins_2, coins_1 })
+          body: JSON.stringify({ date, type, description, notes_20, notes_10, coins_20, coins_10, coins_5, coins_2, coins_1 })
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to save transaction.');
@@ -7168,6 +7075,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  const btnClearChillarData = document.getElementById('btn-clear-chillar-data');
+  if (btnClearChillarData) {
+    btnClearChillarData.addEventListener('click', async () => {
+      if (confirm('⚠️ WARNING: Are you sure you want to clear ALL chillar records? This will delete all transactions and set all coin volumes/balances to zero. This action CANNOT be undone.')) {
+        try {
+          const res = await fetch('/api/chillar/clear', { method: 'POST' });
+          if (!res.ok) {
+            const data = await res.json();
+            throw new Error(data.error || 'Failed to clear records.');
+          }
+          showToast('All chillar records cleared to zero.', 'success');
+          loadChillarData();
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
+      }
+    });
+  }
+
   // Chillar Edit Opening balance
   const btnChillarEditOpening = document.getElementById('btn-chillar-edit-opening');
   if (btnChillarEditOpening) {
@@ -7179,15 +7105,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const txData = await txRes.json();
         const txList = txData.transactions || [];
         const openingTx = txList.find(tx => tx.type === 'OPENING') || {
-          notes_10: 0, coins_20: 0, coins_10: 0, coins_5: 0, coins_2: 0, coins_1: 0
+          notes_20: 0, notes_10: 0, coins_20: 0, coins_10: 0, coins_5: 0, coins_2: 0, coins_1: 0
         };
 
-        document.getElementById('opening-notes-10').value = openingTx.notes_10;
-        document.getElementById('opening-coins-20').value = openingTx.coins_20;
-        document.getElementById('opening-coins-10').value = openingTx.coins_10;
-        document.getElementById('opening-coins-5').value = openingTx.coins_5;
-        document.getElementById('opening-coins-2').value = openingTx.coins_2;
-        document.getElementById('opening-coins-1').value = openingTx.coins_1;
+        document.getElementById('opening-notes-20').value = openingTx.notes_20 || 0;
+        document.getElementById('opening-notes-10').value = openingTx.notes_10 || 0;
+        document.getElementById('opening-coins-20').value = openingTx.coins_20 || 0;
+        document.getElementById('opening-coins-10').value = openingTx.coins_10 || 0;
+        document.getElementById('opening-coins-5').value = openingTx.coins_5 || 0;
+        document.getElementById('opening-coins-2').value = openingTx.coins_2 || 0;
+        document.getElementById('opening-coins-1').value = openingTx.coins_1 || 0;
 
         calcChillarOpeningTotal();
       } catch (err) {
@@ -7197,13 +7124,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function calcChillarOpeningTotal() {
+    const n20 = parseInt(document.getElementById('opening-notes-20').value) || 0;
     const n10 = parseInt(document.getElementById('opening-notes-10').value) || 0;
     const c20 = parseInt(document.getElementById('opening-coins-20').value) || 0;
     const c10 = parseInt(document.getElementById('opening-coins-10').value) || 0;
     const c5 = parseInt(document.getElementById('opening-coins-5').value) || 0;
     const c2 = parseInt(document.getElementById('opening-coins-2').value) || 0;
     const c1 = parseInt(document.getElementById('opening-coins-1').value) || 0;
-    const total = (n10 * 10) + (c20 * 20) + (c10 * 10) + (c5 * 5) + (c2 * 2) + (c1 * 1);
+    const total = (n20 * 20) + (n10 * 10) + (c20 * 20) + (c10 * 10) + (c5 * 5) + (c2 * 2) + (c1 * 1);
 
     const openingTotalValEl = document.getElementById('opening-total-val');
     if (openingTotalValEl) openingTotalValEl.textContent = `₹ ${total.toFixed(2)}`;
@@ -7217,6 +7145,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (formChillarOpening) {
     formChillarOpening.addEventListener('submit', async (e) => {
       e.preventDefault();
+      const notes_20 = parseInt(document.getElementById('opening-notes-20').value) || 0;
       const notes_10 = parseInt(document.getElementById('opening-notes-10').value) || 0;
       const coins_20 = parseInt(document.getElementById('opening-coins-20').value) || 0;
       const coins_10 = parseInt(document.getElementById('opening-coins-10').value) || 0;
@@ -7228,7 +7157,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const res = await fetch('/api/chillar/opening', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ notes_10, coins_20, coins_10, coins_5, coins_2, coins_1 })
+          body: JSON.stringify({ notes_20, notes_10, coins_20, coins_10, coins_5, coins_2, coins_1 })
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to update opening balance.');
@@ -7253,12 +7182,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function loadPoranchaHishob() {
     try {
+      // Limit selectable dates to latestClosedDate or fallback
+      let maxDate = latestClosedDate;
+      if (!maxDate && activeDate) {
+        const parts = activeDate.split('-');
+        const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        d.setDate(d.getDate() - 1);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        maxDate = `${y}-${m}-${day}`;
+      }
+      if (maxDate) {
+        poranchaHishobDateInput.max = maxDate;
+      }
+
       if (!poranchaHishobDateInput.value) {
         if (latestClosedDate) {
           poranchaHishobDateInput.value = latestClosedDate;
         } else {
           const parts = activeDate.split('-');
-          const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+          const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
           d.setDate(d.getDate() - 1);
           const y = d.getFullYear();
           const m = String(d.getMonth() + 1).padStart(2, '0');

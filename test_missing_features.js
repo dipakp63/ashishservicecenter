@@ -47,6 +47,14 @@ const sendRequest = (path, method, payload) => {
 const runTest = async () => {
   console.log('--- Missing Features Integration Test ---');
 
+  // Initialize the database tables if they do not exist
+  try {
+    const dbInitializer = require('./db');
+    await dbInitializer.initDatabase();
+  } catch (err) {
+    console.error('Failed to initialize database schema in test:', err.message);
+  }
+
   // 1. Clear database tables
   const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
@@ -165,6 +173,25 @@ const runTest = async () => {
     if (statusRes5.body.total_amount !== 180) throw new Error(`Expected total to be 180, got ${statusRes5.body.total_amount}`);
 
 
+    // ── Test 6b: Clear Chillar Data ──
+    console.log('\nTesting Clear Chillar Data...');
+    const clearRes = await sendRequest('/api/chillar/clear', 'POST');
+    console.log('Clear response:', clearRes.body);
+    if (clearRes.statusCode !== 200) throw new Error('Clear chillar data failed.');
+
+    const statusRes5b = await sendRequest('/api/chillar/status', 'GET');
+    console.log('Status after clearing:', statusRes5b.body);
+    if (statusRes5b.body.total_amount !== 0) throw new Error(`Expected total to be 0 after clear, got ${statusRes5b.body.total_amount}`);
+    if (statusRes5b.body.notes_10 !== 0 || statusRes5b.body.coins_20 !== 0) {
+      throw new Error('Expected all coin counts to be 0 after clear.');
+    }
+
+    const txRes5b = await sendRequest('/api/chillar/transactions', 'GET');
+    const transactions5b = txRes5b.body.transactions || [];
+    console.log('Number of transactions after clear:', transactions5b.length);
+    if (transactions5b.length !== 0) throw new Error('Expected 0 transactions after clear.');
+
+
     // ── Test 7: Porancha Hishob (Blocked day check) ──
     console.log('\nTesting Porancha Hishob for non-closed date 2026-06-27...');
     const checkRes1 = await sendRequest('/api/readings/opening?date=2026-06-27', 'GET');
@@ -235,6 +262,80 @@ const runTest = async () => {
     if (hishobGetRes2.body.testing[0].employee_id !== 1 || hishobGetRes2.body.testing[0].testing_qty !== 5) {
       throw new Error('Testing row details do not match saved payload.');
     }
+
+    // ── Test 12: TT Auto-Sync to Expenses Ledger ──
+    console.log('\nTesting TT Auto-Sync to Expenses Ledger...');
+    
+    // Clear existing TT entries/transactions to make assertion predictable
+    const cleanupDb = new sqlite3.Database(dbPath);
+    await new Promise((resolve, reject) => {
+      cleanupDb.serialize(() => {
+        cleanupDb.run('DELETE FROM tt_entries');
+        cleanupDb.run('DELETE FROM tt_transactions', (err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+    });
+    cleanupDb.close();
+
+    // 1. Add Trip Entry
+    console.log('Adding trip entry...');
+    const tripPayload = {
+      date: '2026-06-27',
+      trip_for: 'Pimpalgaon',
+      entry_given: 'Yes',
+      remark1: '800',
+      remark2: 'Test Remark'
+    };
+    const addTripRes = await sendRequest('/api/tt/entries', 'POST', tripPayload);
+    if (addTripRes.statusCode !== 200) throw new Error('Failed to add trip entry');
+    
+    // Fetch entries to get the entry ID
+    const entriesRes = await sendRequest('/api/tt/entries?month=2026-06', 'GET');
+    const entry = entriesRes.body.entries[0];
+    if (!entry) throw new Error('Expected trip entry to exist.');
+    const entryId = entry.id;
+
+    // Fetch TT Ledger (Expenses Ledger) to verify auto-sync
+    const txRes1 = await sendRequest('/api/tt/transactions?month=2026-06', 'GET');
+    console.log('TT Ledger after add:', txRes1.body.transactions);
+    const tx1 = txRes1.body.transactions.find(t => t.tt_entry_id === entryId);
+    if (!tx1) throw new Error('Expected auto-synced transaction to exist in ledger.');
+    if (tx1.amount !== 800) throw new Error(`Expected amount 800, got ${tx1.amount}`);
+    if (tx1.type !== 'DEBIT') throw new Error(`Expected type DEBIT, got ${tx1.type}`);
+    if (!tx1.description.includes('Pimpalgaon')) throw new Error(`Expected description to contain Pimpalgaon, got ${tx1.description}`);
+
+    // 2. Edit Trip Entry
+    console.log('Editing trip entry...');
+    const editPayload = {
+      date: '2026-06-27',
+      trip_for: 'Wakod',
+      entry_given: 'Yes',
+      remark1: '780',
+      remark2: 'Updated Remark'
+    };
+    const editRes = await sendRequest(`/api/tt/entries/${entryId}`, 'PUT', editPayload);
+    if (editRes.statusCode !== 200) throw new Error('Failed to edit trip entry');
+
+    // Fetch TT Ledger to verify auto-update
+    const txRes2 = await sendRequest('/api/tt/transactions?month=2026-06', 'GET');
+    console.log('TT Ledger after edit:', txRes2.body.transactions);
+    const tx2 = txRes2.body.transactions.find(t => t.tt_entry_id === entryId);
+    if (!tx2) throw new Error('Expected auto-synced transaction to exist after edit.');
+    if (tx2.amount !== 780) throw new Error(`Expected amount 780, got ${tx2.amount}`);
+    if (!tx2.description.includes('Wakod')) throw new Error(`Expected description to contain Wakod, got ${tx2.description}`);
+
+    // 3. Delete Trip Entry
+    console.log('Deleting trip entry...');
+    const deleteRes = await sendRequest(`/api/tt/entries/${entryId}`, 'DELETE');
+    if (deleteRes.statusCode !== 200) throw new Error('Failed to delete trip entry');
+
+    // Fetch TT Ledger to verify auto-deletion
+    const txRes3 = await sendRequest('/api/tt/transactions?month=2026-06', 'GET');
+    console.log('TT Ledger after delete:', txRes3.body.transactions);
+    const tx3 = txRes3.body.transactions.find(t => t.tt_entry_id === entryId);
+    if (tx3) throw new Error('Expected auto-synced transaction to be deleted.');
 
     console.log('\n🎉 ALL MISSING FEATURES AUTOMATED TESTS PASSED SUCCESSFULLY!');
   } catch (err) {

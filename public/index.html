@@ -14,7 +14,7 @@
 </head>
 <body>
   <!-- Authorization Landing Page -->
-  <div id="landing-login-page" style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background: radial-gradient(circle at top right, #1e293b, #0f172a); font-family: 'Outfit', sans-serif; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 99999;">
+  <div id="landing-login-page" style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background: radial-gradient(circle at top right, #0b4ea2, #031c3c); font-family: 'Outfit', sans-serif; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 99999;">
     <style>
       .login-card {
         backdrop-filter: blur(20px);
@@ -37,14 +37,14 @@
       .login-logo {
         width: 70px;
         height: 70px;
-        background: linear-gradient(135deg, #06b6d4, #3b82f6);
+        background: linear-gradient(135deg, #ffc72c, #e0a900);
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 2.2rem;
         margin: 0 auto 1.5rem;
-        box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
+        box-shadow: 0 0 25px rgba(255, 199, 44, 0.45);
       }
       .login-title {
         font-size: 1.75rem;
@@ -78,8 +78,8 @@
         outline: none;
       }
       .login-input:focus {
-        border-color: #06b6d4;
-        box-shadow: 0 0 15px rgba(6, 182, 212, 0.25);
+        border-color: #ffc72c;
+        box-shadow: 0 0 15px rgba(255, 199, 44, 0.3);
         background: rgba(15, 23, 42, 0.8);
       }
       .login-input::placeholder {
@@ -92,20 +92,20 @@
       .login-btn {
         width: 100%;
         padding: 0.85rem;
-        background: linear-gradient(135deg, #06b6d4, #0891b2);
-        color: #ffffff;
+        background: linear-gradient(135deg, #ffc72c, #e0a900);
+        color: #0f172a;
         font-size: 1rem;
         font-weight: 700;
         border: none;
         border-radius: 0.75rem;
         cursor: pointer;
         transition: all 0.2s ease;
-        box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2);
+        box-shadow: 0 4px 12px rgba(255, 199, 44, 0.25);
       }
       .login-btn:hover {
         transform: translateY(-1px);
-        box-shadow: 0 6px 20px rgba(6, 182, 212, 0.35);
-        background: linear-gradient(135deg, #0891b2, #0e7490);
+        box-shadow: 0 6px 20px rgba(255, 199, 44, 0.4);
+        background: linear-gradient(135deg, #ffd359, #ffc72c);
       }
       .login-btn:active {
         transform: translateY(0);
@@ -130,7 +130,9 @@
       }
     </style>
     <div class="login-card">
-      <div class="login-logo">⛽</div>
+      <div class="login-logo-wrapper" style="width: 100px; height: auto; margin: 0 auto 1.5rem; display: flex; justify-content: center;">
+        <img src="hpcl_logo.png" alt="HPCL Logo" style="width: 100%; height: auto; max-height: 120px; object-fit: contain;">
+      </div>
       <h1 class="login-title">PumpERP Secure Access</h1>
       <p class="login-subtitle">Enter authorization password to access Dashboard</p>
       
@@ -199,7 +201,9 @@
     <!-- Sidebar Navigation -->
     <aside class="sidebar">
       <div class="sidebar-brand">
-        <span class="logo-icon">⛽</span>
+        <span class="logo-icon" style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: auto; margin-right: 0.35rem;">
+          <img src="hpcl_logo.png" alt="HP" style="width: 100%; height: auto; object-fit: contain;">
+        </span>
         <h2>PumpERP</h2>
       </div>
       
@@ -2302,7 +2306,7 @@
           <div style="display: flex; align-items: center; gap: 0.5rem;">
             <div id="emp-month-tabs" style="display: flex; align-items: center;"></div>
           </div>
-          <button type="button" class="btn btn-primary" id="btn-add-employee" style="padding: 0.5rem 1rem; font-size: 0.85rem;">+ Add Employee</button>
+          <button type="button" class="btn btn-primary" id="btn-add-employee" style="padding: 0.5rem 1.25rem; font-size: 0.85rem; flex: none; white-space: nowrap;">+ Add Employee</button>
         </div>
 
         <!-- Month Summary Totals Bar -->
@@ -2739,7 +2743,7 @@
                     <tr style="border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.01);">
                       <th style="padding: 0.2rem 0.35rem; text-align: left; font-size: 0.68rem; font-weight: 600; color: var(--text-muted);">Date</th>
                       <th style="padding: 0.2rem 0.35rem; text-align: left; font-size: 0.68rem; font-weight: 600; color: var(--text-muted);">Particular 1</th>
-                      <th style="padding: 0.2rem 0.35rem; text-align: left; font-size: 0.68rem; font-weight: 600; color: var(--text-muted);">Particular 2</th>
+
                       <th style="padding: 0.2rem 0.35rem; text-align: right; font-size: 0.68rem; font-weight: 600; color: var(--text-muted);">Debit (₹)</th>
                       <th style="padding: 0.2rem 0.35rem; text-align: right; font-size: 0.68rem; font-weight: 600; color: var(--text-muted);">Credit (₹)</th>
                       <th style="padding: 0.2rem 0.35rem; text-align: right; font-size: 0.68rem; font-weight: 600; color: var(--text-muted);">Running Balance (₹)</th>
@@ -2747,7 +2751,7 @@
                     </tr>
                   </thead>
                   <tbody id="tt-statement-body">
-                    <tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">Select a month to view TT ledger.</td></tr>
+                    <tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);">Select a month to view TT ledger.</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -2923,8 +2927,8 @@
         </main>
 
         <!-- Next Button Bar -->
-        <div id="porancha-hishob-next-bar" style="position: absolute; bottom: 0.8rem; right: 2.5rem; z-index: 50;">
-          <button type="button" id="btn-goto-reconciliation" class="btn btn-primary" style="padding: 0.35rem 1rem; font-size: 0.78rem; font-weight: 700; border-radius: 0.4rem; display: flex; align-items: center; gap: 0.35rem; letter-spacing: 0.3px; box-shadow: 0 2px 10px rgba(0,0,0,0.35);">
+        <div id="porancha-hishob-next-bar" style="position: absolute; bottom: 2.5rem; right: 5rem; z-index: 50;">
+          <button type="button" id="btn-goto-reconciliation" class="btn btn-primary" style="padding: 0.45rem 1.25rem; font-size: 0.94rem; font-weight: 700; border-radius: 0.45rem; display: flex; align-items: center; gap: 0.4rem; letter-spacing: 0.3px; box-shadow: 0 3px 12px rgba(0,0,0,0.45);">
             Next → Employee Reconciliation
           </button>
         </div>
@@ -2985,7 +2989,7 @@
           </div>
         </header>
 
-        <main class="content-body" style="display: flex; flex-direction: column; gap: 1rem; width: 100%; overflow-y: auto; flex: 1;">
+        <main class="content-body" style="display: flex; flex-direction: column; gap: 1rem; width: 100%; overflow: hidden; flex: 1; min-height: 0;">
           
           <!-- Upper Section: Current Status Card and Reconciliation Form -->
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; width: 100%;">
@@ -3008,7 +3012,11 @@
               </div>
 
               <!-- Denominations Grid -->
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+              <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem;">
+                <div style="padding: 0.4rem 0.5rem; background: rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.03); border-radius: 0.4rem; display: flex; justify-content: space-between; align-items: center;">
+                  <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted);">₹20 Notes:</span>
+                  <span id="status-notes-20" style="font-size: 0.85rem; font-weight: 700; font-family: monospace;">0</span>
+                </div>
                 <div style="padding: 0.4rem 0.5rem; background: rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.03); border-radius: 0.4rem; display: flex; justify-content: space-between; align-items: center;">
                   <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted);">₹10 Notes:</span>
                   <span id="status-notes-10" style="font-size: 0.85rem; font-weight: 700; font-family: monospace;">0</span>
@@ -3062,7 +3070,11 @@
                 </div>
 
                 <!-- Input Denominations Grid -->
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4rem; margin-top: 0.2rem;">
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.4rem; margin-top: 0.2rem;">
+                  <div class="form-group">
+                    <label style="font-size: 0.7rem; margin-bottom: 0.1rem;">₹20 Notes</label>
+                    <input type="number" id="adj-notes-20" class="form-control chillar-calc-input" min="0" value="0" style="text-align: right; font-size: 0.8rem; height: 26px; padding: 0.2rem 0.4rem;">
+                  </div>
                   <div class="form-group">
                     <label style="font-size: 0.7rem; margin-bottom: 0.1rem;">₹10 Notes</label>
                     <input type="number" id="adj-notes-10" class="form-control chillar-calc-input" min="0" value="0" style="text-align: right; font-size: 0.8rem; height: 26px; padding: 0.2rem 0.4rem;">
@@ -3091,9 +3103,14 @@
 
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem; border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 0.5rem;">
                   <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">Adjusted Value: <strong id="chillar-adj-total-val" style="color: var(--accent);">₹ 0.00</strong></span>
-                  <button type="submit" class="btn btn-primary" style="padding: 0.25rem 0.75rem; font-size: 0.8rem; min-height: 28px; height: 28px; line-height: 1; border-radius: 0.3rem;">
-                    Save Adjustment
-                  </button>
+                  <div style="display: flex; gap: 0.5rem;">
+                    <button type="button" id="btn-clear-chillar-data" class="btn btn-danger" style="background: var(--danger); border: none; padding: 0.25rem 0.75rem; font-size: 0.8rem; min-height: 28px; height: 28px; line-height: 1; border-radius: 0.3rem; flex: none; white-space: nowrap; font-weight: 600; color: #fff;">
+                      Clear Data
+                    </button>
+                    <button type="submit" class="btn btn-primary" style="padding: 0.25rem 0.75rem; font-size: 0.8rem; min-height: 28px; height: 28px; line-height: 1; border-radius: 0.3rem; flex: none; white-space: nowrap;">
+                      Save Adjustment
+                    </button>
+                  </div>
                 </div>
               </form>
             </section>
@@ -3106,17 +3123,17 @@
               <h2 style="font-size: 0.9rem; color: var(--accent); margin: 0;">📋 चिल्लर Ledger Book</h2>
             </div>
             
-            <div style="flex: 1; overflow-y: auto; width: 100%;">
-              <table class="table" id="chillar-ledger-table" style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
+            <div style="flex: 1; overflow: auto; width: 100%;">
+              <table class="table" id="chillar-ledger-table" style="width: 100%; border-collapse: collapse; font-size: 0.75rem;">
                 <thead>
                   <tr style="border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.015); position: sticky; top: 0; z-index: 1;">
-                    <th style="padding: 0.4rem; font-weight: 700; width: 90px;">Date</th>
-                    <th style="padding: 0.4rem; font-weight: 700; width: 100px;">Type</th>
-                    <th style="padding: 0.4rem; font-weight: 700;">Description</th>
-                    <th style="padding: 0.4rem; font-weight: 700;">Denomination Log</th>
-                    <th style="padding: 0.4rem; font-weight: 700; text-align: right; width: 90px;">Amount</th>
-                    <th style="padding: 0.4rem; font-weight: 700; text-align: right; width: 110px;">Running Balance</th>
-                    <th style="padding: 0.4rem; font-weight: 700; text-align: center; width: 60px;">Action</th>
+                    <th style="padding: 0.4rem 0.25rem; font-weight: 700; width: 90px; white-space: nowrap;">Date</th>
+                    <th style="padding: 0.4rem 0.25rem; font-weight: 700; width: 100px; white-space: nowrap;">Type</th>
+                    <th style="padding: 0.4rem 0.25rem; font-weight: 700; white-space: nowrap;">Description</th>
+                    <th style="padding: 0.4rem 0.25rem; font-weight: 700; white-space: nowrap;">Denomination Log</th>
+                    <th style="padding: 0.4rem 0.25rem; font-weight: 700; text-align: right; width: 90px; white-space: nowrap;">Amount</th>
+                    <th style="padding: 0.4rem 0.25rem; font-weight: 700; text-align: right; width: 110px; white-space: nowrap;">Running Balance</th>
+                    <th style="padding: 0.4rem 0.25rem; font-weight: 700; text-align: center; width: 60px; white-space: nowrap;">Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -3136,6 +3153,10 @@
           <p style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0; margin-bottom: 1rem;">Set the initial coins and ₹10 notes opening count for June 1st, 2026.</p>
           <form id="form-chillar-opening" style="display: flex; flex-direction: column; gap: 0.75rem;">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+              <div class="form-group">
+                <label style="font-size: 0.72rem; margin-bottom: 0.15rem;">₹20 Notes Count</label>
+                <input type="number" id="opening-notes-20" class="form-control opening-calc-input" min="0" value="0" style="text-align: right; height: 32px; padding: 0.4rem 0.6rem;">
+              </div>
               <div class="form-group">
                 <label style="font-size: 0.72rem; margin-bottom: 0.15rem;">₹10 Notes Count</label>
                 <input type="number" id="opening-notes-10" class="form-control opening-calc-input" min="0" value="0" style="text-align: right; height: 32px; padding: 0.4rem 0.6rem;">
@@ -3354,12 +3375,12 @@
       <form id="form-tt-add-trip" style="display: flex; flex-direction: column; gap: 0.75rem;">
         <div class="form-group" style="display: flex; flex-direction: column; gap: 0.25rem;">
           <label for="tt-trip-date" style="font-size: 0.85rem; font-weight: 600;">Trip Date</label>
-          <input type="date" id="tt-trip-date" required style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 0.35rem; color: #fff; padding: 0.4rem 0.6rem; font-size: 0.9rem;">
+          <input type="date" id="tt-trip-date" required style="background: var(--panel-btn-bg, rgba(255,255,255,0.05)); border: 1px solid var(--card-border, rgba(255,255,255,0.15)); border-radius: 0.35rem; color: var(--text-main, #fff); padding: 0.4rem 0.6rem; font-size: 0.9rem;">
         </div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
           <div class="form-group" style="display: flex; flex-direction: column; gap: 0.25rem;">
             <label for="tt-trip-for" style="font-size: 0.85rem; font-weight: 600;">Trip For</label>
-            <select id="tt-trip-for" required style="border-radius: 0.35rem; padding: 0.4rem 0.6rem; font-size: 0.9rem; cursor: pointer;">
+            <select id="tt-trip-for" required style="background: var(--panel-btn-bg, rgba(255,255,255,0.05)); border: 1px solid var(--card-border, rgba(255,255,255,0.15)); border-radius: 0.35rem; color: var(--text-main, #fff); padding: 0.4rem 0.6rem; font-size: 0.9rem; cursor: pointer;">
               <option value="Pimpalgaon">Pimpalgaon</option>
               <option value="Wakod">Wakod</option>
               <option value="Other">Other</option>
@@ -3367,7 +3388,7 @@
           </div>
           <div class="form-group" style="display: flex; flex-direction: column; gap: 0.25rem;">
             <label for="tt-entry-given" style="font-size: 0.85rem; font-weight: 600;">Entry Given</label>
-            <select id="tt-entry-given" required style="border-radius: 0.35rem; padding: 0.4rem 0.6rem; font-size: 0.9rem; cursor: pointer;">
+            <select id="tt-entry-given" required style="background: var(--panel-btn-bg, rgba(255,255,255,0.05)); border: 1px solid var(--card-border, rgba(255,255,255,0.15)); border-radius: 0.35rem; color: var(--text-main, #fff); padding: 0.4rem 0.6rem; font-size: 0.9rem; cursor: pointer;">
               <option value="Yes">Yes</option>
               <option value="No">No</option>
             </select>
@@ -3375,11 +3396,11 @@
         </div>
         <div class="form-group" style="display: flex; flex-direction: column; gap: 0.25rem;">
           <label for="tt-trip-remark1" style="font-size: 0.85rem; font-weight: 600;">Remark 1</label>
-          <input type="text" id="tt-trip-remark1" placeholder="Enter Remark 1" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 0.35rem; color: #fff; padding: 0.4rem 0.6rem; font-size: 0.9rem;">
+          <input type="number" id="tt-trip-remark1" placeholder="Enter Amount (₹)" step="0.01" min="0" style="background: var(--panel-btn-bg, rgba(255,255,255,0.05)); border: 1px solid var(--card-border, rgba(255,255,255,0.15)); border-radius: 0.35rem; color: var(--text-main, #fff); padding: 0.4rem 0.6rem; font-size: 0.9rem;">
         </div>
         <div class="form-group" style="display: flex; flex-direction: column; gap: 0.25rem;">
           <label for="tt-trip-remark2" style="font-size: 0.85rem; font-weight: 600;">Remark 2</label>
-          <input type="text" id="tt-trip-remark2" placeholder="Enter Remark 2" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 0.35rem; color: #fff; padding: 0.4rem 0.6rem; font-size: 0.9rem;">
+          <input type="text" id="tt-trip-remark2" placeholder="Enter Remark 2" style="background: var(--panel-btn-bg, rgba(255,255,255,0.05)); border: 1px solid var(--card-border, rgba(255,255,255,0.15)); border-radius: 0.35rem; color: var(--text-main, #fff); padding: 0.4rem 0.6rem; font-size: 0.9rem;">
         </div>
         <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
           <button type="button" id="btn-cancel-tt-trip" class="btn btn-secondary" style="padding: 0.4rem 0.85rem; font-size: 0.85rem; min-height: auto;">Cancel</button>
@@ -3389,7 +3410,88 @@
     </div>
   </div>
 
-  <!-- TT Modal: Edit Trip -->
+  <!-- TT Modal: Edit Entry -->
+  <div id="modal-tt-edit-entry" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); z-index: 100; align-items: center; justify-content: center;">
+    <div class="modal-content card" style="width: 90%; max-width: 450px; padding: 1.5rem;">
+      <h2 style="margin-top: 0; margin-bottom: 1rem; font-size: 1.2rem; color: var(--accent);">Edit Trip Entry</h2>
+      <form id="form-tt-edit-entry" style="display: flex; flex-direction: column; gap: 0.75rem;">
+        <input type="hidden" id="edit-entry-id">
+        <div class="form-group" style="display: flex; flex-direction: column; gap: 0.25rem;">
+          <label for="edit-entry-date" style="font-size: 0.85rem; font-weight: 600;">Trip Date</label>
+          <input type="date" id="edit-entry-date" required style="background: var(--panel-btn-bg, rgba(255,255,255,0.05)); border: 1px solid var(--card-border, rgba(255,255,255,0.15)); border-radius: 0.35rem; color: var(--text-main, #fff); padding: 0.4rem 0.6rem; font-size: 0.9rem;">
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div class="form-group" style="display: flex; flex-direction: column; gap: 0.25rem;">
+            <label for="edit-entry-trip-for" style="font-size: 0.85rem; font-weight: 600;">Trip For</label>
+            <select id="edit-entry-trip-for" required style="background: var(--panel-btn-bg, rgba(255,255,255,0.05)); border: 1px solid var(--card-border, rgba(255,255,255,0.15)); border-radius: 0.35rem; color: var(--text-main, #fff); padding: 0.4rem 0.6rem; font-size: 0.9rem; cursor: pointer;">
+              <option value="Pimpalgaon">Pimpalgaon</option>
+              <option value="Wakod">Wakod</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="form-group" style="display: flex; flex-direction: column; gap: 0.25rem;">
+            <label for="edit-entry-given" style="font-size: 0.85rem; font-weight: 600;">Entry Given</label>
+            <select id="edit-entry-given" required style="background: var(--panel-btn-bg, rgba(255,255,255,0.05)); border: 1px solid var(--card-border, rgba(255,255,255,0.15)); border-radius: 0.35rem; color: var(--text-main, #fff); padding: 0.4rem 0.6rem; font-size: 0.9rem; cursor: pointer;">
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group" style="display: flex; flex-direction: column; gap: 0.25rem;">
+          <label for="edit-entry-remark1" style="font-size: 0.85rem; font-weight: 600;">Remark 1</label>
+          <input type="number" id="edit-entry-remark1" placeholder="Enter Amount (₹)" step="0.01" min="0" style="background: var(--panel-btn-bg, rgba(255,255,255,0.05)); border: 1px solid var(--card-border, rgba(255,255,255,0.15)); border-radius: 0.35rem; color: var(--text-main, #fff); padding: 0.4rem 0.6rem; font-size: 0.9rem;">
+        </div>
+        <div class="form-group" style="display: flex; flex-direction: column; gap: 0.25rem;">
+          <label for="edit-entry-remark2" style="font-size: 0.85rem; font-weight: 600;">Remark 2</label>
+          <input type="text" id="edit-entry-remark2" placeholder="Enter Remark 2" style="background: var(--panel-btn-bg, rgba(255,255,255,0.05)); border: 1px solid var(--card-border, rgba(255,255,255,0.15)); border-radius: 0.35rem; color: var(--text-main, #fff); padding: 0.4rem 0.6rem; font-size: 0.9rem;">
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+          <button type="button" id="btn-cancel-edit-entry" class="btn btn-secondary" style="padding: 0.4rem 0.85rem; font-size: 0.85rem; min-height: auto;">Cancel</button>
+          <button type="submit" class="btn btn-primary" style="padding: 0.4rem 0.85rem; font-size: 0.85rem; min-height: auto;">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TT Modal: Edit Ledger Transaction -->
+  <div id="modal-tt-edit-ledger" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); z-index: 100; align-items: center; justify-content: center;">
+    <div class="modal-content card" style="width: 90%; max-width: 450px; padding: 1.5rem;">
+      <h2 style="margin-top: 0; margin-bottom: 1rem; font-size: 1.2rem; color: var(--accent);">Edit Transaction</h2>
+      <form id="form-tt-edit-ledger" style="display: flex; flex-direction: column; gap: 0.75rem;">
+        <input type="hidden" id="edit-ledger-id">
+        <div class="form-group" style="display: flex; flex-direction: column; gap: 0.25rem;">
+          <label for="edit-ledger-date" style="font-size: 0.85rem; font-weight: 600;">Date</label>
+          <input type="date" id="edit-ledger-date" required style="background: var(--panel-btn-bg, rgba(255,255,255,0.05)); border: 1px solid var(--card-border, rgba(255,255,255,0.15)); border-radius: 0.35rem; color: var(--text-main, #fff); padding: 0.4rem 0.6rem; font-size: 0.9rem;">
+        </div>
+        <div class="form-group" style="display: flex; flex-direction: column; gap: 0.25rem;">
+          <label for="edit-ledger-description" style="font-size: 0.85rem; font-weight: 600;">Particulars</label>
+          <input type="text" id="edit-ledger-description" required placeholder="Description" style="background: var(--panel-btn-bg, rgba(255,255,255,0.05)); border: 1px solid var(--card-border, rgba(255,255,255,0.15)); border-radius: 0.35rem; color: var(--text-main, #fff); padding: 0.4rem 0.6rem; font-size: 0.9rem;">
+        </div>
+        <div class="form-group" style="display: flex; flex-direction: column; gap: 0.25rem;">
+          <label for="edit-ledger-notes" style="font-size: 0.85rem; font-weight: 600;">Notes</label>
+          <input type="text" id="edit-ledger-notes" placeholder="Optional notes" style="background: var(--panel-btn-bg, rgba(255,255,255,0.05)); border: 1px solid var(--card-border, rgba(255,255,255,0.15)); border-radius: 0.35rem; color: var(--text-main, #fff); padding: 0.4rem 0.6rem; font-size: 0.9rem;">
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div class="form-group" style="display: flex; flex-direction: column; gap: 0.25rem;">
+            <label for="edit-ledger-type" style="font-size: 0.85rem; font-weight: 600;">Type</label>
+            <select id="edit-ledger-type" required style="background: var(--panel-btn-bg, rgba(255,255,255,0.05)); border: 1px solid var(--card-border, rgba(255,255,255,0.15)); border-radius: 0.35rem; color: var(--text-main, #fff); padding: 0.4rem 0.6rem; font-size: 0.9rem; cursor: pointer;">
+              <option value="DEBIT">Debit (₹)</option>
+              <option value="CREDIT">Credit (₹)</option>
+            </select>
+          </div>
+          <div class="form-group" style="display: flex; flex-direction: column; gap: 0.25rem;">
+            <label for="edit-ledger-amount" style="font-size: 0.85rem; font-weight: 600;">Amount (₹)</label>
+            <input type="number" id="edit-ledger-amount" required step="0.01" min="0.01" placeholder="0.00" style="background: var(--panel-btn-bg, rgba(255,255,255,0.05)); border: 1px solid var(--card-border, rgba(255,255,255,0.15)); border-radius: 0.35rem; color: var(--text-main, #fff); padding: 0.4rem 0.6rem; font-size: 0.9rem;">
+          </div>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+          <button type="button" id="btn-cancel-edit-ledger" class="btn btn-secondary" style="padding: 0.4rem 0.85rem; font-size: 0.85rem; min-height: auto;">Cancel</button>
+          <button type="submit" class="btn btn-primary" style="padding: 0.4rem 0.85rem; font-size: 0.85rem; min-height: auto;">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div id="modal-tt-edit-trip" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); z-index: 100; align-items: center; justify-content: center;">
     <div class="modal-content card" style="width: 90%; max-width: 400px; padding: 1.5rem;">
       <h2 style="margin-top: 0; margin-bottom: 1rem; font-size: 1.2rem; font-family: var(--font-header);">Edit Tanker Trip</h2>

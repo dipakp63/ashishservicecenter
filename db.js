@@ -221,9 +221,6 @@ async function initDatabase() {
       )`,
     },
     {
-      sql: `INSERT OR IGNORE INTO hpcl_config (key, value) VALUES ('hpcl_opening_balance', '0')`,
-    },
-    {
       sql: `CREATE TABLE IF NOT EXISTS debtors (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         debtor_name TEXT UNIQUE NOT NULL,
@@ -344,6 +341,7 @@ async function initDatabase() {
         date TEXT NOT NULL,
         type TEXT NOT NULL,
         description TEXT NOT NULL,
+        notes_20 INTEGER DEFAULT 0,
         notes_10 INTEGER DEFAULT 0,
         coins_20 INTEGER DEFAULT 0,
         coins_10 INTEGER DEFAULT 0,
@@ -368,6 +366,9 @@ async function initDatabase() {
 
   // Run CREATE TABLE statements concurrently to avoid Vercel 10s timeouts on cold starts
   await Promise.all(tableStatements.map(stmt => run(stmt.sql, stmt.args || [])));
+
+  // Run seed inserts after tables have been created
+  await run(`INSERT OR IGNORE INTO hpcl_config (key, value) VALUES ('hpcl_opening_balance', '0')`);
 
   console.log('[DB] All tables initialized successfully.');
 
@@ -396,6 +397,8 @@ async function initDatabase() {
   // Run all migrations concurrently (failures are ignored if column already exists)
   await Promise.allSettled([
     run(`ALTER TABLE employee_transactions ADD COLUMN remarks TEXT`),
+    run(`ALTER TABLE chillar_transactions ADD COLUMN notes_20 INTEGER DEFAULT 0`),
+    run(`ALTER TABLE tt_transactions ADD COLUMN tt_entry_id INTEGER DEFAULT NULL`),
     run(`CREATE INDEX IF NOT EXISTS idx_debtor_transactions_id_date ON debtor_transactions(debtor_id, transaction_date)`),
     run(`CREATE INDEX IF NOT EXISTS idx_employee_transactions_id_date ON employee_transactions(employee_id, transaction_date)`),
     run(`CREATE INDEX IF NOT EXISTS idx_tt_transactions_date ON tt_transactions(date)`),
