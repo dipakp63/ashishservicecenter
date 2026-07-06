@@ -3655,6 +3655,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   const hpclModal = document.getElementById('hpcl-modal');
   const btnHpclEditOpening = document.getElementById('btn-hpcl-edit-opening');
+  const btnHpclReset = document.getElementById('btn-hpcl-reset');
   const btnHpclModalCancel = document.getElementById('btn-hpcl-modal-cancel');
   const btnHpclModalSave = document.getElementById('btn-hpcl-modal-save');
   const hpclNewOpeningBalanceInput = document.getElementById('hpcl-new-opening-balance');
@@ -3838,8 +3839,26 @@ document.addEventListener('DOMContentLoaded', () => {
           });
       }
     });
+  if (btnHpclReset) {
+    btnHpclReset.addEventListener('click', async () => {
+      if (!confirm('Are you sure you want to reset the HPCL Portal Balance tracker? This will delete all entries related to this feature and set the opening balance to zero.')) {
+        return;
+      }
+      try {
+        const response = await fetch('/api/hpcl/reset', { method: 'POST' });
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.error || 'Failed to reset tracker.');
+        }
+        showToast('HPCL tracker reset successfully.', 'success');
+        loadHpclData();
+      } catch (err) {
+        console.error('Error resetting HPCL tracker:', err);
+        showToast(err.message || 'Error resetting HPCL tracker.', 'error');
+      }
+    });
   }
-  
+
   if (btnHpclModalCancel) {
     btnHpclModalCancel.addEventListener('click', () => {
       if (hpclModal) hpclModal.style.display = 'none';

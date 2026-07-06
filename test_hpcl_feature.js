@@ -241,6 +241,49 @@ const runTest = async () => {
       throw new Error(`Expected first credit running balance to be 1410000, got ${tx1Recalculated.running_balance}`);
     }
 
+    // Testing Reset Endpoint
+    console.log('\nTesting Reset Endpoint...');
+    const resetRes = await sendRequest('/api/hpcl/reset', 'POST');
+    if (resetRes.statusCode !== 200) {
+      throw new Error(`Failed to reset HPCL tracker: ${JSON.stringify(resetRes.body)}`);
+    }
+    console.log('Reset response:', resetRes.body);
+
+    // Verify database directly
+    let txCountAfterReset = -1;
+    await new Promise((resolve) => {
+      dbInspect.all(`SELECT COUNT(*) AS cnt FROM hpcl_transactions`, (err, rows) => {
+        txCountAfterReset = rows[0].cnt;
+        resolve();
+      });
+    });
+    console.log(`Checking transaction count after reset. Expected: 0, Got: ${txCountAfterReset}`);
+    if (txCountAfterReset !== 0) {
+      throw new Error(`Expected 0 transactions after reset, got ${txCountAfterReset}`);
+    }
+
+    let openingBalanceAfterReset = null;
+    await new Promise((resolve) => {
+      dbInspect.all(`SELECT value FROM hpcl_config WHERE key = 'hpcl_opening_balance'`, (err, rows) => {
+        openingBalanceAfterReset = rows[0]?.value;
+        resolve();
+      });
+    });
+    console.log(`Checking config opening balance after reset. Expected: '0', Got: '${openingBalanceAfterReset}'`);
+    if (openingBalanceAfterReset !== '0') {
+      throw new Error(`Expected opening balance config to be '0', got '${openingBalanceAfterReset}'`);
+    }
+
+    // Verify summary endpoint response after reset
+    const summaryResAfterReset = await sendRequest('/api/hpcl/summary', 'GET');
+    console.log('Summary response after reset:', summaryResAfterReset.body);
+    if (summaryResAfterReset.body.opening_balance !== 0) {
+      throw new Error(`Expected summary opening_balance to be 0, got ${summaryResAfterReset.body.opening_balance}`);
+    }
+    if (summaryResAfterReset.body.current_balance !== 0) {
+      throw new Error(`Expected summary current_balance to be 0, got ${summaryResAfterReset.body.current_balance}`);
+    }
+
     dbInspect.close();
     console.log('\n🎉 ALL HPCL PORTAL BALANCE TRACKER TESTS PASSED SUCCESSFULLY!');
   } catch (err) {

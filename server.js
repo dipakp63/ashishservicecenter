@@ -1291,11 +1291,6 @@ app.post('/api/hpcl/opening-balance', async (req, res) => {
       return res.status(400).json({ error: 'opening_balance must be a valid number.' });
     }
 
-    const latestClosed = await db.get('SELECT MAX(date) AS latest_closed_date FROM cash_reconciliation');
-    if (latestClosed && latestClosed.latest_closed_date) {
-      return res.status(403).json({ error: 'Cannot modify opening balance once a day closing has been finalized.' });
-    }
-
     await db.run(
       `INSERT OR REPLACE INTO hpcl_config (key, value) VALUES ('hpcl_opening_balance', ?)`,
       [parsedVal.toString()]
@@ -1310,6 +1305,27 @@ app.post('/api/hpcl/opening-balance', async (req, res) => {
   } catch (err) {
     console.error('[HPCL] Error updating opening balance:', err.message);
     res.status(500).json({ error: 'Database error saving opening balance.' });
+  }
+});
+
+// POST /api/hpcl/reset — Reset HPCL balance and delete all transactions
+app.post('/api/hpcl/reset', async (req, res) => {
+  try {
+    // Delete all transactions from hpcl_transactions table
+    await db.run('DELETE FROM hpcl_transactions');
+    
+    // Reset opening balance to 0 in hpcl_config
+    await db.run(
+      `INSERT OR REPLACE INTO hpcl_config (key, value) VALUES ('hpcl_opening_balance', '0')`
+    );
+
+    res.json({
+      success: true,
+      message: 'HPCL tracker reset to zero successfully.'
+    });
+  } catch (err) {
+    console.error('[HPCL] Error resetting portal balance:', err.message);
+    res.status(500).json({ error: 'Database error resetting portal balance.' });
   }
 });
 
