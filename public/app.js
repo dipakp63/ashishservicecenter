@@ -3929,7 +3929,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const udhariRpAmount = document.getElementById('udhari-rp-amount');
   const udhariRpRemarks = document.getElementById('udhari-rp-remarks');
   
-  const udhariReportDate = document.getElementById('udhari-report-date');
+  const udhariReportStartDate = document.getElementById('udhari-report-start-date');
+  const udhariReportEndDate = document.getElementById('udhari-report-end-date');
+  const udhariReportDebtorSelect = document.getElementById('udhari-report-debtor-select');
+  const udhariReportTypeSelect = document.getElementById('udhari-report-type-select');
   const btnExportDateReport = document.getElementById('btn-export-date-report');
   const udhariDateTotalDebit = document.getElementById('udhari-date-total-debit');
   const udhariDateTotalCredit = document.getElementById('udhari-date-total-credit');
@@ -4081,20 +4084,26 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!res.ok) throw new Error('Failed to fetch debtors');
       const debtors = await res.json();
       
-      const selects = [udhariCsDebtor, udhariRpDebtor, udhariLedgerDebtor];
-      selects.forEach(select => {
-        if (!select) return;
-        const currentVal = select.value;
-        select.innerHTML = '<option value="">— Select Debtor —</option>';
+      const selects = [
+        { el: udhariCsDebtor, defaultText: '— Select Debtor —' },
+        { el: udhariRpDebtor, defaultText: '— Select Debtor —' },
+        { el: udhariLedgerDebtor, defaultText: '— Select Debtor —' },
+        { el: udhariReportDebtorSelect, defaultText: '— All Debtors —' }
+      ];
+
+      selects.forEach(({ el, defaultText }) => {
+        if (!el) return;
+        const currentVal = el.value;
+        el.innerHTML = `<option value="">${defaultText}</option>`;
         debtors.forEach(d => {
           if (d.is_active === 1) {
             const opt = document.createElement('option');
             opt.value = d.id;
             opt.textContent = d.debtor_name;
-            select.appendChild(opt);
+            el.appendChild(opt);
           }
         });
-        select.value = currentVal;
+        el.value = currentVal;
       });
     } catch (err) {
       console.error('Error populating debtor dropdowns:', err);
@@ -4509,14 +4518,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 5. Date Wise Report
   async function loadDateWiseReport() {
-    if (udhariReportDate && !udhariReportDate.value) {
-      udhariReportDate.value = dateInput.value;
+    if (udhariReportStartDate && !udhariReportStartDate.value) {
+      udhariReportStartDate.value = dateInput.value;
     }
-    const date = udhariReportDate.value;
-    if (!date) return;
+    if (udhariReportEndDate && !udhariReportEndDate.value) {
+      udhariReportEndDate.value = dateInput.value;
+    }
+    const startDate = udhariReportStartDate.value;
+    const endDate = udhariReportEndDate.value;
+    if (!startDate || !endDate) return;
+
+    const debtorId = udhariReportDebtorSelect ? udhariReportDebtorSelect.value : '';
+    const type = udhariReportTypeSelect ? udhariReportTypeSelect.value : '';
     
     try {
-      const res = await fetch(`/api/debtor-transactions/date?date=${date}`);
+      const url = `/api/debtor-transactions/date?startDate=${startDate}&endDate=${endDate}&debtorId=${debtorId}&type=${type}`;
+      const res = await fetch(url);
       if (!res.ok) throw new Error('Failed to fetch date report');
       const data = await res.json();
       
@@ -4536,7 +4553,7 @@ document.addEventListener('DOMContentLoaded', () => {
       udhariDateReportBody.innerHTML = '';
       
       if (data.transactions.length === 0) {
-        udhariDateReportBody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 3rem; color: var(--text-muted);">No credit transactions recorded for this date.</td></tr>`;
+        udhariDateReportBody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 3rem; color: var(--text-muted);">No credit transactions recorded for this range.</td></tr>`;
         return;
       }
       
@@ -4550,6 +4567,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const creditText = tx.credit_amount > 0 ? `₹ ${tx.credit_amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—';
         
         tr.innerHTML = `
+          <td style="padding: 0.45rem 0.75rem; font-family: monospace; font-size: 0.8rem; font-weight: 600;">${tx.transaction_date}</td>
           <td style="padding: 0.45rem 0.75rem; font-weight: 600; color: var(--text-main);">${tx.debtor_name}</td>
           <td style="padding: 0.45rem 0.75rem; text-align: center;">${typeBadge}</td>
           <td style="padding: 0.45rem 0.75rem; text-align: right; color: var(--danger);">${debitText}</td>
@@ -4564,8 +4582,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  if (udhariReportDate) {
-    udhariReportDate.addEventListener('change', loadDateWiseReport);
+  if (udhariReportStartDate) {
+    udhariReportStartDate.addEventListener('change', loadDateWiseReport);
+  }
+  if (udhariReportEndDate) {
+    udhariReportEndDate.addEventListener('change', loadDateWiseReport);
+  }
+  if (udhariReportDebtorSelect) {
+    udhariReportDebtorSelect.addEventListener('change', loadDateWiseReport);
+  }
+  if (udhariReportTypeSelect) {
+    udhariReportTypeSelect.addEventListener('change', loadDateWiseReport);
   }
 
   // 6. Debtor Ledger
@@ -4818,26 +4845,31 @@ document.addEventListener('DOMContentLoaded', () => {
   // B. Export Date Wise Report
   if (btnExportDateReport) {
     btnExportDateReport.addEventListener('click', async () => {
-      const date = udhariReportDate.value;
-      if (!date) {
-        showToast('Please select a date first.', 'warning');
+      const startDate = udhariReportStartDate.value;
+      const endDate = udhariReportEndDate.value;
+      if (!startDate || !endDate) {
+        showToast('Please select start and end dates first.', 'warning');
         return;
       }
+      const debtorId = udhariReportDebtorSelect ? udhariReportDebtorSelect.value : '';
+      const type = udhariReportTypeSelect ? udhariReportTypeSelect.value : '';
+
       try {
-        const res = await fetch(`/api/debtor-transactions/date?date=${date}`);
+        const url = `/api/debtor-transactions/date?startDate=${startDate}&endDate=${endDate}&debtorId=${debtorId}&type=${type}`;
+        const res = await fetch(url);
         if (!res.ok) throw new Error('Failed to fetch date report');
         const data = await res.json();
         
-        let csv = `Date Wise Udhari Report for ${formatDate(date)}\n\n`;
-        csv += 'Debtor,Type,Debit (₹),Credit (₹),Remarks\n';
+        let csv = `Udhari Report from ${formatDate(startDate)} to ${formatDate(endDate)}\n\n`;
+        csv += 'Date,Debtor,Type,Debit (₹),Credit (₹),Remarks\n';
         
         data.transactions.forEach(tx => {
-          csv += `"${tx.debtor_name}","${tx.transaction_type}",${(tx.debit_amount || 0).toFixed(2)},${(tx.credit_amount || 0).toFixed(2)},"${tx.description || ''}"\n`;
+          csv += `"${tx.transaction_date}","${tx.debtor_name}","${tx.transaction_type}",${(tx.debit_amount || 0).toFixed(2)},${(tx.credit_amount || 0).toFixed(2)},"${tx.description || ''}"\n`;
         });
-        csv += `TOTAL,Deibts/Credits,${data.total_debit.toFixed(2)},${data.total_credit.toFixed(2)}\n`;
-        csv += `NET CHANGE,,${data.net_change.toFixed(2)}\n`;
+        csv += `TOTAL,Debits/Credits,,${data.total_debit.toFixed(2)},${data.total_credit.toFixed(2)}\n`;
+        csv += `NET CHANGE,,,${data.net_change.toFixed(2)}\n`;
         
-        downloadCSV(csv, `Udhari_Date_Report_${date}.csv`);
+        downloadCSV(csv, `Udhari_Date_Report_${startDate}_to_${endDate}.csv`);
       } catch (err) {
         console.error(err);
         showToast('CSV export failed.', 'error');
