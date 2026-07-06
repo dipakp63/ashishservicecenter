@@ -4560,75 +4560,91 @@ document.addEventListener('DOMContentLoaded', () => {
     return null;
   }
 
-  async function saveLedgerRow(tr) {
-    const txnId = tr.dataset.id;
-    if (!txnId) return;
+  // Open edit modal for debtor ledger transaction
+  window.openEditDebtorLedgerModal = function(txnId) {
+    const trRow = document.querySelector(`#udhari-ledger-body tr[data-id="${txnId}"]`);
+    if (!trRow) return;
 
-    const dateEl = tr.querySelector('.cell-date');
-    const partEl = tr.querySelector('.cell-particulars');
-    const debitEl = tr.querySelector('.cell-debit');
-    const creditEl = tr.querySelector('.cell-credit');
-    const remarksEl = tr.querySelector('.cell-remarks');
+    const modal = document.getElementById('modal-debtor-ledger-edit');
+    if (!modal) return;
 
-    const dateVal = parseInputDate(dateEl.textContent.trim());
-    const description = partEl.textContent.trim();
-    const debit = parseFloat(debitEl.textContent.replace(/[^\d.-]/g, '')) || 0;
-    const credit = parseFloat(creditEl.textContent.replace(/[^\d.-]/g, '')) || 0;
-    const remarks = remarksEl.textContent.trim();
+    document.getElementById('edit-debtor-txn-id').value = txnId;
+    document.getElementById('edit-debtor-txn-date').value = trRow.dataset.date || '';
+    document.getElementById('edit-debtor-txn-description').value = trRow.dataset.description || '';
+    document.getElementById('edit-debtor-txn-debit').value = parseFloat(trRow.dataset.debit) || '';
+    document.getElementById('edit-debtor-txn-credit').value = parseFloat(trRow.dataset.credit) || '';
+    document.getElementById('edit-debtor-txn-remarks').value = trRow.dataset.remarks || '';
 
-    if (!dateVal) {
-      showToast('Please enter a valid date.', 'error');
-      loadIndividualLedger();
-      return;
-    }
+    modal.style.display = 'flex';
+  };
 
-    // Check if anything actually changed
-    const originalDate = tr.dataset.date;
-    const originalDesc = tr.dataset.description;
-    const originalDebit = parseFloat(tr.dataset.debit) || 0;
-    const originalCredit = parseFloat(tr.dataset.credit) || 0;
-    const originalRemarks = tr.dataset.remarks || '';
+  // Handle edit form submission
+  const formDebtorLedgerEdit = document.getElementById('form-debtor-ledger-edit');
+  if (formDebtorLedgerEdit) {
+    formDebtorLedgerEdit.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const txnId = document.getElementById('edit-debtor-txn-id').value;
+      const dateVal = document.getElementById('edit-debtor-txn-date').value;
+      const description = document.getElementById('edit-debtor-txn-description').value.trim();
+      const debit = parseFloat(document.getElementById('edit-debtor-txn-debit').value) || 0;
+      const credit = parseFloat(document.getElementById('edit-debtor-txn-credit').value) || 0;
+      const remarks = document.getElementById('edit-debtor-txn-remarks').value.trim();
 
-    if (
-      dateVal === originalDate &&
-      description === originalDesc &&
-      Math.abs(debit - originalDebit) < 0.005 &&
-      Math.abs(credit - originalCredit) < 0.005 &&
-      remarks === originalRemarks
-    ) {
-      return; // No change
-    }
-
-    const payload = {
-      transaction_date: dateVal,
-      description: description,
-      debit_amount: debit,
-      credit_amount: credit,
-      remarks: remarks
-    };
-
-    try {
-      const res = await fetch(`/api/debtor-transactions/${txnId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload)
-      });
-
-      const result = await res.json();
-      if (!res.ok) {
-        throw new Error(result.error || 'Failed to update transaction');
+      if (!dateVal) {
+        showToast('Please enter a valid date.', 'error');
+        return;
       }
 
-      showToast('Transaction updated successfully!', 'success');
+      try {
+        const res = await fetch(`/api/debtor-transactions/${txnId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            transaction_date: dateVal,
+            description: description,
+            debit_amount: debit,
+            credit_amount: credit,
+            remarks: remarks
+          })
+        });
+
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || 'Failed to update transaction');
+
+        showToast('Transaction updated successfully!', 'success');
+        document.getElementById('modal-debtor-ledger-edit').style.display = 'none';
+        loadIndividualLedger();
+      } catch (err) {
+        console.error(err);
+        showToast(err.message || 'Error updating transaction.', 'error');
+      }
+    });
+  }
+
+  // Cancel edit modal
+  const btnCancelDebtorLedgerEdit = document.getElementById('btn-cancel-debtor-ledger-edit');
+  if (btnCancelDebtorLedgerEdit) {
+    btnCancelDebtorLedgerEdit.addEventListener('click', () => {
+      document.getElementById('modal-debtor-ledger-edit').style.display = 'none';
+    });
+  }
+
+  // Delete debtor ledger transaction
+  window.deleteDebtorLedgerTxn = async function(txnId) {
+    if (!confirm('Are you sure you want to delete this transaction?')) return;
+
+    try {
+      const res = await fetch(`/api/debtor-transactions/${txnId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to delete transaction.');
+
+      showToast(data.message || 'Transaction deleted.', 'success');
       loadIndividualLedger();
     } catch (err) {
       console.error(err);
-      showToast(err.message || 'Error updating transaction.', 'error');
-      loadIndividualLedger();
+      showToast(err.message || 'Error deleting transaction.', 'error');
     }
-  }
+  };
 
   async function loadIndividualLedger() {
     if (!udhariLedgerDebtor || !udhariLedgerBody) return;
@@ -4663,26 +4679,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const balVal = parseFloat(tx.running_balance || 0);
         const balStyle = balVal > 0 ? 'color: var(--danger); font-weight: 700;' : 'color: var(--text-muted);';
         
-        const isEditable = true; // Category B debtor transactions are always editable
         tr.innerHTML = `
-          <td class="${isEditable ? 'editable-cell' : ''} cell-date" ${isEditable ? 'contenteditable="true"' : ''} style="padding: 0.45rem 0.75rem; font-weight: 600; white-space: nowrap;">${formatDate(tx.transaction_date)}</td>
-          <td class="${isEditable ? 'editable-cell' : ''} cell-particulars" ${isEditable ? 'contenteditable="true"' : ''} style="padding: 0.45rem 0.75rem; white-space: nowrap;">${tx.description || ''}</td>
-          <td class="${isEditable ? 'editable-cell' : ''} cell-debit" ${isEditable ? 'contenteditable="true"' : ''} style="padding: 0.45rem 0.75rem; text-align: right; color: var(--danger); white-space: nowrap;">${tx.debit_amount > 0 ? tx.debit_amount.toFixed(2) : ''}</td>
-          <td class="${isEditable ? 'editable-cell' : ''} cell-credit" ${isEditable ? 'contenteditable="true"' : ''} style="padding: 0.45rem 0.75rem; text-align: right; color: var(--success); white-space: nowrap;">${tx.credit_amount > 0 ? tx.credit_amount.toFixed(2) : ''}</td>
-          <td class="cell-balance" style="padding: 0.45rem 0.75rem; text-align: right; white-space: nowrap; ${balStyle}">${balVal.toFixed(2)}</td>
-          <td class="${isEditable ? 'editable-cell' : ''} cell-remarks" ${isEditable ? 'contenteditable="true"' : ''} style="padding: 0.45rem 0.75rem;">${tx.remarks || ''}</td>
+          <td style="padding: 0.45rem 0.75rem; font-weight: 600; white-space: nowrap;">${formatDate(tx.transaction_date)}</td>
+          <td style="padding: 0.45rem 0.75rem; white-space: nowrap;">${tx.description || ''}</td>
+          <td style="padding: 0.45rem 0.75rem; text-align: right; color: var(--danger); white-space: nowrap;">${tx.debit_amount > 0 ? tx.debit_amount.toFixed(2) : ''}</td>
+          <td style="padding: 0.45rem 0.75rem; text-align: right; color: var(--success); white-space: nowrap;">${tx.credit_amount > 0 ? tx.credit_amount.toFixed(2) : ''}</td>
+          <td style="padding: 0.45rem 0.75rem; text-align: right; white-space: nowrap; ${balStyle}">${balVal.toFixed(2)}</td>
+          <td style="padding: 0.45rem 0.75rem; text-align: center; white-space: nowrap;">
+            <button type="button" class="btn-icon" onclick="openEditDebtorLedgerModal(${tx.id})" style="background:none; border:none; cursor:pointer; font-size:1.1rem; padding:0.1rem;" title="Edit">✏️</button>
+            <button type="button" class="btn-icon" onclick="deleteDebtorLedgerTxn(${tx.id})" style="background:none; border:none; cursor:pointer; font-size:1.1rem; padding:0.1rem; margin-left:0.3rem;" title="Delete">🗑</button>
+          </td>
         `;
-
-        tr.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            e.target.blur();
-          }
-        });
-
-        tr.querySelectorAll('.editable-cell').forEach(cell => {
-          cell.addEventListener('blur', () => saveLedgerRow(tr));
-        });
 
         udhariLedgerBody.appendChild(tr);
       });

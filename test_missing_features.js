@@ -337,6 +337,62 @@ const runTest = async () => {
     const tx3 = txRes3.body.transactions.find(t => t.tt_entry_id === entryId);
     if (tx3) throw new Error('Expected auto-synced transaction to be deleted.');
 
+    // ── Debtor Transactions Edit and Delete Tests ──────────────────────────────
+    console.log('Testing Debtor transactions edit/delete...');
+    
+    // 1. Create a Debtor
+    const createDebtorRes = await sendRequest('/api/debtors', 'POST', {
+      debtor_name: 'Test Debtor',
+      mobile: '1234567890',
+      address: 'Test Address'
+    });
+    if (createDebtorRes.statusCode !== 200) throw new Error('Failed to create test debtor');
+    const testDebtorId = createDebtorRes.body.debtor.id;
+
+    // 2. Add Debtor Transaction
+    const addTxnRes = await sendRequest('/api/debtor-transactions', 'POST', {
+      debtor_id: testDebtorId,
+      transaction_date: '2026-06-27',
+      transaction_type: 'DEBIT',
+      description: 'Test Credit Sale',
+      debit_amount: 500
+    });
+    if (addTxnRes.statusCode !== 200) throw new Error('Failed to add debtor transaction');
+
+    // 3. Fetch Ledger to find transaction ID
+    const ledgerRes1 = await sendRequest(`/api/debtors/${testDebtorId}/transactions`, 'GET');
+    const debtorTxn = ledgerRes1.body.transactions[0];
+    if (!debtorTxn) throw new Error('Expected debtor transaction to exist');
+    const debtorTxnId = debtorTxn.id;
+    if (debtorTxn.debit_amount !== 500) throw new Error(`Expected debit amount 500, got ${debtorTxn.debit_amount}`);
+
+    // 4. Edit Debtor Transaction
+    console.log('Editing debtor transaction...');
+    const editTxnRes = await sendRequest(`/api/debtor-transactions/${debtorTxnId}`, 'PUT', {
+      transaction_date: '2026-06-27',
+      description: 'Updated Credit Sale',
+      debit_amount: 600,
+      credit_amount: 0,
+      remarks: 'Updated Remarks'
+    });
+    if (editTxnRes.statusCode !== 200) throw new Error('Failed to edit debtor transaction');
+
+    // Verify update
+    const ledgerRes2 = await sendRequest(`/api/debtors/${testDebtorId}/transactions`, 'GET');
+    const updatedDebtorTxn = ledgerRes2.body.transactions[0];
+    if (!updatedDebtorTxn) throw new Error('Expected updated debtor transaction to exist');
+    if (updatedDebtorTxn.debit_amount !== 600) throw new Error(`Expected updated debit amount 600, got ${updatedDebtorTxn.debit_amount}`);
+    if (updatedDebtorTxn.description !== 'Updated Credit Sale') throw new Error(`Expected description to be updated, got ${updatedDebtorTxn.description}`);
+
+    // 5. Delete Debtor Transaction
+    console.log('Deleting debtor transaction...');
+    const deleteTxnRes = await sendRequest(`/api/debtor-transactions/${debtorTxnId}`, 'DELETE');
+    if (deleteTxnRes.statusCode !== 200) throw new Error('Failed to delete debtor transaction');
+
+    // Verify deletion
+    const ledgerRes3 = await sendRequest(`/api/debtors/${testDebtorId}/transactions`, 'GET');
+    if (ledgerRes3.body.transactions.length !== 0) throw new Error('Expected debtor transaction to be deleted');
+
     console.log('\n🎉 ALL MISSING FEATURES AUTOMATED TESTS PASSED SUCCESSFULLY!');
   } catch (err) {
     console.error('\n❌ Test failed:', err.message);

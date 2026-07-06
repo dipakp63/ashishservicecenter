@@ -1601,6 +1601,24 @@ app.put('/api/debtor-transactions/:id', async (req, res) => {
   }
 });
 
+// DELETE /api/debtor-transactions/:id — Delete debtor transaction details
+app.delete('/api/debtor-transactions/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await db.run(`DELETE FROM debtor_transactions WHERE id = ?`, [id]);
+
+    if (result.rowsAffected === 0) {
+      return res.status(404).json({ error: 'Transaction not found.' });
+    }
+
+    res.json({ success: true, message: 'Transaction deleted successfully.' });
+  } catch (err) {
+    console.error('[Udhari] Error deleting debtor transaction:', err.message);
+    res.status(500).json({ error: 'Database error deleting transaction.' });
+  }
+});
+
 // GET /api/debtor-transactions/date — Date-wise / range report with optional filters
 app.get('/api/debtor-transactions/date', async (req, res) => {
   try {
