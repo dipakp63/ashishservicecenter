@@ -5917,10 +5917,10 @@ document.addEventListener('DOMContentLoaded', () => {
               <td style="padding:0.65rem 0.85rem; text-align:right; font-weight:700; color:var(--accent);">${t.run_km.toLocaleString('en-IN')} KM</td>
               <td style="padding:0.65rem 0.85rem; text-align:right; font-weight:700; color:var(--accent);">${t.fuel_filled || '0'}</td>
               <td style="padding:0.65rem 0.85rem; text-align:right; font-weight:700; color:var(--success);">${fuelAvg} KM/L</td>
-              <td style="padding:0.65rem 0.85rem; text-align:center; display: flex; gap: 0.35rem; justify-content: center;">
+              <td style="padding:0.65rem 0.85rem; text-align:center; white-space:nowrap;">
                 ${isEditable ? `
-                  <button class="btn btn-secondary btn-icon" title="Edit" onclick="openEditTripModal(${t.id}, '${t.date}', ${t.start_km}, ${t.end_km}, ${t.fuel_filled || 0})" style="padding: 0.15rem 0.45rem; font-size: 0.75rem; border: none; border-radius: 0.4rem; cursor: pointer; background: var(--accent); color: var(--bg-main);">Edit</button>
-                  <button class="btn btn-danger btn-icon" title="Delete" onclick="deleteTtTrip(${t.id})" style="padding: 0.15rem 0.45rem; font-size: 0.75rem; border: none; border-radius: 0.4rem; cursor: pointer; background: var(--danger); color: #fff;">Delete</button>
+                  <button type="button" class="btn-icon" title="Edit" onclick="openEditTripModal(${t.id}, '${t.date}', ${t.start_km}, ${t.end_km}, ${t.fuel_filled || 0})" style="background:none; border:none; cursor:pointer; font-size:1.1rem; padding:0.1rem;">✏️</button>
+                  <button type="button" class="btn-icon" title="Delete" onclick="deleteTtTrip(${t.id})" style="background:none; border:none; cursor:pointer; font-size:1.1rem; padding:0.1rem; margin-left:0.4rem;">🗑</button>
                 ` : ''}
               </td>
             </tr>
