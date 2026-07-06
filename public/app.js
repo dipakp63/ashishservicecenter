@@ -4057,7 +4057,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Helper to load debtors into selects
   async function populateDebtorDropdowns() {
     try {
-      const res = await fetch('/api/debtors');
+      const res = await fetch('/api/debtors?sortBy=name-asc');
       if (!res.ok) throw new Error('Failed to fetch debtors');
       const debtors = await res.json();
       
@@ -4084,7 +4084,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // 1. Debtor Master CRUD
   async function loadDebtorMaster() {
     try {
-      const res = await fetch('/api/debtors');
+      const sortBy = document.getElementById('udhari-debtor-sort')?.value || 'outstanding-desc';
+      const res = await fetch('/api/debtors?sortBy=' + sortBy);
       if (!res.ok) throw new Error('Failed to fetch debtors');
       const debtors = await res.json();
       
@@ -4214,6 +4215,11 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('Error loading debtor master:', err);
       showToast('Error loading debtor master list.', 'error');
     }
+  }
+
+  const udhariDebtorSort = document.getElementById('udhari-debtor-sort');
+  if (udhariDebtorSort) {
+    udhariDebtorSort.addEventListener('change', loadDebtorMaster);
   }
 
   if (udhariAddDebtorForm) {

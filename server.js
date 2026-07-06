@@ -1355,6 +1355,17 @@ app.get('/api/debtors/summary', async (req, res) => {
 // GET /api/debtors — List all debtors with outstanding balance
 app.get('/api/debtors', async (req, res) => {
   try {
+    const { sortBy } = req.query;
+    let orderBy = 'ORDER BY outstanding DESC, d.debtor_name ASC'; // Default: Outstanding (High to Low)
+
+    if (sortBy === 'outstanding-asc') {
+      orderBy = 'ORDER BY outstanding ASC, d.debtor_name ASC';
+    } else if (sortBy === 'name-asc') {
+      orderBy = 'ORDER BY d.debtor_name ASC';
+    } else if (sortBy === 'name-desc') {
+      orderBy = 'ORDER BY d.debtor_name DESC';
+    }
+
     const rows = await db.all(`
       SELECT 
         d.id,
@@ -1367,7 +1378,7 @@ app.get('/api/debtors', async (req, res) => {
       FROM debtors d
       LEFT JOIN debtor_transactions dt ON d.id = dt.debtor_id
       GROUP BY d.id
-      ORDER BY d.debtor_name ASC
+      ${orderBy}
     `);
     res.json(rows);
   } catch (err) {
