@@ -341,12 +341,13 @@ const runTest = async () => {
     console.log('Testing Debtor transactions edit/delete...');
     
     // 1. Create a Debtor
+    const debtorName = 'Test Debtor ' + Date.now();
     const createDebtorRes = await sendRequest('/api/debtors', 'POST', {
-      debtor_name: 'Test Debtor',
+      debtor_name: debtorName,
       mobile: '1234567890',
       address: 'Test Address'
     });
-    if (createDebtorRes.statusCode !== 200) throw new Error('Failed to create test debtor');
+    if (createDebtorRes.statusCode !== 200) throw new Error('Failed to create test debtor: ' + JSON.stringify(createDebtorRes.body));
     const testDebtorId = createDebtorRes.body.debtor.id;
 
     // 2. Add Debtor Transaction

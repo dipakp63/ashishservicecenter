@@ -428,13 +428,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const viewUdhariLedger = document.getElementById('view-udhari-ledger');
     const viewUdhariSummary = document.getElementById('view-udhari-summary');
 
-    if (viewUdhariMaster) viewUdhariMaster.style.display = viewName === 'udhari-master' ? 'block' : 'none';
-    if (viewUdhariActive) viewUdhariActive.style.display = viewName === 'udhari-active' ? 'block' : 'none';
-    if (viewUdhariCreditSale) viewUdhariCreditSale.style.display = viewName === 'udhari-credit-sale' ? 'block' : 'none';
-    if (viewUdhariReceivePayment) viewUdhariReceivePayment.style.display = viewName === 'udhari-receive-payment' ? 'block' : 'none';
-    if (viewUdhariDateReport) viewUdhariDateReport.style.display = viewName === 'udhari-date-report' ? 'block' : 'none';
-    if (viewUdhariLedger) viewUdhariLedger.style.display = viewName === 'udhari-ledger' ? 'block' : 'none';
-    if (viewUdhariSummary) viewUdhariSummary.style.display = viewName === 'udhari-summary' ? 'block' : 'none';
+    if (viewUdhariMaster) viewUdhariMaster.style.display = viewName === 'udhari-master' ? 'flex' : 'none';
+    if (viewUdhariActive) viewUdhariActive.style.display = viewName === 'udhari-active' ? 'flex' : 'none';
+    if (viewUdhariCreditSale) viewUdhariCreditSale.style.display = viewName === 'udhari-credit-sale' ? 'flex' : 'none';
+    if (viewUdhariReceivePayment) viewUdhariReceivePayment.style.display = viewName === 'udhari-receive-payment' ? 'flex' : 'none';
+    if (viewUdhariDateReport) viewUdhariDateReport.style.display = viewName === 'udhari-date-report' ? 'flex' : 'none';
+    if (viewUdhariLedger) viewUdhariLedger.style.display = viewName === 'udhari-ledger' ? 'flex' : 'none';
+    if (viewUdhariSummary) viewUdhariSummary.style.display = viewName === 'udhari-summary' ? 'flex' : 'none';
 
     // Auto-load data for udhari views
     if (viewName === 'udhari-master') {

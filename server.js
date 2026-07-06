@@ -1557,6 +1557,9 @@ app.get('/api/debtors/:id/transactions', async (req, res) => {
       };
     });
 
+    // Reverse transactions to show newest first, while preserving chronological running balance values
+    transactions.reverse();
+
     res.json({
       debtor_name: debtor.debtor_name,
       transactions: transactions,
