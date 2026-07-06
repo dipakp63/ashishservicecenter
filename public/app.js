@@ -1239,10 +1239,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const monthIndex = parseInt(parts[1], 10) - 1;
       const day = parseInt(parts[2], 10);
       const months = [
-        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
       ];
-      return `${day} ${months[monthIndex]} ${year}`;
+      return `${day}-${months[monthIndex]}-${year}`;
     }
     return dateString;
   }
@@ -4518,6 +4518,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 5. Date Wise Report
   async function loadDateWiseReport() {
+    if (udhariReportDebtorSelect && udhariReportDebtorSelect.children.length <= 1) {
+      await populateDebtorDropdowns();
+    }
+
     if (udhariReportStartDate && !udhariReportStartDate.value) {
       udhariReportStartDate.value = dateInput.value;
     }
@@ -4567,7 +4571,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const creditText = tx.credit_amount > 0 ? `₹ ${tx.credit_amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—';
         
         tr.innerHTML = `
-          <td style="padding: 0.45rem 0.75rem; font-family: monospace; font-size: 0.8rem; font-weight: 600;">${tx.transaction_date}</td>
+          <td style="padding: 0.45rem 0.75rem; font-family: monospace; font-size: 0.8rem; font-weight: 600;">${formatDate(tx.transaction_date)}</td>
           <td style="padding: 0.45rem 0.75rem; font-weight: 600; color: var(--text-main);">${tx.debtor_name}</td>
           <td style="padding: 0.45rem 0.75rem; text-align: center;">${typeBadge}</td>
           <td style="padding: 0.45rem 0.75rem; text-align: right; color: var(--danger);">${debitText}</td>
