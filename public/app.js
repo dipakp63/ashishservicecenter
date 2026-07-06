@@ -3839,6 +3839,7 @@ document.addEventListener('DOMContentLoaded', () => {
           });
       }
     });
+  }
   if (btnHpclReset) {
     btnHpclReset.addEventListener('click', async () => {
       if (!confirm('Are you sure you want to reset the HPCL Portal Balance tracker? This will delete all entries related to this feature and set the opening balance to zero.')) {
