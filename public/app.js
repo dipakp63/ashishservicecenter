@@ -601,8 +601,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (notesList && coinsList) {
           notesList.innerHTML = '';
           coinsList.innerHTML = '';
-          if (notesTotalEl) notesTotalEl.textContent = 'Total Notes: ₹ 0/-';
-          if (coinsTotalEl) coinsTotalEl.textContent = 'Total Coins: ₹ 0/-';
+          if (notesTotalEl) notesTotalEl.innerHTML = '<span>Total Notes:</span> <span>₹ 0/-</span>';
+          if (coinsTotalEl) coinsTotalEl.innerHTML = '<span>Total Coins:</span> <span>₹ 0/-</span>';
           if (grandTotalEl) grandTotalEl.textContent = 'Grand Total Cash: ₹ 0/-';
         }
 
@@ -656,8 +656,8 @@ document.addEventListener('DOMContentLoaded', () => {
           if (notesList.children.length === 0) notesList.textContent = 'None entered';
           if (coinsList.children.length === 0) coinsList.textContent = 'None entered';
 
-          if (notesTotalEl) notesTotalEl.innerHTML = `Total Notes: ₹ ${totalNotesSum.toLocaleString('en-IN')}/-`;
-          if (coinsTotalEl) coinsTotalEl.innerHTML = `Total Coins: ₹ ${totalCoinsSum.toLocaleString('en-IN')}/-`;
+          if (notesTotalEl) notesTotalEl.innerHTML = `<span>Total Notes:</span> <span>₹ ${totalNotesSum.toLocaleString('en-IN')}/-</span>`;
+          if (coinsTotalEl) coinsTotalEl.innerHTML = `<span>Total Coins:</span> <span>₹ ${totalCoinsSum.toLocaleString('en-IN')}/-</span>`;
           if (grandTotalEl) grandTotalEl.innerHTML = `Grand Total Cash: ₹ ${grandTotalSum.toLocaleString('en-IN')}/-`;
         }
       } else {
@@ -2764,6 +2764,14 @@ document.addEventListener('DOMContentLoaded', () => {
         data = await response.json();
       }
       
+      // Ensure global debtor and employee lists are loaded to resolve IDs to names
+      if (!globalDebtorsList || globalDebtorsList.length === 0) {
+        await fetchGlobalDebtorsList();
+      }
+      if (!globalEmployeesList || globalEmployeesList.length === 0) {
+        await fetchGlobalEmployeesList();
+      }
+      
       const cash = data.cash;
       if (cash) {
         currentCashData = cash;
@@ -2835,7 +2843,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (typeSelect) typeSelect.value = p.type;
             if (amountInputs[idx]) amountInputs[idx].value = parseFloat(p.amount) || '';
 
-            if ((p.type === 'Credit' || p.type === 'Old Credit') && p.description && p.description.startsWith('debtor_id:')) {
+            if (p.type === 'Fresh Credit' && p.description && p.description.startsWith('debtor_id:')) {
+              const debtorId = parseInt(p.description.split(':')[1], 10);
+              const found = globalDebtorsList.find(d => d.id === debtorId);
+              if (descInput) {
+                descInput.value = found ? found.debtor_name : p.description;
+              }
+            } else if ((p.type === 'Credit' || p.type === 'Old Credit') && p.description && p.description.startsWith('debtor_id:')) {
               const debtorId = p.description.split(':')[1];
               if (descInput) {
                 descInput.value = p.description;
