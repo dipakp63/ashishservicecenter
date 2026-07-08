@@ -375,7 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const viewFinish = document.getElementById('view-finish');
   const viewPreview = document.getElementById('view-preview');
   const viewGstData = document.getElementById('view-gst-data');
-  const viewAdminPanel = document.getElementById('view-admin-panel');
+  const viewAdminDashboard = document.getElementById('view-admin-dashboard');
 
   const cashForm = document.getElementById('cash-form');
   const btnBackToDecantationOrTank = document.getElementById('btn-back-to-decantation-or-tank');
@@ -384,6 +384,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.showView = showView;
   window.applyUserRoleTheme = applyUserRoleTheme;
+  window.fetchAndPopulateAdminDashboard = fetchAndPopulateAdminDashboard;
 
   function applyUserRoleTheme() {
     const role = sessionStorage.getItem('pumperp_user_role') || 'manager';
@@ -393,15 +394,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const secretSpan = navSecret.querySelector('.nav-text');
     const secretIcon = navSecret.querySelector('.nav-icon');
 
-    if (secretSpan) secretSpan.textContent = 'Profit';
-    if (secretIcon) secretIcon.textContent = '📈';
-
-    const secretViewHeader = document.querySelector('#view-secret h1');
-    if (secretViewHeader) secretViewHeader.textContent = '📈 Profit Calculator';
-    const secretViewSubtitle = document.querySelector('#view-secret .subtitle');
-    if (secretViewSubtitle) secretViewSubtitle.textContent = 'Calculate dealer & differential margins profit product wise';
+    if (secretSpan) secretSpan.textContent = 'Day Summary';
+    if (secretIcon) secretIcon.textContent = '📋';
 
     if (role === 'admin') {
+      const adminDateEl = document.getElementById('admin-dashboard-date');
+      if (adminDateEl && !adminDateEl.value) {
+        adminDateEl.value = dateInput.value;
+      }
+
       document.querySelectorAll('.sidebar-nav > ul > li').forEach(li => {
         const a = li.querySelector('a');
         if (a) {
@@ -413,8 +414,8 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         }
       });
-      showView('secret');
-      loadProfitData();
+      showView('admin-dashboard');
+      fetchAndPopulateAdminDashboard(adminDateEl.value || dateInput.value);
     } else {
       document.querySelectorAll('.sidebar-nav > ul > li').forEach(li => {
         const a = li.querySelector('a');
@@ -431,8 +432,175 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  async function fetchAndPopulateAdminDashboard(dateValue) {
+    try {
+      const response = await fetch(`/api/day-data?date=${dateValue}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch day data.');
+      }
+      const data = await response.json();
+      
+      const readings = data.readings.savedReadings.length > 0 
+        ? data.readings.savedReadings 
+        : data.readings.openingReadings;
+        
+      const tanks = data.tanks.savedTanks.length > 0 
+        ? data.tanks.savedTanks 
+        : data.tanks.openingTanks;
+        
+      const rates = data.rates.rates;
+      const cash = data.cash.cash;
+      const nonCash = data.cash.nonCashPayments;
+
+      // Calculate totals
+      let totalPetrol = 0, totalDiesel = 0, totalPower = 0;
+      
+      const nozzleBody = document.getElementById('admin-nozzle-body');
+      if (nozzleBody) nozzleBody.innerHTML = '';
+      
+      readings.forEach(r => {
+        const opening = r.opening_reading || 0;
+        const closing = r.closing_reading || 0;
+        const diff = closing - opening;
+        const testing = r.testing_qty !== undefined ? parseFloat(r.testing_qty) : 0;
+        const net = diff - testing;
+
+        if (r.product === 'Petrol') totalPetrol += net;
+        else if (r.product === 'Diesel') totalDiesel += net;
+        else if (r.product === 'poWer') totalPower += net;
+
+        if (nozzleBody) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><span class="nozzle-badge">N${r.nozzle_id}</span></td>
+            <td>${r.product}</td>
+            <td style="text-align: right;">${opening.toFixed(3)}</td>
+            <td style="text-align: right;">${closing.toFixed(3)}</td>
+            <td style="text-align: right;">${diff.toFixed(3)}</td>
+            <td style="text-align: right;">${testing.toFixed(3)}</td>
+            <td style="text-align: right; font-weight: bold;">${net.toFixed(3)}</td>
+          `;
+          nozzleBody.appendChild(tr);
+        }
+      });
+
+      const grandTotalSales = totalPetrol + totalDiesel + totalPower;
+      const petrolPct = grandTotalSales > 0 ? (totalPetrol / grandTotalSales) * 100 : 0;
+      const dieselPct = grandTotalSales > 0 ? (totalDiesel / grandTotalSales) * 100 : 0;
+      const powerPct  = grandTotalSales > 0 ? (totalPower  / grandTotalSales) * 100 : 0;
+
+      const setElText = (id, text) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+      };
+
+      setElText('admin-total-petrol', `${totalPetrol.toFixed(3)} L`);
+      setElText('admin-total-diesel', `${totalDiesel.toFixed(3)} L`);
+      setElText('admin-total-power', `${totalPower.toFixed(3)} L`);
+      setElText('admin-pct-petrol', `${petrolPct.toFixed(2)}% Sale`);
+      setElText('admin-pct-diesel', `${dieselPct.toFixed(2)}% Sale`);
+      setElText('admin-pct-power', `${powerPct.toFixed(2)}% Sale`);
+      
+      setElText('admin-rate-petrol', `₹ ${parseFloat(rates.rate_petrol || 0).toFixed(2)}/L`);
+      setElText('admin-rate-diesel', `₹ ${parseFloat(rates.rate_diesel || 0).toFixed(2)}/L`);
+      setElText('admin-rate-power', `₹ ${parseFloat(rates.rate_power || 0).toFixed(2)}/L`);
+
+      // Tanks
+      const tankBody = document.getElementById('admin-tank-body');
+      if (tankBody) {
+        tankBody.innerHTML = '';
+        tanks.forEach(t => {
+          const decantation = t.decantation_qty !== undefined ? parseFloat(t.decantation_qty) : 0;
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><span class="nozzle-badge">T${t.tank_id}</span></td>
+            <td>${t.tank_name} (${t.product})</td>
+            <td style="text-align: right;">${(t.opening_dip || 0).toFixed(1)}</td>
+            <td style="text-align: right;">${(t.opening_stock || 0).toFixed(2)}</td>
+            <td style="text-align: right;">${decantation.toFixed(0)}</td>
+            <td style="text-align: right;">${(t.closing_dip || 0).toFixed(1)}</td>
+            <td style="text-align: right; font-weight: bold;">${(t.closing_stock || 0).toFixed(2)}</td>
+          `;
+          tankBody.appendChild(tr);
+        });
+      }
+
+      // Calculations
+      if (cash) {
+        setElText('admin-calc-sales', `₹ ${Number(cash.total_sales_value || 0).toLocaleString("en-IN", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`);
+        setElText('admin-cash-received', `₹ ${Number(cash.total_cash_received || 0).toLocaleString("en-IN", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`);
+        
+        let totalNonCash = 0;
+        nonCash.forEach(p => totalNonCash += (p.amount || 0));
+        setElText('admin-upi-credit', `₹ ${Number(totalNonCash).toLocaleString("en-IN", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`);
+        setElText('admin-shortfall', `₹ ${Number(cash.shortfall || 0).toLocaleString("en-IN", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`);
+
+        // Denominations
+        const denomList = document.getElementById('admin-denominations-list');
+        if (denomList) {
+          denomList.innerHTML = '';
+          const denoms = [
+            { label: '500', count: cash.notes_500 },
+            { label: '200', count: cash.notes_200 },
+            { label: '100', count: cash.notes_100 },
+            { label: '50', count: cash.notes_50 },
+            { label: '20', count: cash.notes_20 },
+            { label: '10', count: cash.notes_10 },
+            { label: '20 (Coin)', count: cash.coins_20 },
+            { label: '10 (Coin)', count: cash.coins_10 },
+            { label: '5 (Coin)', count: cash.coins_5 },
+            { label: '2 (Coin)', count: cash.coins_2 || 0 },
+            { label: '1 (Coin)', count: cash.coins_1 || 0 }
+          ];
+          let enteredAny = false;
+          denoms.forEach(d => {
+            if (d.count > 0) {
+              enteredAny = true;
+              const div = document.createElement('div');
+              div.textContent = `₹ ${d.label} x ${d.count}`;
+              denomList.appendChild(div);
+            }
+          });
+          if (!enteredAny) {
+            denomList.textContent = 'None entered';
+          }
+        }
+      } else {
+        setElText('admin-calc-sales', '₹ 0.00');
+        setElText('admin-cash-received', '₹ 0.00');
+        setElText('admin-upi-credit', '₹ 0.00');
+        setElText('admin-shortfall', '₹ 0.00');
+        
+        const denomList = document.getElementById('admin-denominations-list');
+        if (denomList) denomList.textContent = 'None entered';
+      }
+
+      // Non Cash Payments table
+      const nonCashBody = document.getElementById('admin-non-cash-body');
+      if (nonCashBody) {
+        nonCashBody.innerHTML = '';
+        if (nonCash && nonCash.length > 0) {
+          nonCash.forEach(p => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${p.type}</td>
+              <td>${p.description}</td>
+              <td style="text-align: right;">${p.amount.toFixed(2)}</td>
+            `;
+            nonCashBody.appendChild(tr);
+          });
+        } else {
+          nonCashBody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 0.5rem;">None recorded</td></tr>';
+        }
+      }
+
+    } catch (err) {
+      showToast('Error loading date details.', 'error');
+    }
+  }
+
   function showView(viewName) {
-    if (viewName === 'secret') {
+    if (viewName === 'admin-dashboard' || viewName === 'secret') {
       const role = sessionStorage.getItem('pumperp_user_role') || 'manager';
       if (role !== 'admin') {
         showToast('Access denied: Admin only view.', 'error');
@@ -493,7 +661,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const viewShiftReconciliation = document.getElementById('view-shift-reconciliation');
     if (viewShiftReconciliation) viewShiftReconciliation.style.display = viewName === 'shift-reconciliation' ? 'block' : 'none';
 
-    if (viewAdminPanel) viewAdminPanel.style.display = viewName === 'admin-panel' ? 'block' : 'none';
+    if (viewAdminDashboard) viewAdminDashboard.style.display = viewName === 'admin-dashboard' ? 'block' : 'none';
 
 
     // Udhari view panes
@@ -1435,6 +1603,13 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error(err);
     }
   });
+
+  const adminDashboardDate = document.getElementById('admin-dashboard-date');
+  if (adminDashboardDate) {
+    adminDashboardDate.addEventListener('change', () => {
+      fetchAndPopulateAdminDashboard(adminDashboardDate.value);
+    });
+  }
 
   // Decantation radio buttons toggle listener — update button label/destination on every change
   document.querySelectorAll('input[name="decantation-toggle"]').forEach(radio => {
@@ -8281,8 +8456,14 @@ document.addEventListener('DOMContentLoaded', () => {
   if (navSecret) {
     navSecret.addEventListener('click', (e) => {
       e.preventDefault();
-      showView('secret');
-      loadProfitData();
+      const role = sessionStorage.getItem('pumperp_user_role') || 'manager';
+      if (role === 'admin') {
+        const adminDateEl = document.getElementById('admin-dashboard-date');
+        showView('admin-dashboard');
+        fetchAndPopulateAdminDashboard(adminDateEl.value || dateInput.value);
+      } else {
+        showView('du');
+      }
     });
   }
 
