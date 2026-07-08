@@ -1909,7 +1909,7 @@
                 </h3>
                 <div style="display: flex; align-items: center; gap: 0.4rem;">
                   <label for="udhari-debtor-sort" style="font-size: 0.72rem; font-weight: 600; color: var(--text-muted); margin: 0; white-space: nowrap;">Sort By:</label>
-                  <select id="udhari-debtor-sort" style="padding: 0.2rem 0.45rem; border-radius: 0.35rem; font-size: 0.72rem; font-weight: 600; cursor: pointer; height: auto; background: var(--bg-main, #1e293b); color: var(--text-main); border: 1px solid rgba(255,255,255,0.1); appearance: auto;">
+                  <select id="udhari-debtor-sort" style="padding: 0.2rem 0.45rem; border-radius: 0.35rem; font-size: 0.72rem; font-weight: 600; cursor: pointer; height: auto; background: var(--card-bg); color: var(--text-main); border: 1px solid var(--card-border); appearance: auto;">
                     <option value="outstanding-desc">Outstanding (High to Low)</option>
                     <option value="outstanding-asc">Outstanding (Low to High)</option>
                     <option value="name-asc">Name (A to Z)</option>
@@ -2520,6 +2520,27 @@
               </tfoot>
             </table>
           </div>
+        </section>
+      </div>
+
+      <!-- VIEW: Admin Panel -->
+      <div id="view-admin-panel" class="view-pane" style="display: none;">
+        <header class="content-header" style="max-width: 100%; margin-inline: auto; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <h1>⚙️ Admin Panel</h1>
+            <p class="subtitle">System administration and configuration options</p>
+          </div>
+        </header>
+
+        <section class="card" style="max-width: 100%; margin: auto; padding: 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 250px; text-align: center;">
+          <div style="font-size: 3rem; margin-bottom: 1rem;">🛠️</div>
+          <h2 style="font-family: var(--font-header); font-size: 1.5rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.5rem;">Welcome to the Admin Panel</h2>
+          <p style="color: var(--text-muted); max-width: 500px; margin-bottom: 1.5rem; font-size: 0.95rem; line-height: 1.5;">
+            This is the administration dashboard. System configuration options and administrative tools will be developed and added here one by one.
+          </p>
+          <button type="button" class="btn btn-primary" onclick="showView('du')" style="padding: 0.6rem 1.5rem; font-size: 0.9rem; font-weight: 600; border-radius: 0.375rem; cursor: pointer;">
+            Back to Dashboard
+          </button>
         </section>
       </div>
 

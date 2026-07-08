@@ -31,11 +31,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function populateRowDebtorSelect(select) {
-    const currentVal = select.value;
+  function populateRowDebtorSelect(select, selectedId = null) {
+    const currentVal = selectedId || select.value;
     select.innerHTML = '<option value="">— Select Debtor —</option>';
     globalDebtorsList.forEach(d => {
-      if (d.is_active === 1) {
+      if (d.is_active === 1 || String(d.id) === String(currentVal)) {
         const opt = document.createElement('option');
         opt.value = d.id;
         opt.textContent = d.debtor_name;
@@ -58,11 +58,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function populateRowEmployeeSelect(select) {
-    const currentVal = select.value;
+  function populateRowEmployeeSelect(select, selectedId = null) {
+    const currentVal = selectedId || select.value;
     select.innerHTML = '<option value="">— Select Employee —</option>';
     globalEmployeesList.forEach(e => {
-      if (e.is_active === 1) {
+      if (e.is_active === 1 || String(e.id) === String(currentVal)) {
         const opt = document.createElement('option');
         opt.value = e.id;
         opt.textContent = e.name;
@@ -85,13 +85,23 @@ document.addEventListener('DOMContentLoaded', () => {
       debtorSelect.style.display = 'block';
       employeeSelect.style.display = 'none';
       mhSelect.style.display = 'none';
-      populateRowDebtorSelect(debtorSelect);
+      
+      let debtorId = null;
+      if (descInput.value && descInput.value.startsWith('debtor_id:')) {
+        debtorId = descInput.value.split(':')[1];
+      }
+      populateRowDebtorSelect(debtorSelect, debtorId);
     } else if (typeSelect.value === 'Employee') {
       descInput.style.display = 'none';
       debtorSelect.style.display = 'none';
       employeeSelect.style.display = 'block';
       mhSelect.style.display = 'none';
-      populateRowEmployeeSelect(employeeSelect);
+      
+      let employeeId = null;
+      if (descInput.value && descInput.value.startsWith('employee_id:')) {
+        employeeId = descInput.value.split(':')[1];
+      }
+      populateRowEmployeeSelect(employeeSelect, employeeId);
     } else if (typeSelect.value === 'MH-19-CY-5682') {
       descInput.style.display = 'none';
       debtorSelect.style.display = 'none';
@@ -170,6 +180,14 @@ document.addEventListener('DOMContentLoaded', () => {
         
         typeSelect.addEventListener('change', () => {
           updateRowDisplay(row);
+        });
+
+        debtorSelect.addEventListener('change', () => {
+          descInput.value = debtorSelect.value ? `debtor_id:${debtorSelect.value}` : '';
+        });
+
+        employeeSelect.addEventListener('change', () => {
+          descInput.value = employeeSelect.value ? `employee_id:${employeeSelect.value}` : '';
         });
 
         mhSelect.addEventListener('change', () => {
@@ -357,6 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const viewFinish = document.getElementById('view-finish');
   const viewPreview = document.getElementById('view-preview');
   const viewGstData = document.getElementById('view-gst-data');
+  const viewAdminPanel = document.getElementById('view-admin-panel');
 
   const cashForm = document.getElementById('cash-form');
   const btnBackToDecantationOrTank = document.getElementById('btn-back-to-decantation-or-tank');
@@ -417,6 +436,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const viewShiftReconciliation = document.getElementById('view-shift-reconciliation');
     if (viewShiftReconciliation) viewShiftReconciliation.style.display = viewName === 'shift-reconciliation' ? 'block' : 'none';
+
+    if (viewAdminPanel) viewAdminPanel.style.display = viewName === 'admin-panel' ? 'block' : 'none';
 
 
     // Udhari view panes
@@ -540,7 +561,7 @@ document.addEventListener('DOMContentLoaded', () => {
     else if (viewName === 'secret' && navSecret) navSecret.classList.add('active');
     else if ((viewName === 'porancha-hishob' || viewName === 'shift-reconciliation') && navPoranchaHishob) navPoranchaHishob.classList.add('active');
     else if ((viewName === 'tanker-receipts' || viewName === 'tanker-label-wizard') && navTankerReceipts) navTankerReceipts.classList.add('active');
-    else if (navDayClosing && !['udhari', 'other', 'tt-ledger', 'tanker-receipts', 'tanker-label-wizard', 'chillar-record', 'porancha-hishob', 'shift-reconciliation'].some(pre => viewName.startsWith(pre))) navDayClosing.classList.add('active');
+    else if (navDayClosing && !['udhari', 'other', 'tt-ledger', 'tanker-receipts', 'tanker-label-wizard', 'chillar-record', 'porancha-hishob', 'shift-reconciliation', 'admin'].some(pre => viewName.startsWith(pre))) navDayClosing.classList.add('active');
 
     // Update steps title texts dynamically
     if (hasDecantation) {
@@ -4029,6 +4050,31 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       closeAllSubmenus();
+    }
+  });
+
+  // Secret code listener to open Admin Panel
+  let adminCodeBuffer = '';
+  document.addEventListener('keydown', (e) => {
+    const activeView = document.body.getAttribute('data-active-view') || 'du';
+    if (activeView !== 'du') return;
+
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+      return;
+    }
+
+    if (e.key >= '0' && e.key <= '9') {
+      adminCodeBuffer += e.key;
+      if (adminCodeBuffer.length > 4) {
+        adminCodeBuffer = adminCodeBuffer.slice(-4);
+      }
+      if (adminCodeBuffer === '4242') {
+        adminCodeBuffer = '';
+        showView('admin-panel');
+        showToast('Welcome to the Admin Panel!', 'success');
+      }
+    } else {
+      adminCodeBuffer = '';
     }
   });
 
