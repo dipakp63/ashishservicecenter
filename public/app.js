@@ -628,33 +628,26 @@ document.addEventListener('DOMContentLoaded', () => {
           let totalCoinsSum = 0;
 
           notes.forEach(n => {
-            if (n.count > 0) {
-              const rowTotal = n.value * n.count;
-              totalNotesSum += rowTotal;
-              const div = document.createElement('div');
-              div.style.display = 'flex';
-              div.style.justifyContent = 'space-between';
-              div.innerHTML = `<span>₹ ${n.value} × ${n.count}</span> <span style="font-weight: 600;">₹ ${rowTotal.toLocaleString('en-IN')}/-</span>`;
-              notesList.appendChild(div);
-            }
+            const rowTotal = n.value * n.count;
+            totalNotesSum += rowTotal;
+            const div = document.createElement('div');
+            div.style.display = 'flex';
+            div.style.justifyContent = 'space-between';
+            div.innerHTML = `<span>₹ ${n.value} × ${n.count}</span> <span style="font-weight: 600;">₹ ${rowTotal.toLocaleString('en-IN')}/-</span>`;
+            notesList.appendChild(div);
           });
 
           coins.forEach(c => {
-            if (c.count > 0) {
-              const rowTotal = c.value * c.count;
-              totalCoinsSum += rowTotal;
-              const div = document.createElement('div');
-              div.style.display = 'flex';
-              div.style.justifyContent = 'space-between';
-              div.innerHTML = `<span>₹ ${c.value} (C) × ${c.count}</span> <span style="font-weight: 600;">₹ ${rowTotal.toLocaleString('en-IN')}/-</span>`;
-              coinsList.appendChild(div);
-            }
+            const rowTotal = c.value * c.count;
+            totalCoinsSum += rowTotal;
+            const div = document.createElement('div');
+            div.style.display = 'flex';
+            div.style.justifyContent = 'space-between';
+            div.innerHTML = `<span>₹ ${c.value} (C) × ${c.count}</span> <span style="font-weight: 600;">₹ ${rowTotal.toLocaleString('en-IN')}/-</span>`;
+            coinsList.appendChild(div);
           });
 
           const grandTotalSum = totalNotesSum + totalCoinsSum;
-
-          if (notesList.children.length === 0) notesList.textContent = 'None entered';
-          if (coinsList.children.length === 0) coinsList.textContent = 'None entered';
 
           if (notesTotalEl) notesTotalEl.innerHTML = `<span>Total Notes:</span> <span>₹ ${totalNotesSum.toLocaleString('en-IN')}/-</span>`;
           if (coinsTotalEl) coinsTotalEl.innerHTML = `<span>Total Coins:</span> <span>₹ ${totalCoinsSum.toLocaleString('en-IN')}/-</span>`;
