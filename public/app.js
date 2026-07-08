@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeDate = '2026-06-26';
   let latestClosedDate = null;
   let isDayClosed = false;
+  let adminFlatpickr = null;
 
   let globalDebtorsList = [];
   async function fetchGlobalDebtorsList() {
@@ -398,11 +399,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (secretIcon) secretIcon.textContent = '📋';
 
     if (role === 'admin') {
-      const adminDateEl = document.getElementById('admin-dashboard-date');
-      if (adminDateEl && !adminDateEl.value) {
-        adminDateEl.value = dateInput.value;
-      }
-
       document.querySelectorAll('.sidebar-nav > ul > li').forEach(li => {
         const a = li.querySelector('a');
         if (a) {
@@ -415,7 +411,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
       showView('admin-dashboard');
-      fetchAndPopulateAdminDashboard(adminDateEl.value || dateInput.value);
+      updateAdminDatePicker().then(() => {
+        const selected = adminFlatpickr ? adminFlatpickr.input.value : (document.getElementById('admin-dashboard-date').value || dateInput.value);
+        fetchAndPopulateAdminDashboard(selected);
+      });
     } else {
       document.querySelectorAll('.sidebar-nav > ul > li').forEach(li => {
         const a = li.querySelector('a');
@@ -429,6 +428,44 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
       showView('du');
+    }
+  }
+
+  async function updateAdminDatePicker() {
+    try {
+      const response = await fetch('/api/calculated-dates');
+      if (!response.ok) throw new Error('Failed to fetch calculated dates');
+      const data = await response.json();
+      const enabledDates = data.dates || [];
+      
+      const adminDateEl = document.getElementById('admin-dashboard-date');
+      if (!adminDateEl) return;
+      
+      let defaultSelected = adminDateEl.value || dateInput.value;
+      if (enabledDates.length > 0 && !enabledDates.includes(defaultSelected)) {
+        defaultSelected = enabledDates[enabledDates.length - 1];
+        adminDateEl.value = defaultSelected;
+      }
+
+      if (adminFlatpickr) {
+        adminFlatpickr.set('enable', enabledDates);
+        adminFlatpickr.setDate(defaultSelected, false);
+      } else {
+        adminFlatpickr = flatpickr(adminDateEl, {
+          dateFormat: "Y-m-d",
+          altInput: true,
+          altFormat: "d-m-Y",
+          enable: enabledDates,
+          defaultDate: defaultSelected,
+          onChange: function(selectedDates, dateStr, instance) {
+            if (dateStr) {
+              fetchAndPopulateAdminDashboard(dateStr);
+            }
+          }
+        });
+      }
+    } catch (err) {
+      console.error('Error updating admin date picker:', err);
     }
   }
 
@@ -472,13 +509,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (nozzleBody) {
           const tr = document.createElement('tr');
           tr.innerHTML = `
-            <td><span class="nozzle-badge">N${r.nozzle_id}</span></td>
-            <td>${r.product}</td>
-            <td style="text-align: right;">${opening.toFixed(3)}</td>
-            <td style="text-align: right;">${closing.toFixed(3)}</td>
-            <td style="text-align: right;">${diff.toFixed(3)}</td>
-            <td style="text-align: right;">${testing.toFixed(3)}</td>
-            <td style="text-align: right; font-weight: bold;">${net.toFixed(3)}</td>
+            <td style="padding: 0.3rem 0.4rem;"><span class="nozzle-badge">N${r.nozzle_id}</span></td>
+            <td style="padding: 0.3rem 0.4rem;">${r.product}</td>
+            <td style="text-align: right; padding: 0.3rem 0.4rem;">${opening.toFixed(3)}</td>
+            <td style="text-align: right; padding: 0.3rem 0.4rem;">${closing.toFixed(3)}</td>
+            <td style="text-align: right; padding: 0.3rem 0.4rem;">${diff.toFixed(3)}</td>
+            <td style="text-align: right; padding: 0.3rem 0.4rem;">${testing.toFixed(3)}</td>
+            <td style="text-align: right; font-weight: bold; padding: 0.3rem 0.4rem;">${net.toFixed(3)}</td>
           `;
           nozzleBody.appendChild(tr);
         }
@@ -513,13 +550,13 @@ document.addEventListener('DOMContentLoaded', () => {
           const decantation = t.decantation_qty !== undefined ? parseFloat(t.decantation_qty) : 0;
           const tr = document.createElement('tr');
           tr.innerHTML = `
-            <td><span class="nozzle-badge">T${t.tank_id}</span></td>
-            <td>${t.tank_name} (${t.product})</td>
-            <td style="text-align: right;">${(t.opening_dip || 0).toFixed(1)}</td>
-            <td style="text-align: right;">${(t.opening_stock || 0).toFixed(2)}</td>
-            <td style="text-align: right;">${decantation.toFixed(0)}</td>
-            <td style="text-align: right;">${(t.closing_dip || 0).toFixed(1)}</td>
-            <td style="text-align: right; font-weight: bold;">${(t.closing_stock || 0).toFixed(2)}</td>
+            <td style="padding: 0.3rem 0.4rem;"><span class="nozzle-badge">T${t.tank_id}</span></td>
+            <td style="padding: 0.3rem 0.4rem;">${t.tank_name} (${t.product})</td>
+            <td style="text-align: right; padding: 0.3rem 0.4rem;">${(t.opening_dip || 0).toFixed(1)}</td>
+            <td style="text-align: right; padding: 0.3rem 0.4rem;">${(t.opening_stock || 0).toFixed(2)}</td>
+            <td style="text-align: right; padding: 0.3rem 0.4rem;">${decantation.toFixed(0)}</td>
+            <td style="text-align: right; padding: 0.3rem 0.4rem;">${(t.closing_dip || 0).toFixed(1)}</td>
+            <td style="text-align: right; font-weight: bold; padding: 0.3rem 0.4rem;">${(t.closing_stock || 0).toFixed(2)}</td>
           `;
           tankBody.appendChild(tr);
         });
@@ -583,14 +620,14 @@ document.addEventListener('DOMContentLoaded', () => {
           nonCash.forEach(p => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-              <td>${p.type}</td>
-              <td>${p.description}</td>
-              <td style="text-align: right;">${p.amount.toFixed(2)}</td>
+              <td style="padding: 0.3rem 0.4rem;">${p.type}</td>
+              <td style="padding: 0.3rem 0.4rem;">${p.description}</td>
+              <td style="text-align: right; padding: 0.3rem 0.4rem;">${p.amount.toFixed(2)}</td>
             `;
             nonCashBody.appendChild(tr);
           });
         } else {
-          nonCashBody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 0.5rem;">None recorded</td></tr>';
+          nonCashBody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 0.3rem 0.4rem;">None recorded</td></tr>';
         }
       }
 
@@ -1604,12 +1641,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  const adminDashboardDate = document.getElementById('admin-dashboard-date');
-  if (adminDashboardDate) {
-    adminDashboardDate.addEventListener('change', () => {
-      fetchAndPopulateAdminDashboard(adminDashboardDate.value);
-    });
-  }
+  // Flatpickr handles change event via onChange hook
 
   // Decantation radio buttons toggle listener — update button label/destination on every change
   document.querySelectorAll('input[name="decantation-toggle"]').forEach(radio => {
@@ -8458,9 +8490,11 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       const role = sessionStorage.getItem('pumperp_user_role') || 'manager';
       if (role === 'admin') {
-        const adminDateEl = document.getElementById('admin-dashboard-date');
         showView('admin-dashboard');
-        fetchAndPopulateAdminDashboard(adminDateEl.value || dateInput.value);
+        updateAdminDatePicker().then(() => {
+          const selected = adminFlatpickr ? adminFlatpickr.input.value : (document.getElementById('admin-dashboard-date').value || dateInput.value);
+          fetchAndPopulateAdminDashboard(selected);
+        });
       } else {
         showView('du');
       }

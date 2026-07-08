@@ -11,6 +11,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <!-- CSS Stylesheet -->
   <link rel="stylesheet" href="style.css">
+  <!-- Flatpickr CSS for custom calendar dropdown -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
 </head>
 <body>
   <!-- Authorization Landing Page -->
@@ -2635,44 +2638,25 @@
                   </div>
                 </div>
 
-                <!-- Non-Cash Settlement Logs -->
-                <div class="card" style="padding: 1rem; border: 1px solid var(--card-border);">
-                  <h3 style="margin-top: 0; margin-bottom: 0.75rem; font-size: 0.95rem; font-family: var(--font-header);">Non-Cash Settlement Logs</h3>
-                  <div style="overflow-x: auto;">
-                    <table class="data-table" style="width: 100%; font-size: 0.8rem; border-collapse: collapse;">
-                      <thead>
-                        <tr>
-                          <th style="text-align: left; padding: 0.4rem; background: inherit;">Type</th>
-                          <th style="text-align: left; padding: 0.4rem; background: inherit;">Description</th>
-                          <th style="text-align: right; padding: 0.4rem; background: inherit;">Amount (₹)</th>
-                        </tr>
-                      </thead>
-                      <tbody id="admin-non-cash-body">
-                        <tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 0.5rem;">None recorded</td></tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
               </div>
 
               <!-- Right Column: Tables -->
               <div class="preview-right-column" style="display: flex; flex-direction: column; gap: 1.5rem;">
                 
                 <!-- Nozzles Reading Table -->
-                <div class="card" style="padding: 1rem; border: 1px solid var(--card-border);">
+                <div class="card" style="padding: 0.75rem 1rem; border: 1px solid var(--card-border); flex-shrink: 0;">
                   <h3 style="margin-top: 0; margin-bottom: 0.75rem; font-size: 0.95rem; color: var(--accent); font-family: var(--font-header);">Nozzles Reading Sales</h3>
-                  <div style="overflow-x: auto;">
-                    <table class="data-table" style="width: 100%; font-size: 0.8rem; border-collapse: collapse;">
+                  <div style="overflow-x: auto; overflow-y: hidden;">
+                    <table class="data-table" style="width: 100%; font-size: 0.75rem; border-collapse: collapse;">
                       <thead>
                         <tr>
-                          <th style="padding: 0.4rem; background: inherit;">NZ</th>
-                          <th style="padding: 0.4rem; background: inherit;">Product</th>
-                          <th style="text-align: right; padding: 0.4rem; background: inherit;">Opening</th>
-                          <th style="text-align: right; padding: 0.4rem; background: inherit;">Closing</th>
-                          <th style="text-align: right; padding: 0.4rem; background: inherit;">Diff</th>
-                          <th style="text-align: right; padding: 0.4rem; background: inherit;">Test (L)</th>
-                          <th style="text-align: right; padding: 0.4rem; background: inherit;">Net Sales</th>
+                          <th style="padding: 0.3rem 0.4rem; background: inherit;">NZ</th>
+                          <th style="padding: 0.3rem 0.4rem; background: inherit;">Product</th>
+                          <th style="text-align: right; padding: 0.3rem 0.4rem; background: inherit;">Opening</th>
+                          <th style="text-align: right; padding: 0.3rem 0.4rem; background: inherit;">Closing</th>
+                          <th style="text-align: right; padding: 0.3rem 0.4rem; background: inherit;">Diff</th>
+                          <th style="text-align: right; padding: 0.3rem 0.4rem; background: inherit;">Test (L)</th>
+                          <th style="text-align: right; padding: 0.3rem 0.4rem; background: inherit;">Net Sales</th>
                         </tr>
                       </thead>
                       <tbody id="admin-nozzle-body">
@@ -2683,23 +2667,42 @@
                 </div>
 
                 <!-- Tanks Stock Table -->
-                <div class="card" style="padding: 1rem; border: 1px solid var(--card-border);">
+                <div class="card" style="padding: 0.75rem 1rem; border: 1px solid var(--card-border); flex-shrink: 0;">
                   <h3 style="margin-top: 0; margin-bottom: 0.75rem; font-size: 0.95rem; color: var(--accent); font-family: var(--font-header);">Tanks Stock Status</h3>
-                  <div style="overflow-x: auto;">
-                    <table class="data-table" style="width: 100%; font-size: 0.8rem; border-collapse: collapse;">
+                  <div style="overflow-x: auto; overflow-y: hidden;">
+                    <table class="data-table" style="width: 100%; font-size: 0.75rem; border-collapse: collapse;">
                       <thead>
                         <tr>
-                          <th style="padding: 0.4rem; background: inherit;">Tnk</th>
-                          <th style="padding: 0.4rem; background: inherit;">Tank Name</th>
-                          <th style="text-align: right; padding: 0.4rem; background: inherit;">Op Dip</th>
-                          <th style="text-align: right; padding: 0.4rem; background: inherit;">Op Stock</th>
-                          <th style="text-align: right; padding: 0.4rem; background: inherit;">Decant</th>
-                          <th style="text-align: right; padding: 0.4rem; background: inherit;">Cl Dip</th>
-                          <th style="text-align: right; padding: 0.4rem; background: inherit;">Cl Stock</th>
+                          <th style="padding: 0.3rem 0.4rem; background: inherit;">Tnk</th>
+                          <th style="padding: 0.3rem 0.4rem; background: inherit;">Tank Name</th>
+                          <th style="text-align: right; padding: 0.3rem 0.4rem; background: inherit;">Op Dip</th>
+                          <th style="text-align: right; padding: 0.3rem 0.4rem; background: inherit;">Op Stock</th>
+                          <th style="text-align: right; padding: 0.3rem 0.4rem; background: inherit;">Decant</th>
+                          <th style="text-align: right; padding: 0.3rem 0.4rem; background: inherit;">Cl Dip</th>
+                          <th style="text-align: right; padding: 0.3rem 0.4rem; background: inherit;">Cl Stock</th>
                         </tr>
                       </thead>
                       <tbody id="admin-tank-body">
                         <!-- populated dynamically -->
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Non-Cash Settlement Logs -->
+                <div class="card" style="padding: 0.75rem 1rem; border: 1px solid var(--card-border); flex-shrink: 0;">
+                  <h3 style="margin-top: 0; margin-bottom: 0.75rem; font-size: 0.95rem; font-family: var(--font-header);">Non-Cash Settlement Logs</h3>
+                  <div style="overflow-x: auto; max-height: 180px; overflow-y: auto;">
+                    <table class="data-table" style="width: 100%; font-size: 0.75rem; border-collapse: collapse;">
+                      <thead>
+                        <tr>
+                          <th style="text-align: left; padding: 0.3rem 0.4rem; background: inherit;">Type</th>
+                          <th style="text-align: left; padding: 0.3rem 0.4rem; background: inherit;">Description</th>
+                          <th style="text-align: right; padding: 0.3rem 0.4rem; background: inherit;">Amount (₹)</th>
+                        </tr>
+                      </thead>
+                      <tbody id="admin-non-cash-body">
+                        <tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 0.5rem;">None recorded</td></tr>
                       </tbody>
                     </table>
                   </div>
@@ -3801,6 +3804,7 @@
 
 
   <!-- JS Logic -->
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="app.js?v=1.6.10"></script>
 </body>
 </html>

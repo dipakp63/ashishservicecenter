@@ -407,6 +407,19 @@ app.get('/api/active-date', async (req, res) => {
   }
 });
 
+// Endpoint to fetch all unique dates whose calculations are complete (saved cash_reconciliation)
+app.get('/api/calculated-dates', async (req, res) => {
+  try {
+    const rows = await db.all('SELECT DISTINCT date FROM cash_reconciliation ORDER BY date ASC');
+    const dates = rows.map(r => r.date);
+    res.json({ dates });
+  } catch (err) {
+    console.error('Error fetching calculated dates:', err.message);
+    res.status(500).json({ error: 'Database error fetching calculated dates.' });
+  }
+});
+
+
 // Endpoint to clear the database for testing
 app.post('/api/clear-db', async (req, res) => {
   try {
