@@ -2576,10 +2576,10 @@
         <main class="content-body">
           <section class="card finish-card">
             <!-- Summary Container with Left and Right Columns -->
-            <div class="finish-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
+            <div class="finish-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 0.75rem;">
               
               <!-- Left Column: Metrics & Settlement -->
-              <div class="preview-left-column" style="display: flex; flex-direction: column; gap: 1.5rem;">
+              <div class="preview-left-column" style="display: flex; flex-direction: column; gap: 0.75rem;">
                 
                 <!-- Productwise Sales summary cards -->
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem;">
@@ -2636,33 +2636,57 @@
                   </div>
                 </div>
 
-                <!-- Denominations and Non-Cash Settlement -->
-                <div class="card" style="padding: 1rem; border: 1px solid var(--card-border);">
-                  <h3 style="margin-top: 0; margin-bottom: 0.75rem; font-size: 0.95rem; font-family: var(--font-header);">Cash Denominations</h3>
-                  <div id="admin-denominations-list" style="font-size: 0.85rem; color: var(--text-muted); display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.4rem;">
-                    None entered
+                <!-- Denominations Card -->
+                <div class="card" style="padding: 0.75rem 1rem; border: 1px solid var(--card-border);">
+                  <h3 style="margin-top: 0; margin-bottom: 0.4rem; font-size: 0.95rem; font-family: var(--font-header);">Cash Denominations</h3>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; font-size: 0.75rem;">
+                    <!-- Left Column: Notes -->
+                    <div>
+                      <div style="font-weight: bold; margin-bottom: 0.25rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.1rem; color: var(--accent);">Notes</div>
+                      <div id="admin-denom-notes-list" style="display: flex; flex-direction: column; gap: 0.15rem; color: var(--text-muted);">
+                        None entered
+                      </div>
+                      <div id="admin-denom-notes-total" style="font-weight: 700; margin-top: 0.3rem; padding-top: 0.15rem; border-top: 1px dashed rgba(255,255,255,0.08); color: var(--text-main);">
+                        Total Notes: ₹ 0/-
+                      </div>
+                    </div>
+                    
+                    <!-- Right Column: Coins -->
+                    <div>
+                      <div style="font-weight: bold; margin-bottom: 0.25rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.1rem; color: var(--accent);">Coins</div>
+                      <div id="admin-denom-coins-list" style="display: flex; flex-direction: column; gap: 0.15rem; color: var(--text-muted);">
+                        None entered
+                      </div>
+                      <div id="admin-denom-coins-total" style="font-weight: 700; margin-top: 0.3rem; padding-top: 0.15rem; border-top: 1px dashed rgba(255,255,255,0.08); color: var(--text-main);">
+                        Total Coins: ₹ 0/-
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Summary Cash Total at the bottom -->
+                  <div id="admin-denom-grand-total" style="font-weight: bold; font-size: 0.8rem; margin-top: 0.4rem; padding-top: 0.25rem; border-top: 1px solid rgba(255,255,255,0.1); text-align: center; color: var(--success);">
+                    Grand Total Cash: ₹ 0/-
                   </div>
                 </div>
 
               </div>
 
               <!-- Right Column: Tables -->
-              <div class="preview-right-column" style="display: flex; flex-direction: column; gap: 1.5rem;">
+              <div class="preview-right-column" style="display: flex; flex-direction: column; gap: 0.75rem;">
                 
                 <!-- Nozzles Reading Table -->
-                <div class="card" style="padding: 0.75rem 1rem; border: 1px solid var(--card-border); flex-shrink: 0;">
-                  <h3 style="margin-top: 0; margin-bottom: 0.75rem; font-size: 0.95rem; color: var(--accent); font-family: var(--font-header);">Nozzles Reading Sales</h3>
+                <div class="card" style="padding: 0.5rem 0.75rem; border: 1px solid var(--card-border); flex-shrink: 0;">
+                  <h3 style="margin-top: 0; margin-bottom: 0.35rem; font-size: 0.95rem; color: var(--accent); font-family: var(--font-header);">Nozzles Reading Sales</h3>
                   <div style="overflow-x: auto; overflow-y: hidden;">
                     <table class="data-table" style="width: 100%; font-size: 0.75rem; border-collapse: collapse;">
                       <thead>
                         <tr>
-                          <th style="padding: 0.3rem 0.4rem; background: inherit;">NZ</th>
-                          <th style="padding: 0.3rem 0.4rem; background: inherit;">Product</th>
-                          <th style="text-align: right; padding: 0.3rem 0.4rem; background: inherit;">Opening</th>
-                          <th style="text-align: right; padding: 0.3rem 0.4rem; background: inherit;">Closing</th>
-                          <th style="text-align: right; padding: 0.3rem 0.4rem; background: inherit;">Diff</th>
-                          <th style="text-align: right; padding: 0.3rem 0.4rem; background: inherit;">Test (L)</th>
-                          <th style="text-align: right; padding: 0.3rem 0.4rem; background: inherit;">Net Sales</th>
+                          <th style="padding: 0.15rem 0.3rem; background: inherit;">NZ</th>
+                          <th style="padding: 0.15rem 0.3rem; background: inherit;">Product</th>
+                          <th style="text-align: right; padding: 0.15rem 0.3rem; background: inherit;">Opening</th>
+                          <th style="text-align: right; padding: 0.15rem 0.3rem; background: inherit;">Closing</th>
+                          <th style="text-align: right; padding: 0.15rem 0.3rem; background: inherit;">Diff</th>
+                          <th style="text-align: right; padding: 0.15rem 0.3rem; background: inherit;">Test (L)</th>
+                          <th style="text-align: right; padding: 0.15rem 0.3rem; background: inherit;">Net Sales</th>
                         </tr>
                       </thead>
                       <tbody id="admin-nozzle-body">
@@ -2673,19 +2697,19 @@
                 </div>
 
                 <!-- Tanks Stock Table -->
-                <div class="card" style="padding: 0.75rem 1rem; border: 1px solid var(--card-border); flex-shrink: 0;">
-                  <h3 style="margin-top: 0; margin-bottom: 0.75rem; font-size: 0.95rem; color: var(--accent); font-family: var(--font-header);">Tanks Stock Status</h3>
+                <div class="card" style="padding: 0.5rem 0.75rem; border: 1px solid var(--card-border); flex-shrink: 0;">
+                  <h3 style="margin-top: 0; margin-bottom: 0.35rem; font-size: 0.95rem; color: var(--accent); font-family: var(--font-header);">Tanks Stock Status</h3>
                   <div style="overflow-x: auto; overflow-y: hidden;">
                     <table class="data-table" style="width: 100%; font-size: 0.75rem; border-collapse: collapse;">
                       <thead>
                         <tr>
-                          <th style="padding: 0.3rem 0.4rem; background: inherit;">Tnk</th>
-                          <th style="padding: 0.3rem 0.4rem; background: inherit;">Tank Name</th>
-                          <th style="text-align: right; padding: 0.3rem 0.4rem; background: inherit;">Op Dip</th>
-                          <th style="text-align: right; padding: 0.3rem 0.4rem; background: inherit;">Op Stock</th>
-                          <th style="text-align: right; padding: 0.3rem 0.4rem; background: inherit;">Decant</th>
-                          <th style="text-align: right; padding: 0.3rem 0.4rem; background: inherit;">Cl Dip</th>
-                          <th style="text-align: right; padding: 0.3rem 0.4rem; background: inherit;">Cl Stock</th>
+                          <th style="padding: 0.15rem 0.3rem; background: inherit;">Tnk</th>
+                          <th style="padding: 0.15rem 0.3rem; background: inherit;">Tank Name</th>
+                          <th style="text-align: right; padding: 0.15rem 0.3rem; background: inherit;">Op Dip</th>
+                          <th style="text-align: right; padding: 0.15rem 0.3rem; background: inherit;">Op Stock</th>
+                          <th style="text-align: right; padding: 0.15rem 0.3rem; background: inherit;">Decant</th>
+                          <th style="text-align: right; padding: 0.15rem 0.3rem; background: inherit;">Cl Dip</th>
+                          <th style="text-align: right; padding: 0.15rem 0.3rem; background: inherit;">Cl Stock</th>
                         </tr>
                       </thead>
                       <tbody id="admin-tank-body">
@@ -2696,15 +2720,15 @@
                 </div>
 
                 <!-- Non-Cash Settlement Logs -->
-                <div class="card" style="padding: 0.75rem 1rem; border: 1px solid var(--card-border); flex-shrink: 0;">
-                  <h3 style="margin-top: 0; margin-bottom: 0.75rem; font-size: 0.95rem; font-family: var(--font-header);">Non-Cash Settlement Logs</h3>
-                  <div style="overflow-x: auto; max-height: 180px; overflow-y: auto;">
+                <div class="card" style="padding: 0.5rem 0.75rem; border: 1px solid var(--card-border); flex-shrink: 0;">
+                  <h3 style="margin-top: 0; margin-bottom: 0.35rem; font-size: 0.95rem; font-family: var(--font-header);">Non-Cash Settlement Logs</h3>
+                  <div style="overflow-x: auto; max-height: 110px; overflow-y: auto;">
                     <table class="data-table" style="width: 100%; font-size: 0.75rem; border-collapse: collapse;">
                       <thead>
                         <tr>
-                          <th style="text-align: left; padding: 0.3rem 0.4rem; background: inherit;">Type</th>
-                          <th style="text-align: left; padding: 0.3rem 0.4rem; background: inherit;">Description</th>
-                          <th style="text-align: right; padding: 0.3rem 0.4rem; background: inherit;">Amount (₹)</th>
+                          <th style="text-align: left; padding: 0.15rem 0.3rem; background: inherit;">Type</th>
+                          <th style="text-align: left; padding: 0.15rem 0.3rem; background: inherit;">Description</th>
+                          <th style="text-align: right; padding: 0.15rem 0.3rem; background: inherit;">Amount (₹)</th>
                         </tr>
                       </thead>
                       <tbody id="admin-non-cash-body">

@@ -470,6 +470,25 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function fetchAndPopulateAdminDashboard(dateValue) {
+    function resolveDescription(desc) {
+      if (!desc) return '';
+      if (desc.startsWith('debtor_id:')) {
+        const debtorId = parseInt(desc.split(':')[1], 10);
+        if (!isNaN(debtorId)) {
+          const found = globalDebtorsList.find(d => d.id === debtorId);
+          return found ? found.debtor_name : `Debtor (ID: ${debtorId})`;
+        }
+      }
+      if (desc.startsWith('employee_id:')) {
+        const employeeId = parseInt(desc.split(':')[1], 10);
+        if (!isNaN(employeeId)) {
+          const found = globalEmployeesList.find(e => e.id === employeeId);
+          return found ? found.name : `Employee (ID: ${employeeId})`;
+        }
+      }
+      return desc;
+    }
+
     try {
       const response = await fetch(`/api/day-data?date=${dateValue}`);
       if (!response.ok) {
@@ -509,13 +528,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (nozzleBody) {
           const tr = document.createElement('tr');
           tr.innerHTML = `
-            <td style="padding: 0.3rem 0.4rem;"><span class="nozzle-badge">N${r.nozzle_id}</span></td>
-            <td style="padding: 0.3rem 0.4rem;">${r.product}</td>
-            <td style="text-align: right; padding: 0.3rem 0.4rem;">${opening.toFixed(3)}</td>
-            <td style="text-align: right; padding: 0.3rem 0.4rem;">${closing.toFixed(3)}</td>
-            <td style="text-align: right; padding: 0.3rem 0.4rem;">${diff.toFixed(3)}</td>
-            <td style="text-align: right; padding: 0.3rem 0.4rem;">${testing.toFixed(3)}</td>
-            <td style="text-align: right; font-weight: bold; padding: 0.3rem 0.4rem;">${net.toFixed(3)}</td>
+            <td style="padding: 0.15rem 0.3rem;"><span class="nozzle-badge">N${r.nozzle_id}</span></td>
+            <td style="padding: 0.15rem 0.3rem;">${r.product}</td>
+            <td style="text-align: right; padding: 0.15rem 0.3rem;">${opening.toFixed(3)}</td>
+            <td style="text-align: right; padding: 0.15rem 0.3rem;">${closing.toFixed(3)}</td>
+            <td style="text-align: right; padding: 0.15rem 0.3rem;">${diff.toFixed(3)}</td>
+            <td style="text-align: right; padding: 0.15rem 0.3rem;">${testing.toFixed(3)}</td>
+            <td style="text-align: right; font-weight: bold; padding: 0.15rem 0.3rem;">${net.toFixed(3)}</td>
           `;
           nozzleBody.appendChild(tr);
         }
@@ -550,13 +569,13 @@ document.addEventListener('DOMContentLoaded', () => {
           const decantation = t.decantation_qty !== undefined ? parseFloat(t.decantation_qty) : 0;
           const tr = document.createElement('tr');
           tr.innerHTML = `
-            <td style="padding: 0.3rem 0.4rem;"><span class="nozzle-badge">T${t.tank_id}</span></td>
-            <td style="padding: 0.3rem 0.4rem;">${t.tank_name} (${t.product})</td>
-            <td style="text-align: right; padding: 0.3rem 0.4rem;">${(t.opening_dip || 0).toFixed(1)}</td>
-            <td style="text-align: right; padding: 0.3rem 0.4rem;">${(t.opening_stock || 0).toFixed(2)}</td>
-            <td style="text-align: right; padding: 0.3rem 0.4rem;">${decantation.toFixed(0)}</td>
-            <td style="text-align: right; padding: 0.3rem 0.4rem;">${(t.closing_dip || 0).toFixed(1)}</td>
-            <td style="text-align: right; font-weight: bold; padding: 0.3rem 0.4rem;">${(t.closing_stock || 0).toFixed(2)}</td>
+            <td style="padding: 0.15rem 0.3rem;"><span class="nozzle-badge">T${t.tank_id}</span></td>
+            <td style="padding: 0.15rem 0.3rem;">${t.tank_name} (${t.product})</td>
+            <td style="text-align: right; padding: 0.15rem 0.3rem;">${(t.opening_dip || 0).toFixed(1)}</td>
+            <td style="text-align: right; padding: 0.15rem 0.3rem;">${(t.opening_stock || 0).toFixed(2)}</td>
+            <td style="text-align: right; padding: 0.15rem 0.3rem;">${decantation.toFixed(0)}</td>
+            <td style="text-align: right; padding: 0.15rem 0.3rem;">${(t.closing_dip || 0).toFixed(1)}</td>
+            <td style="text-align: right; font-weight: bold; padding: 0.15rem 0.3rem;">${(t.closing_stock || 0).toFixed(2)}</td>
           `;
           tankBody.appendChild(tr);
         });
@@ -573,34 +592,73 @@ document.addEventListener('DOMContentLoaded', () => {
         setElText('admin-shortfall', `₹ ${Number(cash.shortfall || 0).toLocaleString("en-IN", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`);
 
         // Denominations
-        const denomList = document.getElementById('admin-denominations-list');
-        if (denomList) {
-          denomList.innerHTML = '';
-          const denoms = [
-            { label: '500', count: cash.notes_500 },
-            { label: '200', count: cash.notes_200 },
-            { label: '100', count: cash.notes_100 },
-            { label: '50', count: cash.notes_50 },
-            { label: '20', count: cash.notes_20 },
-            { label: '10', count: cash.notes_10 },
-            { label: '20 (Coin)', count: cash.coins_20 },
-            { label: '10 (Coin)', count: cash.coins_10 },
-            { label: '5 (Coin)', count: cash.coins_5 },
-            { label: '2 (Coin)', count: cash.coins_2 || 0 },
-            { label: '1 (Coin)', count: cash.coins_1 || 0 }
+        const notesList = document.getElementById('admin-denom-notes-list');
+        const coinsList = document.getElementById('admin-denom-coins-list');
+        const notesTotalEl = document.getElementById('admin-denom-notes-total');
+        const coinsTotalEl = document.getElementById('admin-denom-coins-total');
+        const grandTotalEl = document.getElementById('admin-denom-grand-total');
+
+        if (notesList && coinsList) {
+          notesList.innerHTML = '';
+          coinsList.innerHTML = '';
+          if (notesTotalEl) notesTotalEl.textContent = 'Total Notes: ₹ 0/-';
+          if (coinsTotalEl) coinsTotalEl.textContent = 'Total Coins: ₹ 0/-';
+          if (grandTotalEl) grandTotalEl.textContent = 'Grand Total Cash: ₹ 0/-';
+        }
+
+        if (notesList && coinsList) {
+          const notes = [
+            { value: 500, label: '500', count: cash.notes_500 || 0 },
+            { value: 200, label: '200', count: cash.notes_200 || 0 },
+            { value: 100, label: '100', count: cash.notes_100 || 0 },
+            { value: 50, label: '50', count: cash.notes_50 || 0 },
+            { value: 20, label: '20', count: cash.notes_20 || 0 },
+            { value: 10, label: '10', count: cash.notes_10 || 0 }
           ];
-          let enteredAny = false;
-          denoms.forEach(d => {
-            if (d.count > 0) {
-              enteredAny = true;
+
+          const coins = [
+            { value: 20, label: '20 (Coin)', count: cash.coins_20 || 0 },
+            { value: 10, label: '10 (Coin)', count: cash.coins_10 || 0 },
+            { value: 5, label: '5 (Coin)', count: cash.coins_5 || 0 },
+            { value: 2, label: '2 (Coin)', count: cash.coins_2 || 0 },
+            { value: 1, label: '1 (Coin)', count: cash.coins_1 || 0 }
+          ];
+
+          let totalNotesSum = 0;
+          let totalCoinsSum = 0;
+
+          notes.forEach(n => {
+            if (n.count > 0) {
+              const rowTotal = n.value * n.count;
+              totalNotesSum += rowTotal;
               const div = document.createElement('div');
-              div.textContent = `₹ ${d.label} x ${d.count}`;
-              denomList.appendChild(div);
+              div.style.display = 'flex';
+              div.style.justifyContent = 'space-between';
+              div.innerHTML = `<span>₹ ${n.value} × ${n.count}</span> <span style="font-weight: 600;">₹ ${rowTotal.toLocaleString('en-IN')}/-</span>`;
+              notesList.appendChild(div);
             }
           });
-          if (!enteredAny) {
-            denomList.textContent = 'None entered';
-          }
+
+          coins.forEach(c => {
+            if (c.count > 0) {
+              const rowTotal = c.value * c.count;
+              totalCoinsSum += rowTotal;
+              const div = document.createElement('div');
+              div.style.display = 'flex';
+              div.style.justifyContent = 'space-between';
+              div.innerHTML = `<span>₹ ${c.value} (C) × ${c.count}</span> <span style="font-weight: 600;">₹ ${rowTotal.toLocaleString('en-IN')}/-</span>`;
+              coinsList.appendChild(div);
+            }
+          });
+
+          const grandTotalSum = totalNotesSum + totalCoinsSum;
+
+          if (notesList.children.length === 0) notesList.textContent = 'None entered';
+          if (coinsList.children.length === 0) coinsList.textContent = 'None entered';
+
+          if (notesTotalEl) notesTotalEl.innerHTML = `Total Notes: ₹ ${totalNotesSum.toLocaleString('en-IN')}/-`;
+          if (coinsTotalEl) coinsTotalEl.innerHTML = `Total Coins: ₹ ${totalCoinsSum.toLocaleString('en-IN')}/-`;
+          if (grandTotalEl) grandTotalEl.innerHTML = `Grand Total Cash: ₹ ${grandTotalSum.toLocaleString('en-IN')}/-`;
         }
       } else {
         setElText('admin-calc-sales', '₹ 0.00');
@@ -608,8 +666,10 @@ document.addEventListener('DOMContentLoaded', () => {
         setElText('admin-upi-credit', '₹ 0.00');
         setElText('admin-shortfall', '₹ 0.00');
         
-        const denomList = document.getElementById('admin-denominations-list');
-        if (denomList) denomList.textContent = 'None entered';
+        const notesList = document.getElementById('admin-denom-notes-list');
+        const coinsList = document.getElementById('admin-denom-coins-list');
+        if (notesList) notesList.textContent = 'None entered';
+        if (coinsList) coinsList.textContent = 'None entered';
       }
 
       // Non Cash Payments table
@@ -620,14 +680,14 @@ document.addEventListener('DOMContentLoaded', () => {
           nonCash.forEach(p => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-              <td style="padding: 0.3rem 0.4rem;">${p.type}</td>
-              <td style="padding: 0.3rem 0.4rem;">${p.description}</td>
-              <td style="text-align: right; padding: 0.3rem 0.4rem;">${p.amount.toFixed(2)}</td>
+              <td style="padding: 0.15rem 0.3rem;">${p.type}</td>
+              <td style="padding: 0.15rem 0.3rem;">${resolveDescription(p.description)}</td>
+              <td style="text-align: right; padding: 0.15rem 0.3rem;">${p.amount.toFixed(2)}</td>
             `;
             nonCashBody.appendChild(tr);
           });
         } else {
-          nonCashBody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 0.3rem 0.4rem;">None recorded</td></tr>';
+          nonCashBody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 0.15rem 0.3rem;">None recorded</td></tr>';
         }
       }
 
