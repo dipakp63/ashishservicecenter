@@ -383,7 +383,63 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnBackToDecantationOrTankFromDsr = document.getElementById('btn-back-to-decantation-or-tank-from-dsr');
 
   window.showView = showView;
+  window.applyUserRoleTheme = applyUserRoleTheme;
+
+  function applyUserRoleTheme() {
+    const role = sessionStorage.getItem('pumperp_user_role') || 'manager';
+    const navSecret = document.getElementById('nav-secret');
+    if (!navSecret) return;
+
+    const secretSpan = navSecret.querySelector('.nav-text');
+    const secretIcon = navSecret.querySelector('.nav-icon');
+
+    if (secretSpan) secretSpan.textContent = 'Profit';
+    if (secretIcon) secretIcon.textContent = '📈';
+
+    const secretViewHeader = document.querySelector('#view-secret h1');
+    if (secretViewHeader) secretViewHeader.textContent = '📈 Profit Calculator';
+    const secretViewSubtitle = document.querySelector('#view-secret .subtitle');
+    if (secretViewSubtitle) secretViewSubtitle.textContent = 'Calculate dealer & differential margins profit product wise';
+
+    if (role === 'admin') {
+      document.querySelectorAll('.sidebar-nav > ul > li').forEach(li => {
+        const a = li.querySelector('a');
+        if (a) {
+          const id = a.id;
+          if (id === 'nav-secret' || id === 'nav-exit') {
+            li.style.display = 'block';
+          } else {
+            li.style.display = 'none';
+          }
+        }
+      });
+      showView('secret');
+      loadProfitData();
+    } else {
+      document.querySelectorAll('.sidebar-nav > ul > li').forEach(li => {
+        const a = li.querySelector('a');
+        if (a) {
+          const id = a.id;
+          if (id === 'nav-secret') {
+            li.style.display = 'none';
+          } else {
+            li.style.display = 'block';
+          }
+        }
+      });
+      showView('du');
+    }
+  }
+
   function showView(viewName) {
+    if (viewName === 'secret') {
+      const role = sessionStorage.getItem('pumperp_user_role') || 'manager';
+      if (role !== 'admin') {
+        showToast('Access denied: Admin only view.', 'error');
+        showView('du');
+        return;
+      }
+    }
     if (viewName === 'tanker-receipts') {
       openLabelWizard(null, true);
       return;
@@ -561,7 +617,7 @@ document.addEventListener('DOMContentLoaded', () => {
     else if (viewName === 'secret' && navSecret) navSecret.classList.add('active');
     else if ((viewName === 'porancha-hishob' || viewName === 'shift-reconciliation') && navPoranchaHishob) navPoranchaHishob.classList.add('active');
     else if ((viewName === 'tanker-receipts' || viewName === 'tanker-label-wizard') && navTankerReceipts) navTankerReceipts.classList.add('active');
-    else if (navDayClosing && !['udhari', 'other', 'tt-ledger', 'tanker-receipts', 'tanker-label-wizard', 'chillar-record', 'porancha-hishob', 'shift-reconciliation', 'admin'].some(pre => viewName.startsWith(pre))) navDayClosing.classList.add('active');
+    else if (navDayClosing && !['udhari', 'other', 'tt-ledger', 'tanker-receipts', 'tanker-label-wizard', 'chillar-record', 'porancha-hishob', 'shift-reconciliation', 'admin', 'secret'].some(pre => viewName.startsWith(pre))) navDayClosing.classList.add('active');
 
     // Update steps title texts dynamically
     if (hasDecantation) {
@@ -4021,14 +4077,9 @@ document.addEventListener('DOMContentLoaded', () => {
   if (navExit) {
     navExit.addEventListener('click', (e) => {
       e.preventDefault();
-      try {
-        window.close();
-        setTimeout(() => {
-          showToast('You can now close this tab', 'success');
-        }, 100);
-      } catch (err) {
-        showToast('You can now close this tab', 'success');
-      }
+      sessionStorage.removeItem('pumperp_landing_auth');
+      sessionStorage.removeItem('pumperp_user_role');
+      window.location.reload();
     });
   }
 
@@ -4070,7 +4121,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       if (adminCodeBuffer === '4242') {
         adminCodeBuffer = '';
-        showView('admin-panel');
+        sessionStorage.setItem('pumperp_landing_auth', 'verified');
+        sessionStorage.setItem('pumperp_user_role', 'admin');
+        applyUserRoleTheme();
         showToast('Welcome to the Admin Panel!', 'success');
       }
     } else {
@@ -4997,6 +5050,7 @@ document.addEventListener('DOMContentLoaded', () => {
   updateGlobalOutstandingCard();
   fetchGlobalDebtorsList();
   fetchGlobalEmployeesList();
+  applyUserRoleTheme();
 
 
   // ── EMPLOYEE MANAGEMENT ──────────────────────────────────────────────────────
@@ -8222,28 +8276,11 @@ document.addEventListener('DOMContentLoaded', () => {
     return validPasswords.includes(cleanInput);
   }
 
-  // Profit margins and calculation logic for the Secret page
+  // Profit margins and calculation logic for the Profit page
   const navSecret = document.getElementById('nav-secret');
   if (navSecret) {
-    navSecret.addEventListener('click', async (e) => {
+    navSecret.addEventListener('click', (e) => {
       e.preventDefault();
-      
-      const pwd = prompt('Enter password to access Secret Profit Calculator:');
-      if (pwd === null) return; // user cancelled prompt
-      
-      const cleanInput = pwd.trim();
-      if (cleanInput === '4242') {
-        showView('admin-panel');
-        showToast('Welcome to the Admin Panel!', 'success');
-        return;
-      }
-      
-      const isValid = await validateDynamicPassword(pwd);
-      if (!isValid) {
-        showToast('Access denied: Invalid password.', 'error');
-        return;
-      }
-      
       showView('secret');
       loadProfitData();
     });

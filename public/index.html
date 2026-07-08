@@ -170,6 +170,7 @@
         
         if (pwdInput.value === passwordVal) {
           sessionStorage.setItem(authKey, 'verified');
+          sessionStorage.setItem('pumperp_user_role', 'manager');
           const lp = document.getElementById('landing-login-page');
           const app = document.getElementById('main-app-layout');
           if (lp) {
@@ -178,12 +179,19 @@
             setTimeout(() => {
               lp.style.display = 'none';
               if (app) app.style.display = 'flex';
+              if (typeof window.applyUserRoleTheme === 'function') {
+                window.applyUserRoleTheme();
+              }
             }, 400);
           } else {
             if (app) app.style.display = 'flex';
+            if (typeof window.applyUserRoleTheme === 'function') {
+              window.applyUserRoleTheme();
+            }
           }
         } else if (pwdInput.value === '4242') {
           sessionStorage.setItem(authKey, 'verified');
+          sessionStorage.setItem('pumperp_user_role', 'admin');
           const lp = document.getElementById('landing-login-page');
           const app = document.getElementById('main-app-layout');
           if (lp) {
@@ -192,20 +200,14 @@
             setTimeout(() => {
               lp.style.display = 'none';
               if (app) app.style.display = 'flex';
-              if (typeof window.showView === 'function') {
-                window.showView('admin-panel');
-                if (typeof window.showToast === 'function') {
-                  window.showToast('Welcome to the Admin Panel!', 'success');
-                }
+              if (typeof window.applyUserRoleTheme === 'function') {
+                window.applyUserRoleTheme();
               }
             }, 400);
           } else {
             if (app) app.style.display = 'flex';
-            if (typeof window.showView === 'function') {
-              window.showView('admin-panel');
-              if (typeof window.showToast === 'function') {
-                window.showToast('Welcome to the Admin Panel!', 'success');
-              }
+            if (typeof window.applyUserRoleTheme === 'function') {
+              window.applyUserRoleTheme();
             }
           }
         } else {
@@ -285,8 +287,8 @@
           </li>
           <li>
             <a href="#" class="nav-item" id="nav-secret">
-              <span class="nav-icon">🔒</span>
-              <span class="nav-text">Secret</span>
+              <span class="nav-icon">📈</span>
+              <span class="nav-text">Profit</span>
             </a>
           </li>
           <li>
@@ -2460,7 +2462,7 @@
       <div id="view-secret" class="view-pane" style="display: none;">
         <header class="content-header" style="max-width: 100%; margin-inline: auto; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
           <div>
-            <h1>🔒 Secret Profit Calculator</h1>
+            <h1>📈 Profit Calculator</h1>
             <p class="subtitle">Calculate dealer & differential margins profit product wise</p>
           </div>
         </header>
