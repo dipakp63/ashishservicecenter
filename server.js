@@ -1726,7 +1726,8 @@ app.get('/api/debtor-transactions/date', async (req, res) => {
         dt.transaction_type,
         dt.description,
         dt.debit_amount,
-        dt.credit_amount
+        dt.credit_amount,
+        dt.remarks
       FROM debtor_transactions dt
       JOIN debtors d ON dt.debtor_id = d.id
       WHERE dt.transaction_date BETWEEN ? AND ?

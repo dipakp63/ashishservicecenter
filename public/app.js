@@ -4931,7 +4931,10 @@ document.addEventListener('DOMContentLoaded', () => {
           <td style="padding: 0.45rem 0.75rem; text-align: center;">${typeBadge}</td>
           <td style="padding: 0.45rem 0.75rem; text-align: right; color: var(--danger);">${debitText}</td>
           <td style="padding: 0.45rem 0.75rem; text-align: right; color: var(--success);">${creditText}</td>
-          <td style="padding: 0.45rem 0.75rem;">${tx.description || '—'}</td>
+          <td style="padding: 0.45rem 0.75rem;">
+            ${escapeHtml(tx.description || '—')}
+            ${tx.remarks ? `<div style="font-size:0.72rem; color:var(--text-muted); font-style:italic; margin-top:0.15rem;">Note: ${escapeHtml(tx.remarks)}</div>` : ''}
+          </td>
         `;
         udhariDateReportBody.appendChild(tr);
       });
@@ -5093,7 +5096,10 @@ document.addEventListener('DOMContentLoaded', () => {
         
         tr.innerHTML = `
           <td style="padding: 0.45rem 0.75rem; font-weight: 600; white-space: nowrap;">${formatDate(tx.transaction_date)}</td>
-          <td style="padding: 0.45rem 0.75rem; white-space: nowrap;">${tx.description || ''}</td>
+          <td style="padding: 0.45rem 0.75rem;">
+            ${escapeHtml(tx.description || '')}
+            ${tx.remarks ? `<div style="font-size:0.72rem; color:var(--text-muted); font-style:italic; margin-top:0.15rem;">Note: ${escapeHtml(tx.remarks)}</div>` : ''}
+          </td>
           <td style="padding: 0.45rem 0.75rem; text-align: right; color: var(--danger); white-space: nowrap;">${tx.debit_amount > 0 ? tx.debit_amount.toFixed(2) : ''}</td>
           <td style="padding: 0.45rem 0.75rem; text-align: right; color: var(--success); white-space: nowrap;">${tx.credit_amount > 0 ? tx.credit_amount.toFixed(2) : ''}</td>
           <td style="padding: 0.45rem 0.75rem; text-align: right; white-space: nowrap; ${balStyle}">${balVal.toFixed(2)}</td>
