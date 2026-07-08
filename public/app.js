@@ -528,13 +528,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (nozzleBody) {
           const tr = document.createElement('tr');
           tr.innerHTML = `
-            <td style="padding: 0.15rem 0.3rem;"><span class="nozzle-badge">N${r.nozzle_id}</span></td>
-            <td style="padding: 0.15rem 0.3rem;">${r.product}</td>
-            <td style="text-align: right; padding: 0.15rem 0.3rem;">${opening.toFixed(3)}</td>
-            <td style="text-align: right; padding: 0.15rem 0.3rem;">${closing.toFixed(3)}</td>
-            <td style="text-align: right; padding: 0.15rem 0.3rem;">${diff.toFixed(3)}</td>
-            <td style="text-align: right; padding: 0.15rem 0.3rem;">${testing.toFixed(3)}</td>
-            <td style="text-align: right; font-weight: bold; padding: 0.15rem 0.3rem;">${net.toFixed(3)}</td>
+            <td style="padding: 0.35rem 0.5rem;"><span class="nozzle-badge">N${r.nozzle_id}</span></td>
+            <td style="padding: 0.35rem 0.5rem;">${r.product}</td>
+            <td style="text-align: right; padding: 0.35rem 0.5rem;">${opening.toFixed(3)}</td>
+            <td style="text-align: right; padding: 0.35rem 0.5rem;">${closing.toFixed(3)}</td>
+            <td style="text-align: right; padding: 0.35rem 0.5rem;">${diff.toFixed(3)}</td>
+            <td style="text-align: right; padding: 0.35rem 0.5rem;">${testing.toFixed(3)}</td>
+            <td style="text-align: right; font-weight: bold; padding: 0.35rem 0.5rem;">${net.toFixed(3)}</td>
           `;
           nozzleBody.appendChild(tr);
         }
@@ -569,13 +569,13 @@ document.addEventListener('DOMContentLoaded', () => {
           const decantation = t.decantation_qty !== undefined ? parseFloat(t.decantation_qty) : 0;
           const tr = document.createElement('tr');
           tr.innerHTML = `
-            <td style="padding: 0.15rem 0.3rem;"><span class="nozzle-badge">T${t.tank_id}</span></td>
-            <td style="padding: 0.15rem 0.3rem;">${t.tank_name} (${t.product})</td>
-            <td style="text-align: right; padding: 0.15rem 0.3rem;">${(t.opening_dip || 0).toFixed(1)}</td>
-            <td style="text-align: right; padding: 0.15rem 0.3rem;">${(t.opening_stock || 0).toFixed(2)}</td>
-            <td style="text-align: right; padding: 0.15rem 0.3rem;">${decantation.toFixed(0)}</td>
-            <td style="text-align: right; padding: 0.15rem 0.3rem;">${(t.closing_dip || 0).toFixed(1)}</td>
-            <td style="text-align: right; font-weight: bold; padding: 0.15rem 0.3rem;">${(t.closing_stock || 0).toFixed(2)}</td>
+            <td style="padding: 0.35rem 0.5rem;"><span class="nozzle-badge">T${t.tank_id}</span></td>
+            <td style="padding: 0.35rem 0.5rem;">${t.tank_name} (${t.product})</td>
+            <td style="text-align: right; padding: 0.35rem 0.5rem;">${(t.opening_dip || 0).toFixed(1)}</td>
+            <td style="text-align: right; padding: 0.35rem 0.5rem;">${(t.opening_stock || 0).toFixed(2)}</td>
+            <td style="text-align: right; padding: 0.35rem 0.5rem;">${decantation.toFixed(0)}</td>
+            <td style="text-align: right; padding: 0.35rem 0.5rem;">${(t.closing_dip || 0).toFixed(1)}</td>
+            <td style="text-align: right; font-weight: bold; padding: 0.35rem 0.5rem;">${(t.closing_stock || 0).toFixed(2)}</td>
           `;
           tankBody.appendChild(tr);
         });
@@ -680,9 +680,9 @@ document.addEventListener('DOMContentLoaded', () => {
           nonCash.forEach(p => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-              <td style="padding: 0.15rem 0.3rem;">${p.type}</td>
-              <td style="padding: 0.15rem 0.3rem;">${resolveDescription(p.description)}</td>
-              <td style="text-align: right; padding: 0.15rem 0.3rem;">${p.amount.toFixed(2)}</td>
+              <td style="padding: 0.35rem 0.5rem;">${p.type}</td>
+              <td style="padding: 0.35rem 0.5rem;">${resolveDescription(p.description)}</td>
+              <td style="text-align: right; padding: 0.35rem 0.5rem;">${p.amount.toFixed(2)}</td>
             `;
             nonCashBody.appendChild(tr);
           });
