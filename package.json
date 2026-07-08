@@ -9,6 +9,7 @@
     "online": "node server.js --online",
     "test-validation": "node test_tank_validation.js",
     "test-freeze": "node test_freeze_state.js",
+    "test-rollback": "node test_rollback.js",
     "clear-db": "node clear_db.js"
   },
   "dependencies": {

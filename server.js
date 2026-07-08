@@ -419,6 +419,50 @@ app.get('/api/calculated-dates', async (req, res) => {
   }
 });
 
+// Endpoint to reverse all calculations for the last finalized day
+app.post('/api/admin/reverse-last-day', async (req, res) => {
+  try {
+    const role = req.headers['x-user-role'];
+    if (role !== 'admin') {
+      return res.status(403).json({ error: 'Unauthorized. Admin privilege required.' });
+    }
+
+    // 1. Get the latest closed date from cash_reconciliation
+    const row = await db.get('SELECT MAX(date) AS latest_closed_date FROM cash_reconciliation');
+    const latestClosedDate = row ? row.latest_closed_date : null;
+    
+    if (!latestClosedDate) {
+      return res.status(400).json({ error: 'No days have been finalized yet. Cannot reverse.' });
+    }
+
+    // 2. Perform deletions in a transaction (batch)
+    const statements = [
+      { sql: 'DELETE FROM cash_reconciliation WHERE date = ?', args: [latestClosedDate] },
+      { sql: 'DELETE FROM non_cash_payments WHERE date = ?', args: [latestClosedDate] },
+      { sql: 'DELETE FROM readings WHERE date = ?', args: [latestClosedDate] },
+      { sql: 'DELETE FROM tank_readings WHERE date = ?', args: [latestClosedDate] },
+      { sql: 'DELETE FROM rates WHERE date = ?', args: [latestClosedDate] },
+      { sql: 'DELETE FROM debtor_transactions WHERE transaction_date = ? AND description = ?', args: [latestClosedDate, 'Credit Sale (Day Closing)'] },
+      { sql: 'DELETE FROM employee_transactions WHERE transaction_date = ? AND description = ?', args: [latestClosedDate, 'Employee Payment (Day Closing)'] },
+      { sql: 'DELETE FROM tt_transactions WHERE date = ? AND (notes = ? OR description = ? OR (source = ? AND particular1 = ?))', args: [latestClosedDate, 'Auto-logged from Day Closing non-cash payments', 'Day Closing Auto-Entry', 'AUTO', 'Day Closing'] },
+      { sql: 'DELETE FROM tt_trips WHERE date = ? AND notes = ?', args: [latestClosedDate, 'Auto-logged from Day Closing'] },
+      { sql: 'UPDATE tt_trips SET fuel_filled = 0 WHERE date = ?', args: [latestClosedDate] },
+      { sql: 'DELETE FROM chillar_transactions WHERE date = ? AND type = ?', args: [latestClosedDate, 'DAY_CLOSE'] }
+    ];
+
+    await db.batch(statements);
+
+    // Invalidate active date cache
+    activeDateCache.timestamp = 0;
+
+    res.json({ success: true, reversedDate: latestClosedDate, message: `Successfully reversed all calculations for ${latestClosedDate}.` });
+  } catch (err) {
+    console.error('Error reversing last day calculations:', err.message);
+    res.status(500).json({ error: 'Database error reversing day calculations.' });
+  }
+});
+
+
 
 // Endpoint to clear the database for testing
 app.post('/api/clear-db', async (req, res) => {

@@ -403,7 +403,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const a = li.querySelector('a');
         if (a) {
           const id = a.id;
-          if (id === 'nav-secret' || id === 'nav-exit') {
+          if (id === 'nav-secret' || id === 'nav-exit' || id === 'nav-reverse-day') {
             li.style.display = 'block';
           } else {
             li.style.display = 'none';
@@ -420,7 +420,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const a = li.querySelector('a');
         if (a) {
           const id = a.id;
-          if (id === 'nav-secret') {
+          if (id === 'nav-secret' || id === 'nav-reverse-day') {
             li.style.display = 'none';
           } else {
             li.style.display = 'block';
@@ -4277,6 +4277,55 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       e.stopPropagation();
       toggleSubmenu('other-submenu-panel', otherToggle);
+    });
+  }
+
+  const navReverseDay = document.getElementById('nav-reverse-day');
+  if (navReverseDay) {
+    navReverseDay.addEventListener('click', async (e) => {
+      e.preventDefault();
+      
+      // Get the latest closed date first
+      let latestClosedDate = null;
+      try {
+        const res = await fetch('/api/active-date');
+        if (res.ok) {
+          const activeData = await res.json();
+          latestClosedDate = activeData.latestClosedDate;
+        }
+      } catch (err) {
+        console.error('Error checking latest closed date:', err);
+      }
+      
+      if (!latestClosedDate) {
+        showToast('No days have been finalized yet. Nothing to reverse.', 'warning');
+        return;
+      }
+      
+      const confirmMsg = `WARNING: Are you sure you want to reverse/delete all calculations for ${formatDate(latestClosedDate)}? This will delete all readings, debtor ledger sales, employee advances, and chillar logs logged during this day closing calculations.`;
+      if (!confirm(confirmMsg)) {
+        return;
+      }
+      
+      try {
+        const res = await fetch('/api/admin/reverse-last-day', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-role': sessionStorage.getItem('pumperp_user_role') || 'manager'
+          }
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showToast(data.message, 'success');
+          window.location.reload();
+        } else {
+          showToast(data.error || 'Failed to reverse day calculations.', 'error');
+        }
+      } catch (err) {
+        console.error('Error reversing day:', err);
+        showToast('Server error reversing day.', 'error');
+      }
     });
   }
 
