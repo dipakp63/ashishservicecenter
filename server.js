@@ -2019,22 +2019,19 @@ app.get('/api/tt/transactions', async (req, res) => {
       return res.status(400).json({ error: 'Month parameter in YYYY-MM format is required.' });
     }
 
-    const rows = await db.all('SELECT * FROM tt_transactions ORDER BY date ASC, id ASC');
+    // Get only the transactions for the requested month
+    const rows = await db.all(
+      "SELECT * FROM tt_transactions WHERE date LIKE ? ORDER BY date ASC, id ASC",
+      [`${month}-%`]
+    );
     
     let running = 0;
-    let firstIndexInMonth = -1;
-    
-    const processed = rows.map((r, idx) => {
+    const processed = rows.map((r) => {
       const amt = parseFloat(r.amount);
       if (r.type === 'CREDIT') {
         running += amt;
       } else if (r.type === 'DEBIT') {
         running -= amt;
-      }
-      
-      const isTargetMonth = r.date.startsWith(month);
-      if (isTargetMonth && firstIndexInMonth === -1) {
-        firstIndexInMonth = idx;
       }
       
       return {
@@ -2043,27 +2040,9 @@ app.get('/api/tt/transactions', async (req, res) => {
       };
     });
     
-    const monthTransactions = processed.filter(r => r.date.startsWith(month));
-    
-    let openingBalance = 0;
-    if (firstIndexInMonth > 0) {
-      openingBalance = processed[firstIndexInMonth - 1].running_balance;
-    } else if (firstIndexInMonth === -1 && processed.length > 0) {
-      let lastTxBefore = null;
-      for (let i = processed.length - 1; i >= 0; i--) {
-        if (processed[i].date < `${month}-01`) {
-          lastTxBefore = processed[i];
-          break;
-        }
-      }
-      if (lastTxBefore) {
-        openingBalance = lastTxBefore.running_balance;
-      }
-    }
-    
     res.json({
-      transactions: monthTransactions,
-      openingBalance: openingBalance
+      transactions: processed,
+      openingBalance: 0
     });
   } catch (err) {
     console.error('Error fetching TT transactions:', err.message);
