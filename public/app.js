@@ -3566,10 +3566,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const count = parseInt(input.value, 10) || 0;
         const total = val === 1 ? count : val * count;
         
-        // Exclude Rs 10 and Rs 20 from grand total calculation (they are not deposited in bank)
-        if (val !== 10 && val !== 20) {
-            grandTotal += total;
-        }
+        // Include all denominations in the grand total calculation
+        grandTotal += total;
         
         if (val !== 1) {
           const totalEl = document.getElementById(`calc-total-${val}`);
@@ -4293,6 +4291,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const udhariLedgerDebtor = document.getElementById('udhari-ledger-debtor');
   const btnExportDebtorLedger = document.getElementById('btn-export-debtor-ledger');
   const udhariLedgerBody = document.getElementById('udhari-ledger-body');
+  let pendingLedgerDebtorId = null;
   
   const udhariSummaryTotalOutstanding = document.getElementById('udhari-summary-total-outstanding');
   const btnExportDebtorSummary = document.getElementById('btn-export-debtor-summary');
@@ -4582,9 +4581,8 @@ document.addEventListener('DOMContentLoaded', () => {
           e.preventDefault();
           const debtorId = link.getAttribute('data-id');
           if (udhariLedgerDebtor) {
-            udhariLedgerDebtor.value = debtorId;
+            pendingLedgerDebtorId = debtorId;
             showView('udhari-ledger');
-            loadIndividualLedger();
           }
         });
       });
@@ -4757,9 +4755,8 @@ document.addEventListener('DOMContentLoaded', () => {
           e.preventDefault();
           const debtorId = link.getAttribute('data-id');
           if (udhariLedgerDebtor) {
-            udhariLedgerDebtor.value = debtorId;
+            pendingLedgerDebtorId = debtorId;
             showView('udhari-ledger');
-            loadIndividualLedger();
           }
         });
       });
@@ -4867,7 +4864,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Redirect to ledger for this debtor
         if (udhariLedgerDebtor) {
-          udhariLedgerDebtor.value = debtorId;
+          pendingLedgerDebtorId = debtorId;
           showView('udhari-ledger');
         }
       } catch (err) {
@@ -4928,7 +4925,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Redirect to ledger for this debtor
         if (udhariLedgerDebtor) {
-          udhariLedgerDebtor.value = debtorId;
+          pendingLedgerDebtorId = debtorId;
           showView('udhari-ledger');
         }
       } catch (err) {
@@ -5027,6 +5024,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // 6. Debtor Ledger
   async function loadLedgerDebtorSelect() {
     await populateDebtorDropdowns();
+    if (pendingLedgerDebtorId) {
+      udhariLedgerDebtor.value = pendingLedgerDebtorId;
+      pendingLedgerDebtorId = null;
+    }
     loadIndividualLedger();
   }
 
@@ -5334,6 +5335,14 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error(err);
         showToast('CSV export failed.', 'error');
       }
+    });
+  }
+
+  // Back button for Debtor Ledger
+  const btnUdhariLedgerBack = document.getElementById('btn-udhari-ledger-back');
+  if (btnUdhariLedgerBack) {
+    btnUdhariLedgerBack.addEventListener('click', () => {
+      showView('udhari-master');
     });
   }
 
