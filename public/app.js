@@ -389,21 +389,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function applyUserRoleTheme() {
     const role = sessionStorage.getItem('pumperp_user_role') || 'manager';
-    const navSecret = document.getElementById('nav-secret');
-    if (!navSecret) return;
-
-    const secretSpan = navSecret.querySelector('.nav-text');
-    const secretIcon = navSecret.querySelector('.nav-icon');
-
-    if (secretSpan) secretSpan.textContent = 'Day Summary';
-    if (secretIcon) secretIcon.textContent = '📋';
 
     if (role === 'admin') {
       document.querySelectorAll('.sidebar-nav > ul > li').forEach(li => {
         const a = li.querySelector('a');
         if (a) {
           const id = a.id;
-          if (id === 'nav-secret' || id === 'nav-exit' || id === 'nav-reverse-day') {
+          if (id === 'nav-admin-dashboard' || id === 'nav-secret' || id === 'nav-exit' || id === 'nav-reverse-day') {
             li.style.display = 'block';
           } else {
             li.style.display = 'none';
@@ -420,7 +412,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const a = li.querySelector('a');
         if (a) {
           const id = a.id;
-          if (id === 'nav-secret' || id === 'nav-reverse-day') {
+          if (id === 'nav-admin-dashboard' || id === 'nav-secret' || id === 'nav-reverse-day') {
             li.style.display = 'none';
           } else {
             li.style.display = 'block';
@@ -746,7 +738,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (viewPoranchaHishob) viewPoranchaHishob.style.display = viewName === 'porancha-hishob' ? 'block' : 'none';
     
     const viewSecret = document.getElementById('view-secret');
-    if (viewSecret) viewSecret.style.display = viewName === 'secret' ? 'block' : 'none';
+    if (viewSecret) {
+      viewSecret.style.display = viewName === 'secret' ? 'block' : 'none';
+      if (viewName === 'secret') {
+        loadProfitData();
+      }
+    }
 
     const viewShiftReconciliation = document.getElementById('view-shift-reconciliation');
     if (viewShiftReconciliation) viewShiftReconciliation.style.display = viewName === 'shift-reconciliation' ? 'block' : 'none';
@@ -839,6 +836,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Update active nav
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+    const navAdminDashboard = document.getElementById('nav-admin-dashboard');
     const navTankerCalc = document.getElementById('nav-tanker-calc');
     const navCashCalc = document.getElementById('nav-cash-calc');
     const navGst = document.getElementById('nav-gst');
@@ -872,6 +870,7 @@ document.addEventListener('DOMContentLoaded', () => {
     else if (viewName === 'hpcl' && navHpclTracker) navHpclTracker.classList.add('active');
     else if (viewName === 'tt-ledger' && navTtLedger) navTtLedger.classList.add('active');
     else if (viewName === 'chillar-record' && navChillarRecord) navChillarRecord.classList.add('active');
+    else if (viewName === 'admin-dashboard' && navAdminDashboard) navAdminDashboard.classList.add('active');
     else if (viewName === 'secret' && navSecret) navSecret.classList.add('active');
     else if ((viewName === 'porancha-hishob' || viewName === 'shift-reconciliation') && navPoranchaHishob) navPoranchaHishob.classList.add('active');
     else if ((viewName === 'tanker-receipts' || viewName === 'tanker-label-wizard') && navTankerReceipts) navTankerReceipts.classList.add('active');
@@ -8619,16 +8618,19 @@ document.addEventListener('DOMContentLoaded', () => {
   if (navSecret) {
     navSecret.addEventListener('click', (e) => {
       e.preventDefault();
-      const role = sessionStorage.getItem('pumperp_user_role') || 'manager';
-      if (role === 'admin') {
-        showView('admin-dashboard');
-        updateAdminDatePicker().then(() => {
-          const selected = adminFlatpickr ? adminFlatpickr.input.value : (document.getElementById('admin-dashboard-date').value || dateInput.value);
-          fetchAndPopulateAdminDashboard(selected);
-        });
-      } else {
-        showView('du');
-      }
+      showView('secret');
+    });
+  }
+
+  const navAdminDashboard = document.getElementById('nav-admin-dashboard');
+  if (navAdminDashboard) {
+    navAdminDashboard.addEventListener('click', (e) => {
+      e.preventDefault();
+      showView('admin-dashboard');
+      updateAdminDatePicker().then(() => {
+        const selected = adminFlatpickr ? adminFlatpickr.input.value : (document.getElementById('admin-dashboard-date').value || dateInput.value);
+        fetchAndPopulateAdminDashboard(selected);
+      });
     });
   }
 
