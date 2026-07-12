@@ -6903,13 +6903,15 @@ document.addEventListener('DOMContentLoaded', () => {
     for (let i = 1; i <= numSamples; i++) {
       const val = existingValues[i - 1] || { container: '', wooden: '' };
       html += `
-        <div class="seal-row" style="display: grid; grid-template-columns: 100px 1fr 1fr; gap: 0.75rem; align-items: center; background: var(--panel-row-bg); padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid var(--panel-border);">
-          <div style="font-weight: 600; font-size: 0.85rem; color: var(--text-main);">Sample Box ${i}</div>
-          <div>
-            <input type="text" id="wizard-container-seal-${i}" class="form-control" placeholder="Aluminium Container Seal" value="${val.container}" style="width: 100%; padding: 0.4rem; height: 32px; font-size: 0.85rem; border-radius: 0.25rem;">
+        <div class="seal-row" style="display: grid; grid-template-columns: 90px 1fr 1fr; gap: 0.5rem; align-items: center; background: rgba(15, 23, 42, 0.3); padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.06); transition: all 0.2s ease;">
+          <div style="font-weight: 600; font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.3rem;">
+            <span style="color: var(--accent);">📦</span> Box ${i}
           </div>
           <div>
-            <input type="text" id="wizard-wooden-seal-${i}" class="form-control" placeholder="Wooden Box Seal" value="${val.wooden}" style="width: 100%; padding: 0.4rem; height: 32px; font-size: 0.85rem; border-radius: 0.25rem;">
+            <input type="text" id="wizard-container-seal-${i}" placeholder="Alu Container Seal" value="${val.container}" style="width: 100%; padding: 0.35rem 0.5rem; height: 32px; font-size: 0.8rem; border-radius: 0.35rem; background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255,255,255,0.1); color: #fff; outline: none;">
+          </div>
+          <div>
+            <input type="text" id="wizard-wooden-seal-${i}" placeholder="Wooden Box Seal" value="${val.wooden}" style="width: 100%; padding: 0.35rem 0.5rem; height: 32px; font-size: 0.8rem; border-radius: 0.35rem; background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255,255,255,0.1); color: #fff; outline: none;">
           </div>
         </div>
       `;

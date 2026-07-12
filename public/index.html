@@ -2768,9 +2768,9 @@
 
       <!-- VIEW: Tanker Label Wizard (टँकर लेबल्स विझार्ड) -->
       <div id="view-tanker-label-wizard" class="view-pane" style="display: none;">
-        <header class="content-header">
-          <h1>टँकर नमुना लेबल्स विझार्ड (Label Wizard)</h1>
-          <p class="subtitle">Complete the questionnaire to preview and generate HP lorry retention sample labels</p>
+        <header class="content-header" style="margin-bottom: 1rem;">
+          <h1 style="font-family: var(--font-header); font-weight: 800; color: var(--text-main); font-size: 1.75rem;">टँकर नमुना लेबल्स विझार्ड (Label Wizard)</h1>
+          <p class="subtitle" style="color: var(--text-muted); font-size: 0.9rem;">Complete the questionnaire to preview and generate HP lorry retention sample labels</p>
         </header>
 
         <!-- STEP 1: Google Form Mode -->
@@ -2778,106 +2778,116 @@
           <!-- Purple/Maroon Accent Top Bar -->
           <div style="height: 6px; background: linear-gradient(135deg, #b71c1c, #880e4f); border-top-left-radius: 0.75rem; border-top-right-radius: 0.75rem;"></div>
           
-          <div class="card" style="border-top-left-radius: 0; border-top-right-radius: 0; padding: 1rem; border-top: none; background: var(--card-bg); border: 1px solid var(--card-border);">
-            <div style="border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.5rem; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: baseline;">
+          <div class="card" style="border-top-left-radius: 0; border-top-right-radius: 0; padding: 1.25rem; border-top: none; background: var(--card-bg); border: 1px solid var(--card-border); box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+            <div style="border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.75rem; margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center;">
               <div>
-                <h2 style="margin: 0 0 0.15rem 0; font-size: 1.2rem; font-family: var(--font-header); color: var(--text-main);">Retention Label Questionnaire</h2>
-                <p style="margin: 0; color: var(--text-muted); font-size: 0.75rem;">Answer the following questions to pre-fill the labels. Leave empty to print blank lines.</p>
+                <h2 style="margin: 0 0 0.25rem 0; font-size: 1.35rem; font-family: var(--font-header); color: var(--text-main); font-weight: 700; display: flex; align-items: center; gap: 0.5rem;">
+                  <span>📝</span> Retention Label Questionnaire
+                </h2>
+                <p style="margin: 0; color: var(--text-muted); font-size: 0.8rem; line-height: 1.4;">Answer the following questions to pre-fill the labels. Leave empty to print blank lines.</p>
               </div>
-              <span style="font-size: 0.75rem; background: rgba(255,255,255,0.08); color: var(--text-muted); padding: 0.15rem 0.5rem; border-radius: 6px;">Step 1 of 2</span>
+              <span style="font-size: 0.75rem; font-weight: 600; background: rgba(251, 191, 36, 0.1); color: var(--accent); padding: 0.25rem 0.75rem; border-radius: 20px; border: 1px solid rgba(251, 191, 36, 0.25); white-space: nowrap;">Step 1 of 2</span>
             </div>
 
-            <form id="form-label-wizard" style="display: flex; gap: 1rem; width: 100%;">
+            <form id="form-label-wizard" style="display: flex; gap: 1.25rem; width: 100%;">
               <!-- LEFT PANE: Delivery, Density, & Logistics Info -->
-              <div style="flex: 1.3; display: flex; flex-direction: column; gap: 0.75rem;">
+              <div style="flex: 1.3; display: flex; flex-direction: column; gap: 1rem;">
                 
                 <!-- Row 1: Tanker Info -->
-                <div style="background: var(--panel-sub-card-bg); padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--panel-sub-card-border); display: flex; flex-direction: column; gap: 0.5rem;">
-                  <h4 style="margin: 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent); font-family: var(--font-header);">🚚 Lorry & Product Details</h4>
-                  <div style="display: grid; grid-template-columns: 1.2fr 1.4fr 1.4fr; gap: 0.5rem;">
+                <div style="background: rgba(30, 41, 59, 0.4); padding: 1rem; border-radius: 0.75rem; border: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; gap: 0.75rem; box-shadow: 0 4px 15px rgba(0,0,0,0.15);">
+                  <h4 style="margin: 0; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.75px; color: var(--accent); font-family: var(--font-header); display: flex; align-items: center; gap: 0.4rem;">
+                    <span>🚚</span> Lorry & Product Details
+                  </h4>
+                  <div style="display: grid; grid-template-columns: 1fr 1.2fr 1.2fr; gap: 0.75rem;">
                     <div class="form-group">
-                      <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.15rem;">Product Type</label>
-                      <select id="wizard-product" class="form-control" style="width: 100%; padding: 0.25rem 0.4rem; height: 32px; border-radius: 0.25rem; font-size: 0.8rem;">
-                        <option value="Petrol">Petrol</option>
-                        <option value="Diesel">Diesel</option>
-                        <option value="poWer">poWer</option>
+                      <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;">Product Type</label>
+                      <select id="wizard-product" style="width: 100%; padding: 0.35rem 0.5rem; height: 36px; border-radius: 0.35rem; font-size: 0.85rem; background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255,255,255,0.1); color: var(--text-main); cursor: pointer; outline: none;">
+                        <option value="Petrol">Petrol (MS)</option>
+                        <option value="Diesel">Diesel (HSD)</option>
+                        <option value="poWer">poWer (POWER)</option>
                       </select>
                     </div>
                     <div class="form-group">
-                      <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.15rem;">Tanker / Lorry No</label>
-                      <input type="text" id="wizard-tanker-no" class="form-control" value="MH-19-CY-5682" placeholder="e.g. MH-19-CY-5682" style="width: 100%; padding: 0.25rem 0.4rem; height: 32px; font-size: 0.8rem; border-radius: 0.25rem;">
+                      <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;">Tanker / Lorry No</label>
+                      <input type="text" id="wizard-tanker-no" value="MH-19-CY-5682" placeholder="e.g. MH-19-CY-5682" style="width: 100%; padding: 0.35rem 0.5rem; height: 36px; font-size: 0.85rem; border-radius: 0.35rem; background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255,255,255,0.1); color: var(--text-main); outline: none;">
                     </div>
                     <div class="form-group">
-                      <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.15rem;">Challan / Invoice No</label>
-                      <input type="text" id="wizard-invoice-no" class="form-control" placeholder="e.g. 84729103" style="width: 100%; padding: 0.25rem 0.4rem; height: 32px; font-size: 0.8rem; border-radius: 0.25rem;">
+                      <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;">Challan / Invoice No</label>
+                      <input type="text" id="wizard-invoice-no" placeholder="e.g. 84729103" style="width: 100%; padding: 0.35rem 0.5rem; height: 36px; font-size: 0.85rem; border-radius: 0.35rem; background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255,255,255,0.1); color: var(--text-main); outline: none;">
                     </div>
                   </div>
                 </div>
 
                 <!-- Row 2: Date & Density Info -->
-                <div style="background: var(--panel-sub-card-bg); padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--panel-sub-card-border); display: flex; flex-direction: column; gap: 0.5rem;">
-                  <h4 style="margin: 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent); font-family: var(--font-header);">📊 Date & Density Details</h4>
-                  <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 0.5rem;">
+                <div style="background: rgba(30, 41, 59, 0.4); padding: 1rem; border-radius: 0.75rem; border: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; gap: 0.75rem; box-shadow: 0 4px 15px rgba(0,0,0,0.15);">
+                  <h4 style="margin: 0; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.75px; color: var(--accent); font-family: var(--font-header); display: flex; align-items: center; gap: 0.4rem;">
+                    <span>📊</span> Date & Density Details
+                  </h4>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 0.75rem;">
                     <div class="form-group">
-                      <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.15rem;">Date Collected</label>
-                      <input type="date" id="wizard-date" class="form-control" style="width: 100%; padding: 0.25rem 0.4rem; height: 32px; font-size: 0.8rem; border-radius: 0.25rem;">
+                      <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;">Date Collected</label>
+                      <input type="date" id="wizard-date" style="width: 100%; padding: 0.35rem 0.5rem; height: 36px; font-size: 0.85rem; border-radius: 0.35rem; background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255,255,255,0.1); color: var(--text-main); outline: none; cursor: text;">
                     </div>
                     <div class="form-group">
-                      <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.15rem;">Time Collected</label>
-                      <input type="text" id="wizard-time" class="form-control" placeholder="HH:MM" style="width: 100%; padding: 0.25rem 0.4rem; height: 32px; font-size: 0.8rem; border-radius: 0.25rem;">
+                      <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;">Time Collected</label>
+                      <input type="text" id="wizard-time" placeholder="HH:MM" style="width: 100%; padding: 0.35rem 0.5rem; height: 36px; font-size: 0.85rem; border-radius: 0.35rem; background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255,255,255,0.1); color: var(--text-main); outline: none;">
                     </div>
                     <div class="form-group">
-                      <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.15rem;">10.1. Challan Density</label>
-                      <input type="number" step="0.1" id="wizard-challan-density" class="form-control" placeholder="Challan" style="width: 100%; padding: 0.25rem 0.4rem; height: 32px; font-size: 0.8rem; border-radius: 0.25rem; text-align: right;">
+                      <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;">10.1. Challan Density</label>
+                      <input type="number" step="0.1" id="wizard-challan-density" placeholder="Challan" style="width: 100%; padding: 0.35rem 0.5rem; height: 36px; font-size: 0.85rem; border-radius: 0.35rem; background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255,255,255,0.1); color: var(--text-main); outline: none; text-align: right;">
                     </div>
                     <div class="form-group">
-                      <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.15rem;">10.2. Lorry Density</label>
-                      <input type="number" step="0.1" id="wizard-lorry-density" class="form-control" placeholder="Lorry" style="width: 100%; padding: 0.25rem 0.4rem; height: 32px; font-size: 0.8rem; border-radius: 0.25rem; text-align: right;">
+                      <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;">10.2. Lorry Density</label>
+                      <input type="number" step="0.1" id="wizard-lorry-density" placeholder="Lorry" style="width: 100%; padding: 0.35rem 0.5rem; height: 36px; font-size: 0.85rem; border-radius: 0.35rem; background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255,255,255,0.1); color: var(--text-main); outline: none; text-align: right;">
                     </div>
                   </div>
                 </div>
 
                 <!-- Row 3: Logistics Details -->
-                <div style="background: var(--panel-sub-card-bg); padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--panel-sub-card-border); display: flex; flex-direction: column; gap: 0.5rem;">
-                  <h4 style="margin: 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent); font-family: var(--font-header);">👤 Driver & Representative Details</h4>
-                  <div style="display: grid; grid-template-columns: 1fr 1fr 1.5fr; gap: 0.5rem;">
+                <div style="background: rgba(30, 41, 59, 0.4); padding: 1rem; border-radius: 0.75rem; border: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; gap: 0.75rem; box-shadow: 0 4px 15px rgba(0,0,0,0.15);">
+                  <h4 style="margin: 0; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.75px; color: var(--accent); font-family: var(--font-header); display: flex; align-items: center; gap: 0.4rem;">
+                    <span>👤</span> Driver & Representative Details
+                  </h4>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr 1.5fr; gap: 0.75rem;">
                     <div class="form-group">
-                      <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.15rem;">Driver Name</label>
-                      <input type="text" id="wizard-driver" class="form-control" value="Rupesh Katke" placeholder="Driver Name" style="width: 100%; padding: 0.25rem 0.4rem; height: 32px; font-size: 0.8rem; border-radius: 0.25rem;">
+                      <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;">Driver Name</label>
+                      <input type="text" id="wizard-driver" value="Rupesh Katke" placeholder="Driver Name" style="width: 100%; padding: 0.35rem 0.5rem; height: 36px; font-size: 0.85rem; border-radius: 0.35rem; background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255,255,255,0.1); color: var(--text-main); outline: none;">
                     </div>
                     <div class="form-group">
-                      <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.15rem;">Transporter Name</label>
-                      <input type="text" id="wizard-transporter" class="form-control" value="Ashish Service Center (Self)" placeholder="Transporter Name" style="width: 100%; padding: 0.25rem 0.4rem; height: 32px; font-size: 0.8rem; border-radius: 0.25rem;">
+                      <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;">Transporter Name</label>
+                      <input type="text" id="wizard-transporter" value="Ashish Service Center (Self)" placeholder="Transporter Name" style="width: 100%; padding: 0.35rem 0.5rem; height: 36px; font-size: 0.85rem; border-radius: 0.35rem; background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255,255,255,0.1); color: var(--text-main); outline: none;">
                     </div>
                     <div class="form-group">
-                      <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.15rem;">Dealer Rep</label>
-                      <input type="text" id="wizard-dealer-rep" class="form-control" placeholder="Representative" style="width: 100%; padding: 0.25rem 0.4rem; height: 32px; font-size: 0.8rem; border-radius: 0.25rem;">
+                      <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;">Dealer Rep (Signature Name)</label>
+                      <input type="text" id="wizard-dealer-rep" placeholder="e.g. Ashish Patel" style="width: 100%; padding: 0.35rem 0.5rem; height: 36px; font-size: 0.85rem; border-radius: 0.35rem; background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255,255,255,0.1); color: var(--text-main); outline: none;">
                     </div>
                     <div class="form-group" style="display: none;">
-                      <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.15rem;">Copies</label>
-                      <input type="number" min="1" max="100" id="wizard-copies" class="form-control" value="8" style="width: 100%; padding: 0.25rem 0.4rem; height: 32px; font-size: 0.8rem; border-radius: 0.25rem; text-align: right;">
+                      <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;">Copies</label>
+                      <input type="number" min="1" max="100" id="wizard-copies" value="8" style="width: 100%; padding: 0.35rem 0.5rem; height: 36px; font-size: 0.85rem; border-radius: 0.35rem; background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255,255,255,0.1); color: var(--text-main); outline: none; text-align: right;">
                     </div>
                   </div>
                 </div>
               </div>
 
               <!-- RIGHT PANE: Retention Sample Seals & Action Buttons -->
-              <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; background: var(--panel-sub-card-bg); padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--panel-sub-card-border); min-height: 295px;">
+              <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; background: rgba(30, 41, 59, 0.4); padding: 1rem; border-radius: 0.75rem; border: 1px solid rgba(255,255,255,0.06); min-height: 320px; box-shadow: 0 4px 15px rgba(0,0,0,0.15);">
                 <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                  <h4 style="margin: 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent); font-family: var(--font-header); display: flex; justify-content: space-between; align-items: center;">
-                    <span>🔒 Sample Seals</span>
-                    <span id="wizard-seals-count-badge" style="font-size: 0.65rem; background: rgba(251, 191, 36, 0.15); color: var(--accent); padding: 0.1rem 0.4rem; border-radius: 6px; border: 1px solid rgba(251, 191, 36, 0.25);">4 Samples Required</span>
+                  <h4 style="margin: 0; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.75px; color: var(--accent); font-family: var(--font-header); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.5rem;">
+                    <span style="display: flex; align-items: center; gap: 0.4rem;">🔒 Sample Seals</span>
+                    <span id="wizard-seals-count-badge" style="font-size: 0.7rem; font-weight: 600; background: rgba(251, 191, 36, 0.1); color: var(--accent); padding: 0.15rem 0.6rem; border-radius: 12px; border: 1px solid rgba(251, 191, 36, 0.2);">4 Samples Required</span>
                   </h4>
                   
-                  <div id="wizard-seals-container" style="display: flex; flex-direction: column; gap: 0.4rem; max-height: 220px; overflow-y: auto; padding-right: 2px;">
+                  <div id="wizard-seals-container" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 230px; overflow-y: auto; padding-right: 4px; margin-top: 0.5rem;">
                     <!-- Dynamic seals rendering -->
                   </div>
                 </div>
 
                 <!-- Submit / Next Actions -->
-                <div style="display: flex; justify-content: flex-end; gap: 0.5rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.5rem; margin-top: 0.5rem;">
-                  <button type="button" class="btn btn-secondary" id="btn-wizard-close" style="padding: 0.25rem 1rem; height: 32px; font-size: 0.8rem; min-height: auto;">Cancel</button>
-                  <button type="submit" class="btn btn-primary" style="padding: 0.25rem 1.5rem; height: 32px; font-size: 0.8rem; min-height: auto;">Next ➡️</button>
+                <div style="display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.75rem; margin-top: 0.5rem;">
+                  <button type="button" class="btn btn-secondary" id="btn-wizard-close" style="padding: 0.4rem 1.25rem; height: 36px; font-size: 0.85rem; min-height: auto; border-radius: 0.35rem; font-weight: 600;">Cancel</button>
+                  <button type="submit" class="btn btn-primary" style="padding: 0.4rem 1.5rem; height: 36px; font-size: 0.85rem; min-height: auto; border-radius: 0.35rem; font-weight: 700; background: linear-gradient(135deg, #10b981, #059669); border: none; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); cursor: pointer; display: flex; align-items: center; gap: 0.35rem;">
+                    Next Step ➡️
+                  </button>
                 </div>
               </div>
             </form>
@@ -2887,22 +2897,30 @@
         <!-- STEP 2: Preview Mode -->
         <div id="label-wizard-step-2" style="display: none; max-width: 960px; margin: 1.5rem auto;">
           <!-- Controls Panel -->
-          <div class="card" style="display: flex; flex-direction: row; justify-content: space-between; align-items: center; padding: 1rem; margin-bottom: 1.5rem; border-radius: 0.75rem;">
+          <div class="card" style="display: flex; flex-direction: row; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; border-radius: 0.75rem; background: var(--card-bg); border: 1px solid var(--card-border); box-shadow: 0 4px 20px rgba(0,0,0,0.25);">
             <div>
-              <h3 style="margin: 0; font-family: var(--font-header);">Page Preview (A4 Sheet Layout)</h3>
-              <p style="margin: 0.25rem 0 0 0; color: var(--text-muted); font-size: 0.8rem;">Review the card layouts below. There are 4 labels fitted on a single A4 page.</p>
+              <h3 style="margin: 0; font-family: var(--font-header); font-size: 1.25rem; color: var(--text-main); font-weight: 700; display: flex; align-items: center; gap: 0.4rem;">
+                <span>📄</span> Page Preview (A4 Sheet Layout)
+              </h3>
+              <p style="margin: 0.25rem 0 0 0; color: var(--text-muted); font-size: 0.85rem;">Review the card layouts below. The 4 labels fit on a single A4 page for printing.</p>
             </div>
             <div style="display: flex; gap: 0.75rem;">
-              <button type="button" class="btn btn-secondary" id="btn-wizard-back" style="padding: 0.5rem 1rem;">⬅️ Edit Answers</button>
-              <button type="button" class="btn btn-primary" id="btn-wizard-print" style="padding: 0.5rem 1.5rem; font-weight: 700; background: linear-gradient(135deg, #b71c1c, #d32f2f); border: none;">🖨️ Print Labels / Save PDF</button>
+              <button type="button" class="btn btn-secondary" id="btn-wizard-back" style="padding: 0.5rem 1.25rem; font-weight: 600; border-radius: 0.35rem; display: flex; align-items: center; gap: 0.35rem; height: 38px;">
+                ⬅️ Edit Answers
+              </button>
+              <button type="button" class="btn btn-primary" id="btn-wizard-print" style="padding: 0.5rem 1.5rem; font-weight: 700; background: linear-gradient(135deg, #b71c1c, #d32f2f); border: none; border-radius: 0.35rem; box-shadow: 0 4px 15px rgba(183, 28, 28, 0.4); display: flex; align-items: center; gap: 0.4rem; height: 38px; cursor: pointer;">
+                <span>🖨️</span> Print Labels / Save PDF
+              </button>
             </div>
           </div>
 
           <!-- A4 Sheet Preview Area -->
-          <div id="label-wizard-preview-container" style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); padding: 2rem; border-radius: 1rem; display: flex; justify-content: center; overflow-x: auto;">
-            <!-- Render scaled sheet -->
-            <div id="mini-a4-sheet" style="background: #fff; width: 680px; height: 960px; padding: 20px; box-sizing: border-box; box-shadow: 0 10px 40px rgba(0,0,0,0.6); display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 15px 12px;">
-              <!-- Single labels will be inserted dynamically here -->
+          <div id="label-wizard-preview-container" style="background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(255,255,255,0.08); padding: 2.5rem; border-radius: 1rem; display: flex; justify-content: center; align-items: center; overflow: hidden; min-height: 840px; box-shadow: inset 0 4px 30px rgba(0,0,0,0.5);">
+            <!-- Render scaled sheet with exact print-relative dimensions to prevent layout discrepancies -->
+            <div style="width: 556px; height: 786px; position: relative; flex-shrink: 0; box-shadow: 0 20px 50px rgba(0,0,0,0.6); border-radius: 4px; overflow: hidden; background: #fff;">
+              <div id="mini-a4-sheet" style="background: #fff; width: 794px; height: 1123px; padding: 19px; box-sizing: border-box; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8px; transform: scale(0.7); transform-origin: top left; position: absolute; top: 0; left: 0;">
+                <!-- Single labels will be inserted dynamically here -->
+              </div>
             </div>
           </div>
         </div>
