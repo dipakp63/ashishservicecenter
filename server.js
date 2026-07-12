@@ -2747,6 +2747,127 @@ app.post('/api/chillar/clear', async (req, res) => {
 
 
 
+// ── SOPAN UPI ACCOUNT ENDPOINTS ──────────────────────────────────────────────
+
+// GET /api/sopan-upi/transactions — Fetch all transactions
+app.get('/api/sopan-upi/transactions', async (req, res) => {
+  const role = req.headers['x-user-role'];
+  if (role !== 'admin') {
+    return res.status(403).json({ error: 'Unauthorized. Admin privilege required.' });
+  }
+
+  try {
+    const transactions = await db.all(`
+      SELECT id, date, type, amount, description, comment
+      FROM sopan_upi_transactions
+      ORDER BY date ASC, id ASC
+    `);
+    res.json(transactions);
+  } catch (err) {
+    console.error('Error fetching Sopan UPI transactions:', err.message);
+    res.status(500).json({ error: 'Database error fetching transactions.' });
+  }
+});
+
+// POST /api/sopan-upi/transaction — Create a transaction
+app.post('/api/sopan-upi/transaction', async (req, res) => {
+  const role = req.headers['x-user-role'];
+  if (role !== 'admin') {
+    return res.status(403).json({ error: 'Unauthorized. Admin privilege required.' });
+  }
+
+  const { date, type, amount, description, comment } = req.body;
+  if (!date || !type || !amount || !description) {
+    return res.status(400).json({ error: 'Missing required fields: date, type, amount, description.' });
+  }
+
+  if (type !== 'DEPOSIT' && type !== 'EXPENSE') {
+    return res.status(400).json({ error: 'Invalid transaction type. Must be DEPOSIT or EXPENSE.' });
+  }
+
+  const parsedAmount = parseFloat(amount);
+  if (isNaN(parsedAmount) || parsedAmount <= 0) {
+    return res.status(400).json({ error: 'Amount must be a positive number.' });
+  }
+
+  try {
+    await db.run(
+      `INSERT INTO sopan_upi_transactions (date, type, amount, description, comment)
+       VALUES (?, ?, ?, ?, ?)`,
+      [date, type, parsedAmount, description, comment || '']
+    );
+    res.json({ success: true, message: 'Transaction logged successfully.' });
+  } catch (err) {
+    console.error('Error logging Sopan UPI transaction:', err.message);
+    res.status(500).json({ error: 'Database error saving transaction.' });
+  }
+});
+
+// PUT /api/sopan-upi/transaction/:id — Update a transaction
+app.put('/api/sopan-upi/transaction/:id', async (req, res) => {
+  const role = req.headers['x-user-role'];
+  if (role !== 'admin') {
+    return res.status(403).json({ error: 'Unauthorized. Admin privilege required.' });
+  }
+
+  const { id } = req.params;
+  const { date, type, amount, description, comment } = req.body;
+
+  if (!date || !type || !amount || !description) {
+    return res.status(400).json({ error: 'Missing required fields: date, type, amount, description.' });
+  }
+
+  if (type !== 'DEPOSIT' && type !== 'EXPENSE') {
+    return res.status(400).json({ error: 'Invalid transaction type. Must be DEPOSIT or EXPENSE.' });
+  }
+
+  const parsedAmount = parseFloat(amount);
+  if (isNaN(parsedAmount) || parsedAmount <= 0) {
+    return res.status(400).json({ error: 'Amount must be a positive number.' });
+  }
+
+  try {
+    const result = await db.run(
+      `UPDATE sopan_upi_transactions
+       SET date = ?, type = ?, amount = ?, description = ?, comment = ?
+       WHERE id = ?`,
+      [date, type, parsedAmount, description, comment || '', id]
+    );
+
+    if (result.rowsAffected === 0) {
+      return res.status(404).json({ error: 'Transaction not found.' });
+    }
+
+    res.json({ success: true, message: 'Transaction updated successfully.' });
+  } catch (err) {
+    console.error('Error updating Sopan UPI transaction:', err.message);
+    res.status(500).json({ error: 'Database error updating transaction.' });
+  }
+});
+
+// DELETE /api/sopan-upi/transaction/:id — Delete a transaction
+app.delete('/api/sopan-upi/transaction/:id', async (req, res) => {
+  const role = req.headers['x-user-role'];
+  if (role !== 'admin') {
+    return res.status(403).json({ error: 'Unauthorized. Admin privilege required.' });
+  }
+
+  const { id } = req.params;
+
+  try {
+    const result = await db.run(`DELETE FROM sopan_upi_transactions WHERE id = ?`, [id]);
+    if (result.rowsAffected === 0) {
+      return res.status(404).json({ error: 'Transaction not found.' });
+    }
+    res.json({ success: true, message: 'Transaction deleted successfully.' });
+  } catch (err) {
+    console.error('Error deleting Sopan UPI transaction:', err.message);
+    res.status(500).json({ error: 'Database error deleting transaction.' });
+  }
+});
+
+
+
 // ── Server Start (local development only, skipped on Vercel) ────────────────
 
 if (!process.env.VERCEL) {

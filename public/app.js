@@ -395,7 +395,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const a = li.querySelector('a');
         if (a) {
           const id = a.id;
-          if (id === 'nav-admin-dashboard' || id === 'nav-secret' || id === 'nav-exit' || id === 'nav-reverse-day') {
+          if (id === 'nav-admin-dashboard' || id === 'nav-secret' || id === 'nav-exit' || id === 'nav-reverse-day' || id === 'nav-sopan-upi') {
             li.style.display = 'block';
           } else {
             li.style.display = 'none';
@@ -412,7 +412,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const a = li.querySelector('a');
         if (a) {
           const id = a.id;
-          if (id === 'nav-admin-dashboard' || id === 'nav-secret' || id === 'nav-reverse-day') {
+          if (id === 'nav-admin-dashboard' || id === 'nav-secret' || id === 'nav-reverse-day' || id === 'nav-sopan-upi') {
             li.style.display = 'none';
           } else {
             li.style.display = 'block';
@@ -682,7 +682,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function showView(viewName) {
-    if (viewName === 'admin-dashboard' || viewName === 'secret') {
+    if (viewName === 'admin-dashboard' || viewName === 'secret' || viewName === 'sopan-upi') {
       const role = sessionStorage.getItem('pumperp_user_role') || 'manager';
       if (role !== 'admin') {
         showToast('Access denied: Admin only view.', 'error');
@@ -749,6 +749,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (viewShiftReconciliation) viewShiftReconciliation.style.display = viewName === 'shift-reconciliation' ? 'block' : 'none';
 
     if (viewAdminDashboard) viewAdminDashboard.style.display = viewName === 'admin-dashboard' ? 'block' : 'none';
+
+    const viewSopanUpi = document.getElementById('view-sopan-upi');
+    if (viewSopanUpi) {
+      viewSopanUpi.style.display = viewName === 'sopan-upi' ? 'block' : 'none';
+      if (viewName === 'sopan-upi') {
+        loadSopanUpiTransactions();
+      }
+    }
 
 
     // Udhari view panes
@@ -4394,6 +4402,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  const navSopanUpi = document.getElementById('nav-sopan-upi');
+  if (navSopanUpi) {
+    navSopanUpi.addEventListener('click', (e) => {
+      e.preventDefault();
+      showView('sopan-upi');
+    });
+  }
+
   const navExit = document.getElementById('nav-exit');
   if (navExit) {
     navExit.addEventListener('click', (e) => {
@@ -6855,6 +6871,52 @@ document.addEventListener('DOMContentLoaded', () => {
   // ── TANKER LABEL WIZARD (टँकर लेबल्स विझार्ड) LOGIC ────────────────────────────
   let currentWizardData = null;
 
+  // Dynamic rendering of seal inputs based on product selection
+  function updateWizardSeals() {
+    const productSelect = document.getElementById('wizard-product');
+    const container = document.getElementById('wizard-seals-container');
+    const badge = document.getElementById('wizard-seals-count-badge');
+    if (!productSelect || !container) return;
+
+    const product = productSelect.value;
+    let numSamples = 4; // Default to 4 (Petrol/Power/Blank)
+    if (product === 'Diesel') {
+      numSamples = 2;
+    }
+
+    if (badge) {
+      badge.textContent = `${numSamples} Samples Required`;
+    }
+
+    // Preserve existing seal values if any are already typed in
+    const existingValues = [];
+    for (let i = 1; i <= 4; i++) {
+      const cInput = document.getElementById(`wizard-container-seal-${i}`);
+      const wInput = document.getElementById(`wizard-wooden-seal-${i}`);
+      existingValues.push({
+        container: cInput ? cInput.value : '',
+        wooden: wInput ? wInput.value : ''
+      });
+    }
+
+    let html = '';
+    for (let i = 1; i <= numSamples; i++) {
+      const val = existingValues[i - 1] || { container: '', wooden: '' };
+      html += `
+        <div class="seal-row" style="display: grid; grid-template-columns: 100px 1fr 1fr; gap: 0.75rem; align-items: center; background: var(--panel-row-bg); padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid var(--panel-border);">
+          <div style="font-weight: 600; font-size: 0.85rem; color: var(--text-main);">Sample Box ${i}</div>
+          <div>
+            <input type="text" id="wizard-container-seal-${i}" class="form-control" placeholder="Aluminium Container Seal" value="${val.container}" style="width: 100%; padding: 0.4rem; height: 32px; font-size: 0.85rem; border-radius: 0.25rem;">
+          </div>
+          <div>
+            <input type="text" id="wizard-wooden-seal-${i}" class="form-control" placeholder="Wooden Box Seal" value="${val.wooden}" style="width: 100%; padding: 0.4rem; height: 32px; font-size: 0.85rem; border-radius: 0.25rem;">
+          </div>
+        </div>
+      `;
+    }
+    container.innerHTML = html;
+  }
+
   // Open Wizard & Pre-fill
   function openLabelWizard(receipt, isBlank = true) {
     // Reset view steps
@@ -6872,27 +6934,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const challanDensityInput = document.getElementById('wizard-challan-density');
     const lorryDensityInput = document.getElementById('wizard-lorry-density');
     const roTankInput = document.getElementById('wizard-ro-tank');
-    const containerSealInput = document.getElementById('wizard-container-seal');
-    const woodenSealInput = document.getElementById('wizard-wooden-seal');
     const driverInput = document.getElementById('wizard-driver');
     const transporterInput = document.getElementById('wizard-transporter');
     const dealerRepInput = document.getElementById('wizard-dealer-rep');
     const copiesInput = document.getElementById('wizard-copies');
 
     if (productSelect) productSelect.value = 'Petrol';
-    if (tankerInput) tankerInput.value = '';
+    if (tankerInput) tankerInput.value = 'MH-19-CY-5682';
     if (invoiceInput) invoiceInput.value = '';
     if (dateInput) dateInput.value = activeDate || new Date().toISOString().split('T')[0];
     if (timeInput) timeInput.value = '';
     if (challanDensityInput) challanDensityInput.value = '';
     if (lorryDensityInput) lorryDensityInput.value = '';
     if (roTankInput) roTankInput.value = '';
-    if (containerSealInput) containerSealInput.value = '';
-    if (woodenSealInput) woodenSealInput.value = '';
-    if (driverInput) driverInput.value = '';
-    if (transporterInput) transporterInput.value = '';
-    if (dealerRepInput) dealerRepInput.value = 'Ashish Service Center';
+    if (driverInput) driverInput.value = 'Rupesh Katke';
+    if (transporterInput) transporterInput.value = 'Ashish Service Center (Self)';
+    if (dealerRepInput) dealerRepInput.value = '';
     if (copiesInput) copiesInput.value = '8'; // Default to 8 because Petrol is default
+
+    // Dynamically render initial seal rows
+    updateWizardSeals();
 
     showView('tanker-label-wizard');
   }
@@ -6904,7 +6965,7 @@ document.addEventListener('DOMContentLoaded', () => {
   window.loadTankerReceipts = loadTankerReceipts;
   window.openLabelWizard = openLabelWizard;
 
-  // Change listener on product selection to default copies
+  // Change listener on product selection to default copies & update seals
   const wizardProductSelect = document.getElementById('wizard-product');
   if (wizardProductSelect) {
     wizardProductSelect.addEventListener('change', () => {
@@ -6917,6 +6978,7 @@ document.addEventListener('DOMContentLoaded', () => {
           copiesInput.value = '4';
         }
       }
+      updateWizardSeals();
     });
   }
 
@@ -6948,17 +7010,39 @@ document.addEventListener('DOMContentLoaded', () => {
     formLabelWizard.addEventListener('submit', (e) => {
       e.preventDefault();
 
+      const product = document.getElementById('wizard-product').value;
+      let numSamples = 4;
+      if (product === 'Diesel') {
+        numSamples = 2;
+      }
+
+      const seals = [];
+      for (let i = 1; i <= numSamples; i++) {
+        seals.push({
+          container: document.getElementById(`wizard-container-seal-${i}`)?.value.trim() || '',
+          wooden: document.getElementById(`wizard-wooden-seal-${i}`)?.value.trim() || ''
+        });
+      }
+
+      let calculatedRoTank = '';
+      if (product === 'poWer') {
+        calculatedRoTank = '1 (9000 Ltr)';
+      } else if (product === 'Petrol') {
+        calculatedRoTank = '2';
+      } else if (product === 'Diesel') {
+        calculatedRoTank = '3';
+      }
+
       currentWizardData = {
-        product: document.getElementById('wizard-product').value,
+        product: product,
         tanker_no: document.getElementById('wizard-tanker-no').value.trim(),
         invoice_no: document.getElementById('wizard-invoice-no').value.trim(),
         date: document.getElementById('wizard-date').value,
         time: document.getElementById('wizard-time').value.trim(),
         challanDensity: document.getElementById('wizard-challan-density').value.trim(),
         lorryDensity: document.getElementById('wizard-lorry-density').value.trim(),
-        roTank: document.getElementById('wizard-ro-tank').value.trim(),
-        containerSeal: document.getElementById('wizard-container-seal').value.trim(),
-        woodenSeal: document.getElementById('wizard-wooden-seal').value.trim(),
+        roTank: calculatedRoTank,
+        seals: seals,
         driver: document.getElementById('wizard-driver').value.trim(),
         transporter: document.getElementById('wizard-transporter').value.trim(),
         dealerRep: document.getElementById('wizard-dealer-rep').value.trim(),
@@ -6978,17 +7062,14 @@ document.addEventListener('DOMContentLoaded', () => {
     return val ? `<u><b>${val}</b></u>` : '______________________';
   }
 
-  function renderSingleLabelHTML(data) {
+  function renderSingleLabelHTML(data, labelIndex = 0) {
     const isBlankProduct = (data.product === 'BLANK' || !data.product);
-    let displayProduct = '';
+    let pShort = '';
     if (!isBlankProduct) {
-      let pShort = data.product;
-      if (data.product === 'Petrol') pShort = 'POWER MS (Petrol)';
-      if (data.product === 'Diesel') pShort = 'HSD (Diesel)';
-      if (data.product === 'poWer') pShort = 'POWER (poWer)';
-      displayProduct = 'POWER MS/HSD: <u><b>' + pShort + '</b></u>';
-    } else {
-      displayProduct = 'POWER MS/HSD: ____________________';
+      pShort = data.product;
+      if (data.product === 'Petrol') pShort = 'MS';
+      if (data.product === 'Diesel') pShort = 'HSD';
+      if (data.product === 'poWer') pShort = 'POWER';
     }
 
     let formattedDate = '';
@@ -7001,127 +7082,174 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    let transporterVal = data.transporter ? '<u><b>' + data.transporter + '</b></u>' : '______________________';
-    const drawnStr = formattedDate ? '<u><b>' + formattedDate + ' at ' + (data.time ? data.time : '____') + ' Hours</b></u>' : '________________________';
-    const challanDensityStr = data.challanDensity ? '<u><b>' + data.challanDensity + ' kg/m³</b></u>' : '______________________';
-    const driverNameStr = data.driver ? '<u><b>' + data.driver + '</b></u>' : '';
+    const num_samples = (data.product === 'Diesel') ? 2 : 4;
+    const sampleIndex = labelIndex % num_samples;
+    const sampleSeal = data.seals && data.seals[sampleIndex] ? data.seals[sampleIndex] : { container: '', wooden: '' };
+
+    const drawnStr = `at ${data.time ? data.time : '____'} Hours`;
+    const dateStr = formattedDate ? formattedDate : '';
 
     return `
-      <div class="print-label" style="border: 2px solid #800000; border-radius: 4px; padding: 6px; box-sizing: border-box; color: #800000; background: #fff; display: flex; flex-direction: column; justify-content: space-between; height: 100%; width: 100%;">
-        <div class="label-header" style="display: flex; border-bottom: 2px solid #800000; padding-bottom: 4px; align-items: center; margin-bottom: 4px;">
-          <div class="hp-logo-box" style="border: 2px solid #800000; width: 44px; height: 44px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; margin-right: 6px; flex-shrink: 0; box-sizing: border-box;">
-            <div style="font-size: 5.5px; line-height: 1.1; font-weight: bold;">Hindustan<br>Petroleum</div>
-            <div style="font-size: 13px; font-weight: 800; border-top: 1.5px solid #800000; width: 100%; margin-top: 2px; padding-top: 1px; letter-spacing: 0.5px;">HP</div>
+      <div class="print-label" style="
+        font-family: 'Times New Roman', Times, Baskerville, Georgia, serif;
+        border: 2px solid #800000;
+        border-radius: 4px;
+        padding: 6px;
+        box-sizing: border-box;
+        color: #800000;
+        background: #fff;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        gap: 8px;
+        height: 100%;
+        width: 100%;
+      ">
+        <!-- Header -->
+        <div style="display: flex; border-bottom: 2px solid #800000; padding-bottom: 2px; align-items: center; margin-bottom: 2px;">
+          <div style="width: 44px; height: 44px; display: flex; justify-content: center; align-items: center; margin-right: 6px; flex-shrink: 0; box-sizing: border-box;">
+            <img src="hpcl_logo.png" style="max-width: 100%; max-height: 100%; object-fit: contain;">
           </div>
-          <div class="header-text" style="flex-grow: 1; text-align: center; line-height: 1.1;">
-            <div style="font-size: 10px; font-weight: 800; text-transform: uppercase;">Sample Label, Tank Lorry Retention</div>
-            <div style="font-size: 7.5px; font-weight: 700; margin: 1px 0;">Sample Drawn At Retail Outlets</div>
-            <div style="font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1px;">Hindustan Petroleum Corporation Limited</div>
-          </div>
-        </div>
-        
-        <div class="label-body" style="flex-grow: 1; font-size: 8px; line-height: 1.25; display: flex; flex-direction: column; justify-content: flex-start; gap: 1.5px;">
-          <div class="field-row" style="display: flex; align-items: baseline;">
-            <span class="num" style="font-weight: bold; margin-right: 3px; width: 14px; flex-shrink: 0;">1.</span> <span class="label-txt" style="margin-right: 4px; flex-shrink: 0;">Supply Location:</span>
-            <span class="value-txt" style="border-bottom: 1px dotted #800000; flex-grow: 1; font-weight: 700; font-size: 8.5px; color: #000; padding-left: 2px; min-height: 10px;">Panewadi (Manmad IRD)</span>
-          </div>
-          <div class="field-row" style="display: flex; align-items: baseline;">
-            <span class="num" style="font-weight: bold; margin-right: 3px; width: 14px; flex-shrink: 0;">2.</span> <span class="label-txt" style="margin-right: 4px; flex-shrink: 0;">Division/Territory/Region Offce:</span>
-            <span class="value-txt" style="border-bottom: 1px dotted #800000; flex-grow: 1; font-weight: 700; font-size: 8.5px; color: #000; padding-left: 2px; min-height: 10px;">Nashik RO (HPCL)</span>
-          </div>
-          <div class="field-row" style="display: flex; align-items: baseline;">
-            <span class="num" style="font-weight: bold; margin-right: 3px; width: 14px; flex-shrink: 0;">3.</span> <span class="label-txt" style="margin-right: 4px; flex-shrink: 0;">Name of the Retail Outlet:</span>
-            <span class="value-txt" style="border-bottom: 1px dotted #800000; flex-grow: 1; font-weight: 700; font-size: 8.5px; color: #000; padding-left: 2px; min-height: 10px;">Ashish Service Center (41052317)</span>
-          </div>
-          <div class="field-row" style="display: flex; align-items: baseline;">
-            <span class="num" style="font-weight: bold; margin-right: 3px; width: 14px; flex-shrink: 0;">4.</span> <span class="label-txt" style="margin-right: 4px; flex-shrink: 0;">Name of the Oil Company:</span>
-            <span class="value-txt" style="border-bottom: 1px dotted #800000; flex-grow: 1; font-weight: 700; font-size: 8.5px; color: #000; padding-left: 2px; min-height: 10px;">HPCL</span>
-          </div>
-          <div class="field-row" style="display: flex; align-items: baseline;">
-            <span class="num" style="font-weight: bold; margin-right: 3px; width: 14px; flex-shrink: 0;">5.</span> <span class="label-txt" style="margin-right: 4px; flex-shrink: 0;">${displayProduct}</span>
-          </div>
-          <div class="field-row" style="display: flex; align-items: baseline;">
-            <span class="num" style="font-weight: bold; margin-right: 3px; width: 14px; flex-shrink: 0;">6.</span> <span class="label-txt" style="margin-right: 4px; flex-shrink: 0;">Source of Sample:</span>
-            <span class="value-txt" style="border-bottom: 1px dotted #800000; flex-grow: 1; font-weight: 700; font-size: 8.5px; color: #000; padding-left: 2px; min-height: 10px;">T/T</span>
-          </div>
-          <div class="field-row" style="display: flex; align-items: baseline;">
-            <span class="num" style="font-weight: bold; margin-right: 3px; width: 14px; flex-shrink: 0;">7.</span> <span class="label-txt" style="margin-right: 4px; flex-shrink: 0;">Tank/ Lorry No:</span>
-            <span class="value-txt" style="border-bottom: 1px dotted #800000; flex-grow: 1; font-weight: 700; font-size: 8.5px; color: #000; padding-left: 2px; min-height: 10px;">${formatUnderlineValue(data.tanker_no)}</span>
-          </div>
-          <div class="field-row" style="display: flex; align-items: baseline;">
-            <span class="num" style="font-weight: bold; margin-right: 3px; width: 14px; flex-shrink: 0;">8.</span> <span class="label-txt" style="margin-right: 4px; flex-shrink: 0;">Invoice No.</span>
-            <span class="value-txt" style="border-bottom: 1px dotted #800000; flex-grow: 1; font-weight: 700; font-size: 8.5px; color: #000; padding-left: 2px; min-height: 10px;">${formatUnderlineValue(data.invoice_no)}</span>
-          </div>
-          <div class="field-row" style="display: flex; align-items: baseline;">
-            <span class="num" style="font-weight: bold; margin-right: 3px; width: 14px; flex-shrink: 0;">9.</span> <span class="label-txt" style="margin-right: 4px; flex-shrink: 0;">Samples drawn on at Pimpalgaon, Hours.</span>
-            <span class="value-txt" style="border-bottom: 1px dotted #800000; flex-grow: 1; font-weight: 700; font-size: 8.5px; color: #000; padding-left: 2px; min-height: 10px;">${drawnStr}</span>
-          </div>
-          
-          <div class="field-row" style="margin-bottom: 1px; display: flex; align-items: baseline;">
-            <span class="num" style="font-weight: bold; margin-right: 3px; width: 14px; flex-shrink: 0;">10.</span> <span class="label-txt" style="font-weight: 700; margin-right: 4px; flex-shrink: 0;">Density at 15°c</span>
-          </div>
-          <div class="field-row sub-field" style="display: flex; align-items: baseline;">
-            <span class="num" style="font-weight: bold; margin-right: 3px; width: 22px; padding-left: 8px; flex-shrink: 0;">10.1.</span> <span class="label-txt" style="margin-right: 4px; flex-shrink: 0;">As Recorded in the Challan:</span>
-            <span class="value-txt" style="border-bottom: 1px dotted #800000; flex-grow: 1; font-weight: 700; font-size: 8.5px; color: #000; padding-left: 2px; min-height: 10px;">${challanDensityStr}</span>
-          </div>
-          <div class="field-row sub-field" style="display: flex; align-items: baseline;">
-            <span class="num" style="font-weight: bold; margin-right: 3px; width: 22px; padding-left: 8px; flex-shrink: 0;">10.2.</span> <span class="label-txt" style="margin-right: 4px; flex-shrink: 0;">Of Sample Collected From Lorry:</span>
-            <span class="value-txt" style="border-bottom: 1px dotted #800000; flex-grow: 1; font-weight: 700; font-size: 8.5px; color: #000; padding-left: 2px; min-height: 10px;">${formatUnderlineValue(data.lorryDensity)}</span>
-          </div>
-          
-          <div class="field-row" style="display: flex; align-items: baseline;">
-            <span class="num" style="font-weight: bold; margin-right: 3px; width: 14px; flex-shrink: 0;">11.</span> <span class="label-txt" style="margin-right: 4px; flex-shrink: 0;">RO tank no. of product decanted.</span>
-            <span class="value-txt" style="border-bottom: 1px dotted #800000; flex-grow: 1; font-weight: 700; font-size: 8.5px; color: #000; padding-left: 2px; min-height: 10px;">${formatUnderlineValue(data.roTank)}</span>
-          </div>
-          <div class="field-row" style="display: flex; align-items: baseline;">
-            <span class="num" style="font-weight: bold; margin-right: 3px; width: 14px; flex-shrink: 0;">12.</span> <span class="label-txt" style="margin-right: 4px; flex-shrink: 0;">Plastic Seal No. of Aluminum Container:</span>
-            <span class="value-txt" style="border-bottom: 1px dotted #800000; flex-grow: 1; font-weight: 700; font-size: 8.5px; color: #000; padding-left: 2px; min-height: 10px;">${formatUnderlineValue(data.containerSeal)}</span>
-          </div>
-          <div class="field-row" style="display: flex; align-items: baseline;">
-            <span class="num" style="font-weight: bold; margin-right: 3px; width: 14px; flex-shrink: 0;">13.</span> <span class="label-txt" style="margin-right: 4px; flex-shrink: 0;">Plastic Seals No, of Wooden Box:</span>
-            <span class="value-txt" style="border-bottom: 1px dotted #800000; flex-grow: 1; font-weight: 700; font-size: 8.5px; color: #000; padding-left: 2px; min-height: 10px;">${formatUnderlineValue(data.woodenSeal)}</span>
+          <div style="flex-grow: 1; text-align: center; line-height: 1.1; overflow: hidden;">
+            <div style="font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.1px; white-space: nowrap;">Sample Label, Tank Lorry Retention</div>
+            <div style="font-size: 8.5px; font-weight: bold; margin: 1px 0; white-space: nowrap;">Sample Drawn At Retail Outlets (Sample ${sampleIndex + 1}/${num_samples})</div>
+            <div style="font-size: 10.5px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.1px; white-space: nowrap;">Hindustan Petroleum Corporation Limited</div>
           </div>
         </div>
         
-        <div class="certification-text" style="font-size: 6.8px; font-style: italic; line-height: 1.1; text-align: justify; margin: 2px 0; border-top: 1.5px solid #800000; border-bottom: 1.5px solid #800000; padding: 1px 0; font-weight: 500;">
+        <!-- Body -->
+        <div style="display: flex; flex-direction: column; gap: 4.5px; font-size: 11.5px; line-height: 1.3;">
+          <div style="display: flex; align-items: baseline;">
+            <span style="font-weight: bold; flex-shrink: 0;">1. Supply Location:</span>
+            <div style="flex-grow: 1; border-bottom: 1.5px dotted #800000; margin: 0 4px;"></div>
+            <span style="font-weight: bold; color: #000; flex-shrink: 0; padding-left: 4px;">Panewadi (Manmad IRD)</span>
+          </div>
+          
+          <div style="display: flex; align-items: baseline;">
+            <span style="font-weight: bold; flex-shrink: 0;">2. Division/Territory/Region Offce:</span>
+            <div style="flex-grow: 1; border-bottom: 1.5px dotted #800000; margin: 0 4px;"></div>
+            <span style="font-weight: bold; color: #000; flex-shrink: 0; padding-left: 4px;">Nashik RO (HPCL)</span>
+          </div>
+          
+          <div style="display: flex; align-items: baseline;">
+            <span style="font-weight: bold; flex-shrink: 0;">3. Name of the Retail Outlet:</span>
+            <div style="flex-grow: 1; border-bottom: 1.5px dotted #800000; margin: 0 4px;"></div>
+            <span style="font-weight: bold; color: #000; flex-shrink: 0; padding-left: 4px;">Ashish Service Center (41052317)</span>
+          </div>
+          
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline;">
+            <span style="font-weight: bold; margin-right: 4px;">4. Name of the Oil Company:</span>
+            <span style="font-weight: bold; color: #000; margin-right: 24px;">HPCL</span>
+            <span style="font-weight: bold; margin-right: 4px;">5. Product:</span>
+            <span style="font-weight: bold; color: #000;">${pShort}</span>
+          </div>
+          
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline;">
+            <span style="font-weight: bold; margin-right: 4px;">6. Source of Sample:</span>
+            <span style="font-weight: bold; color: #000; margin-right: 24px;">T/T</span>
+            <span style="font-weight: bold; margin-right: 4px;">7. Tank/ Lorry No:</span>
+            <span style="font-weight: bold; color: #000;">${data.tanker_no || ''}</span>
+          </div>
+          
+          <div style="display: flex; align-items: baseline;">
+            <span style="font-weight: bold; flex-shrink: 0;">8. Invoice No.</span>
+            <div style="flex-grow: 1; border-bottom: 1.5px dotted #800000; margin: 0 4px;"></div>
+            <span style="font-weight: bold; color: #000; flex-shrink: 0; padding-left: 4px;">${data.invoice_no || ''}</span>
+          </div>
+          
+          <div style="display: flex; align-items: baseline;">
+            <span style="font-weight: bold; flex-shrink: 0;">9. Samples drawn on at Pimpalgaon</span>
+            <div style="flex-grow: 1; border-bottom: 1.5px dotted #800000; margin: 0 4px;"></div>
+            <span style="font-weight: bold; color: #000; flex-shrink: 0; padding-left: 4px;">${drawnStr}</span>
+          </div>
+          
+          <div style="font-weight: bold; margin-top: 1px;">10. Density at 15°c</div>
+          
+          <div style="display: flex; align-items: baseline; padding-left: 12px;">
+            <span style="font-weight: bold; flex-shrink: 0;">10.1. As Recorded in the Challan:</span>
+            <div style="flex-grow: 1; border-bottom: 1.5px dotted #800000; margin: 0 4px;"></div>
+            <span style="font-weight: bold; color: #000; flex-shrink: 0; padding-left: 4px;">${data.challanDensity ? data.challanDensity + ' kg/m³' : ''}</span>
+          </div>
+          
+          <div style="display: flex; align-items: baseline; padding-left: 12px;">
+            <span style="font-weight: bold; flex-shrink: 0;">10.2. Of Sample Collected From Lorry:</span>
+            <div style="flex-grow: 1; border-bottom: 1.5px dotted #800000; margin: 0 4px;"></div>
+            <span style="font-weight: bold; color: #000; flex-shrink: 0; padding-left: 4px;">${data.lorryDensity ? data.lorryDensity + ' kg/m³' : ''}</span>
+          </div>
+          
+          <div style="display: flex; align-items: baseline;">
+            <span style="font-weight: bold; flex-shrink: 0;">11. RO tank no. of product decanted.</span>
+            <div style="flex-grow: 1; border-bottom: 1.5px dotted #800000; margin: 0 4px;"></div>
+            <span style="font-weight: bold; color: #000; flex-shrink: 0; padding-left: 4px;">${data.roTank || ''}</span>
+          </div>
+          
+          <div style="display: flex; align-items: baseline;">
+            <span style="font-weight: bold; flex-shrink: 0;">12. Plastic Seal No. of Aluminum Container:</span>
+            <div style="flex-grow: 1; border-bottom: 1.5px dotted #800000; margin: 0 4px;"></div>
+            <span style="font-weight: bold; color: #000; flex-shrink: 0; padding-left: 4px;">${sampleSeal.container || ''}</span>
+          </div>
+          
+          <div style="display: flex; align-items: baseline;">
+            <span style="font-weight: bold; flex-shrink: 0;">13. Plastic Seals No, of Wooden Box:</span>
+            <div style="flex-grow: 1; border-bottom: 1.5px dotted #800000; margin: 0 4px;"></div>
+            <span style="font-weight: bold; color: #000; flex-shrink: 0; padding-left: 4px;">${sampleSeal.wooden || ''}</span>
+          </div>
+        </div>
+        
+        <!-- Certification -->
+        <div style="
+          font-size: 8px;
+          font-style: italic;
+          line-height: 1.25;
+          text-align: justify;
+          border-top: 1.5px solid #800000;
+          border-bottom: 1.5px solid #800000;
+          padding: 2px 0;
+          font-weight: 500;
+          margin: 0;
+        ">
           We certified that the empty container had been rinsed with the product before drawing samples in my presence and that the sample is re-tained after proper labelling and sealing
         </div>
         
-        <div class="label-footer" style="display: flex; flex-direction: column; gap: 2.5px;">
-          <div class="footer-row" style="display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-top: 2px;">
-            <div style="display: flex; flex-direction: column;">
-              <div style="border-bottom: 1px dotted #800000; height: 10px; width: 120px;"></div>
-              <div style="font-size: 6.5px; font-weight: bold; transform: scale(0.95);">Signature of the Dealer/Dealer's Representative:</div>
-            </div>
-            <div style="display: flex; flex-direction: column;">
-              <div style="font-weight: 700; font-size: 7.5px; border-bottom: 1px dotted #800000; width: 120px; text-align: center; height: 10px; line-height: 10px; color: #000;">${data.dealerRep || 'Ashish Service Center'}</div>
-              <div style="font-size: 6.5px; font-weight: bold; text-align: center; transform: scale(0.95);">Name of the Dealer/Dealer's Representative:</div>
-            </div>
+        <!-- Footer Signatures Stack -->
+        <div style="display: flex; flex-direction: column; gap: 4.5px; font-size: 11.5px; line-height: 1.3;">
+          <div style="display: flex; align-items: baseline; margin-top: 4px;">
+            <span style="font-weight: bold; flex-shrink: 0;">Signature of the Dealer/Dealer's Representative:</span>
+            <div style="flex-grow: 1; border-bottom: 1.5px dotted #800000; margin: 0 4px; min-height: 1px;"></div>
           </div>
           
-          <div class="footer-row" style="display: flex; justify-content: space-between; align-items: center; gap: 6px;">
-            <div style="font-size: 7.5px; font-weight: bold;">Seal Rubber Stamp:</div>
-            <div style="display: flex; flex-direction: column;">
-              <div style="font-weight: 700; font-size: 7.5px; border-bottom: 1px dotted #800000; width: 150px; text-align: center; color: #000;">Place: Pimpalgaon Retail Outlet, Date: ${formattedDate ? '<u><b>' + formattedDate + '</b></u>' : '______'}</div>
-            </div>
+          <div style="display: flex; align-items: baseline;">
+            <span style="font-weight: bold; flex-shrink: 0;">Name of the Dealer/Dealer's Representative:</span>
+            <div style="flex-grow: 1; border-bottom: 1.5px dotted #800000; margin: 0 4px;"></div>
+            <span style="font-weight: bold; color: #000; flex-shrink: 0; padding-left: 4px;">${data.dealerRep || ''}</span>
           </div>
-
-          <div class="footer-row" style="display: flex; justify-content: space-between; align-items: center; gap: 6px;">
-            <div style="display: flex; flex-direction: column;">
-              <div style="border-bottom: 1px dotted #800000; height: 10px; width: 120px;"></div>
-              <div style="font-size: 6.5px; font-weight: bold; transform: scale(0.95);">Signature of T/T Driver:</div>
-            </div>
-            <div style="display: flex; flex-direction: column;">
-              <div style="font-weight: 700; font-size: 7.5px; border-bottom: 1px dotted #800000; width: 120px; height: 10px; color: #000;">${driverNameStr}</div>
-              <div style="font-size: 6.5px; font-weight: bold; text-align: center; transform: scale(0.95);">Name of T/T Driver:</div>
-            </div>
+          
+          <div style="display: flex; align-items: baseline; margin-top: 10px; margin-bottom: 10px;">
+            <span style="font-weight: bold; flex-shrink: 0;">Seal Rubber Stamp:</span>
+            <div style="flex-grow: 1; margin: 0 4px; min-height: 18px;"></div>
           </div>
-
-          <div class="footer-row" style="margin-top: 1px; display: flex; justify-content: space-between; align-items: center; gap: 6px;">
-            <div style="width: 100%; display: flex; flex-direction: column;">
-              <div style="font-size: 7.5px; border-bottom: 1px dotted #800000; width: 100%; color: #000; min-height: 10px;">${transporterVal}</div>
-              <div style="font-size: 6.5px; font-weight: bold;">Transporter's Name:</div>
-            </div>
+          
+          <div style="display: flex; align-items: baseline;">
+            <span style="font-weight: bold; flex-shrink: 0;">Place: Pimpalgaon Retail Outlet, Date:</span>
+            <div style="flex-grow: 1; border-bottom: 1.5px dotted #800000; margin: 0 4px;"></div>
+            <span style="font-weight: bold; color: #000; flex-shrink: 0; padding-left: 4px;">${dateStr}</span>
+          </div>
+          
+          <div style="display: flex; align-items: baseline; margin-top: 4px;">
+            <span style="font-weight: bold; flex-shrink: 0;">Signature of T/T Driver:</span>
+            <div style="flex-grow: 1; border-bottom: 1.5px dotted #800000; margin: 0 4px; min-height: 1px;"></div>
+          </div>
+          
+          <div style="display: flex; align-items: baseline;">
+            <span style="font-weight: bold; flex-shrink: 0;">Name of T/T Driver:</span>
+            <div style="flex-grow: 1; border-bottom: 1.5px dotted #800000; margin: 0 4px;"></div>
+            <span style="font-weight: bold; color: #000; flex-shrink: 0; padding-left: 4px;">${data.driver || ''}</span>
+          </div>
+          
+          <div style="display: flex; align-items: baseline;">
+            <span style="font-weight: bold; flex-shrink: 0;">Transporter's Name:</span>
+            <div style="flex-grow: 1; border-bottom: 1.5px dotted #800000; margin: 0 4px;"></div>
+            <span style="font-weight: bold; color: #000; flex-shrink: 0; padding-left: 4px;">${data.transporter || ''}</span>
           </div>
         </div>
       </div>
@@ -7132,9 +7260,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const sheet = document.getElementById('mini-a4-sheet');
     if (!sheet) return;
     sheet.innerHTML = '';
-    // Draw 4 cards for screen A4 preview
+    // Draw 4 cards for screen A4 preview, cycling labelIndex from 0 to 3
     for (let i = 0; i < 4; i++) {
-      sheet.innerHTML += renderSingleLabelHTML(currentWizardData);
+      sheet.innerHTML += renderSingleLabelHTML(currentWizardData, i);
     }
   }
 
@@ -7151,10 +7279,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let pagesHtml = '';
 
     for (let i = 0; i < totalCopies; i += 4) {
-      let label1 = renderSingleLabelHTML(currentWizardData);
-      let label2 = (i + 1 < totalCopies) ? renderSingleLabelHTML(currentWizardData) : '<div class="empty-label-cell"></div>';
-      let label3 = (i + 2 < totalCopies) ? renderSingleLabelHTML(currentWizardData) : '<div class="empty-label-cell"></div>';
-      let label4 = (i + 3 < totalCopies) ? renderSingleLabelHTML(currentWizardData) : '<div class="empty-label-cell"></div>';
+      let label1 = renderSingleLabelHTML(currentWizardData, i);
+      let label2 = (i + 1 < totalCopies) ? renderSingleLabelHTML(currentWizardData, i + 1) : '<div class="empty-label-cell"></div>';
+      let label3 = (i + 2 < totalCopies) ? renderSingleLabelHTML(currentWizardData, i + 2) : '<div class="empty-label-cell"></div>';
+      let label4 = (i + 3 < totalCopies) ? renderSingleLabelHTML(currentWizardData, i + 3) : '<div class="empty-label-cell"></div>';
 
       pagesHtml += `
         <div class="print-page">
@@ -7162,6 +7290,18 @@ document.addEventListener('DOMContentLoaded', () => {
           ${label2}
           ${label3}
           ${label4}
+          <div class="print-color-strip">
+            <span style="margin-right: 6px; font-size: 8px; color: #888;">Print Head Color Purge:</span>
+            <div style="display: flex; gap: 3px;">
+              <div style="width: 6px; height: 6px; background: #00ffff; border: 0.5px solid #bbb;"></div>
+              <div style="width: 6px; height: 6px; background: #ff00ff; border: 0.5px solid #bbb;"></div>
+              <div style="width: 6px; height: 6px; background: #ffff00; border: 0.5px solid #bbb;"></div>
+              <div style="width: 6px; height: 6px; background: #000000; border: 0.5px solid #bbb;"></div>
+              <div style="width: 6px; height: 6px; background: #ff0000; border: 0.5px solid #bbb;"></div>
+              <div style="width: 6px; height: 6px; background: #00ff00; border: 0.5px solid #bbb;"></div>
+              <div style="width: 6px; height: 6px; background: #0000ff; border: 0.5px solid #bbb;"></div>
+            </div>
+          </div>
         </div>
       `;
     }
@@ -7180,27 +7320,27 @@ document.addEventListener('DOMContentLoaded', () => {
         <style>
           @page {
             size: A4 portrait;
-            margin: 6mm 4mm;
+            margin: 0;
           }
           body {
             margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            padding: 5mm 5mm;
+            font-family: "Times New Roman", Times, Baskerville, Georgia, serif;
             background: #fff;
-            color: #000;
+            color: #800000;
           }
           .print-page {
+            position: relative;
             display: grid;
             grid-template-columns: 1fr 1fr;
             grid-template-rows: 1fr 1fr;
-            gap: 4mm 3mm;
-            width: 202mm;
-            height: 285mm;
-            page-break-after: always;
+            gap: 2mm 2mm;
+            width: 200mm;
+            height: 287mm;
             box-sizing: border-box;
           }
-          .print-page:last-child {
-            page-break-after: avoid;
+          .print-page:not(:last-child) {
+            page-break-after: always;
           }
           .print-label {
             border: 2px solid #800000;
@@ -7211,102 +7351,28 @@ document.addEventListener('DOMContentLoaded', () => {
             background: #fff;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-            height: 140mm;
+            justify-content: flex-start;
+            gap: 8px;
+            height: 142.5mm;
             width: 99mm;
             position: relative;
           }
           .empty-label-cell {
-            height: 140mm;
+            height: 142.5mm;
             width: 99mm;
             box-sizing: border-box;
           }
-          .label-header {
+          .print-color-strip {
+            position: absolute;
+            bottom: 1mm;
+            left: 50%;
+            transform: translateX(-50%);
             display: flex;
-            border-bottom: 2px solid #800000;
-            padding-bottom: 4px;
             align-items: center;
-            margin-bottom: 4px;
-          }
-          .hp-logo-box {
-            border: 2px solid #800000;
-            width: 44px;
-            height: 44px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            margin-right: 6px;
-            flex-shrink: 0;
-            box-sizing: border-box;
-          }
-          .header-text {
-            flex-grow: 1;
-            text-align: center;
-            line-height: 1.1;
-          }
-          .label-body {
-            flex-grow: 1;
+            font-family: Arial, sans-serif;
             font-size: 8px;
-            line-height: 1.25;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-            gap: 1.5px;
-          }
-          .field-row {
-            display: flex;
-            align-items: baseline;
-          }
-          .num {
-            font-weight: bold;
-            margin-right: 3px;
-            width: 14px;
-            flex-shrink: 0;
-          }
-          .sub-field .num {
-            width: 22px;
-            padding-left: 8px;
-          }
-          .label-txt {
-            margin-right: 4px;
-            flex-shrink: 0;
-          }
-          .value-txt {
-            border-bottom: 1px dotted #800000;
-            flex-grow: 1;
-            font-weight: 700;
-            font-size: 8.5px;
-            color: #000;
-            padding-left: 2px;
-            min-height: 10px;
-          }
-          .certification-text {
-            font-size: 6.8px;
-            font-style: italic;
-            line-height: 1.1;
-            text-align: justify;
-            margin: 2px 0;
-            border-top: 1.5px solid #800000;
-            border-bottom: 1.5px solid #800000;
-            padding: 1px 0;
-            font-weight: 500;
-          }
-          .label-footer {
-            display: flex;
-            flex-direction: column;
-            gap: 2.5px;
-          }
-          .footer-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 6px;
-          }
-          .footer-row > div {
-            display: flex;
-            flex-direction: column;
+            color: #888;
+            opacity: 0.8;
           }
           .print-btn-container {
             position: fixed;
@@ -7333,6 +7399,9 @@ document.addEventListener('DOMContentLoaded', () => {
             .print-btn-container {
               display: none;
             }
+            .print-color-strip {
+              /* Keep visible during printing */
+            }
           }
         </style>
       </head>
@@ -7342,11 +7411,9 @@ document.addEventListener('DOMContentLoaded', () => {
         </button>
         ${pagesHtml}
         <script>
-          window.addEventListener('DOMContentLoaded', () => {
-            setTimeout(() => {
-              window.print();
-            }, 500);
-          });
+          setTimeout(() => {
+            window.print();
+          }, 300);
         </script>
       </body>
       </html>
@@ -8864,6 +8931,238 @@ document.addEventListener('DOMContentLoaded', () => {
     btnSaveMargins.addEventListener('click', () => {
       saveProfitMargins();
     });
+  }
+
+  // ── SOPAN UPI ACCOUNT LOGIC ────────────────────────────────────────────────
+  let sopanUpiTxns = [];
+
+  async function loadSopanUpiTransactions() {
+    try {
+      const res = await fetch('/api/sopan-upi/transactions', {
+        headers: {
+          'x-user-role': sessionStorage.getItem('pumperp_user_role') || 'manager'
+        }
+      });
+      if (!res.ok) throw new Error('Failed to fetch transactions');
+      sopanUpiTxns = await res.json();
+      renderSopanUpiLedger();
+    } catch (err) {
+      console.error('Error loading Sopan UPI transactions:', err);
+      showToast('Error loading transactions.', 'error');
+    }
+  }
+
+  function renderSopanUpiLedger() {
+    const tbody = document.getElementById('sopan-upi-ledger-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    // Sort transactions chronologically (ascending) for running balance
+    sopanUpiTxns.sort((a, b) => {
+      if (a.date !== b.date) {
+        return a.date.localeCompare(b.date);
+      }
+      return a.id - b.id;
+    });
+
+    let runningBalance = 0;
+    let totalDeposits = 0;
+    let totalExpenses = 0;
+
+    sopanUpiTxns.forEach(txn => {
+      const isDeposit = txn.type === 'DEPOSIT';
+      const amount = parseFloat(txn.amount) || 0;
+
+      if (isDeposit) {
+        runningBalance += amount;
+        totalDeposits += amount;
+      } else {
+        runningBalance -= amount;
+        totalExpenses += amount;
+      }
+
+      const tr = document.createElement('tr');
+      tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+      tr.innerHTML = `
+        <td style="padding: 0.5rem 0.25rem; white-space: nowrap;">${formatDate(txn.date)}</td>
+        <td style="padding: 0.5rem 0.25rem;">
+          <span style="display: inline-block; padding: 0.15rem 0.4rem; border-radius: 0.25rem; font-size: 0.65rem; font-weight: 700; background: ${isDeposit ? 'rgba(46, 204, 113, 0.15)' : 'rgba(231, 76, 60, 0.15)'}; color: ${isDeposit ? '#2ecc71' : '#e74c3c'};">
+            ${isDeposit ? 'DEPOSIT' : 'EXPENSE'}
+          </span>
+        </td>
+        <td style="padding: 0.5rem 0.25rem; word-break: break-all;">${txn.description || ''}</td>
+        <td style="padding: 0.5rem 0.25rem; color: var(--text-muted); font-style: italic; word-break: break-all;">${txn.comment || ''}</td>
+        <td style="padding: 0.5rem 0.25rem; text-align: right; font-weight: 700; color: ${isDeposit ? '#2ecc71' : 'var(--text-main)'};">
+          ${isDeposit ? '+' : '-'} ₹${amount.toFixed(2)}
+        </td>
+        <td style="padding: 0.5rem 0.25rem; text-align: right; font-weight: 700; color: var(--accent);">
+          ₹${runningBalance.toFixed(2)}
+        </td>
+        <td style="padding: 0.5rem 0.25rem; text-align: center;">
+          <button type="button" class="btn btn-secondary btn-edit-upi-txn" data-id="${txn.id}" style="padding: 0.15rem 0.4rem; font-size: 0.68rem; min-height: auto; border-radius: 0.25rem; margin-right: 0.25rem;">
+            Edit
+          </button>
+          <button type="button" class="btn btn-danger btn-delete-upi-txn" data-id="${txn.id}" style="padding: 0.15rem 0.4rem; font-size: 0.68rem; min-height: auto; border-radius: 0.25rem; background: var(--danger); border: none;">
+            Delete
+          </button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    // Update stats counters
+    document.getElementById('sopan-upi-net-balance').textContent = `₹ ${runningBalance.toFixed(2)}`;
+    document.getElementById('sopan-upi-total-deposits').textContent = `₹ ${totalDeposits.toFixed(2)}`;
+    document.getElementById('sopan-upi-total-expenses').textContent = `₹ ${totalExpenses.toFixed(2)}`;
+
+    // Attach listeners to dynamically generated buttons inside table body
+    tbody.querySelectorAll('.btn-edit-upi-txn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = parseInt(e.target.getAttribute('data-id'), 10);
+        openEditSopanUpiModal(id);
+      });
+    });
+
+    tbody.querySelectorAll('.btn-delete-upi-txn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = parseInt(e.target.getAttribute('data-id'), 10);
+        deleteSopanUpiTransaction(id);
+      });
+    });
+  }
+
+  // Handle adding new transaction
+  const formSopanUpiTxn = document.getElementById('form-sopan-upi-txn');
+  if (formSopanUpiTxn) {
+    // Pre-fill date to current date input helper
+    const todayStr = new Date().toISOString().split('T')[0];
+    const txnDateInput = document.getElementById('sopan-upi-txn-date');
+    if (txnDateInput) txnDateInput.value = todayStr;
+
+    formSopanUpiTxn.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        date: document.getElementById('sopan-upi-txn-date').value,
+        type: document.getElementById('sopan-upi-txn-type').value,
+        amount: parseFloat(document.getElementById('sopan-upi-txn-amount').value),
+        description: document.getElementById('sopan-upi-txn-desc').value,
+        comment: document.getElementById('sopan-upi-txn-comment').value
+      };
+
+      try {
+        const res = await fetch('/api/sopan-upi/transaction', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-role': sessionStorage.getItem('pumperp_user_role') || 'manager'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          showToast('Transaction saved successfully.', 'success');
+          // Reset form inputs (except date)
+          document.getElementById('sopan-upi-txn-amount').value = '';
+          document.getElementById('sopan-upi-txn-desc').value = '';
+          document.getElementById('sopan-upi-txn-comment').value = '';
+          loadSopanUpiTransactions();
+        } else {
+          const errData = await res.json();
+          showToast(errData.error || 'Failed to save transaction.', 'error');
+        }
+      } catch (err) {
+        console.error('Error saving transaction:', err);
+        showToast('Server error saving transaction.', 'error');
+      }
+    });
+  }
+
+  // Edit modal management
+  const modalSopanUpiEdit = document.getElementById('modal-sopan-upi-edit');
+  const formSopanUpiEdit = document.getElementById('form-sopan-upi-edit');
+  const btnSopanUpiEditCancel = document.getElementById('btn-sopan-upi-edit-cancel');
+
+  function openEditSopanUpiModal(id) {
+    const txn = sopanUpiTxns.find(t => t.id === id);
+    if (!txn) return;
+
+    document.getElementById('sopan-upi-edit-id').value = txn.id;
+    document.getElementById('sopan-upi-edit-date').value = txn.date;
+    document.getElementById('sopan-upi-edit-type').value = txn.type;
+    document.getElementById('sopan-upi-edit-amount').value = txn.amount;
+    document.getElementById('sopan-upi-edit-desc').value = txn.description;
+    document.getElementById('sopan-upi-edit-comment').value = txn.comment || '';
+
+    if (modalSopanUpiEdit) {
+      modalSopanUpiEdit.style.display = 'flex';
+    }
+  }
+
+  if (btnSopanUpiEditCancel) {
+    btnSopanUpiEditCancel.addEventListener('click', () => {
+      if (modalSopanUpiEdit) modalSopanUpiEdit.style.display = 'none';
+    });
+  }
+
+  if (formSopanUpiEdit) {
+    formSopanUpiEdit.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('sopan-upi-edit-id').value;
+      const payload = {
+        date: document.getElementById('sopan-upi-edit-date').value,
+        type: document.getElementById('sopan-upi-edit-type').value,
+        amount: parseFloat(document.getElementById('sopan-upi-edit-amount').value),
+        description: document.getElementById('sopan-upi-edit-desc').value,
+        comment: document.getElementById('sopan-upi-edit-comment').value
+      };
+
+      try {
+        const res = await fetch(`/api/sopan-upi/transaction/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-role': sessionStorage.getItem('pumperp_user_role') || 'manager'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          showToast('Transaction updated successfully.', 'success');
+          if (modalSopanUpiEdit) modalSopanUpiEdit.style.display = 'none';
+          loadSopanUpiTransactions();
+        } else {
+          const errData = await res.json();
+          showToast(errData.error || 'Failed to update transaction.', 'error');
+        }
+      } catch (err) {
+        console.error('Error updating transaction:', err);
+        showToast('Server error updating transaction.', 'error');
+      }
+    });
+  }
+
+  async function deleteSopanUpiTransaction(id) {
+    if (!confirm('Are you sure you want to delete this transaction?')) return;
+
+    try {
+      const res = await fetch(`/api/sopan-upi/transaction/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'x-user-role': sessionStorage.getItem('pumperp_user_role') || 'manager'
+        }
+      });
+
+      if (res.ok) {
+        showToast('Transaction deleted successfully.', 'success');
+        loadSopanUpiTransactions();
+      } else {
+        const errData = await res.json();
+        showToast(errData.error || 'Failed to delete transaction.', 'error');
+      }
+    } catch (err) {
+      console.error('Error deleting transaction:', err);
+      showToast('Server error deleting transaction.', 'error');
+    }
   }
 
 });

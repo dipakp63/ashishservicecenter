@@ -362,6 +362,16 @@ async function initDatabase() {
         diff_power REAL DEFAULT 0.5
       )`,
     },
+    {
+      sql: `CREATE TABLE IF NOT EXISTS sopan_upi_transactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        date TEXT NOT NULL,
+        type TEXT NOT NULL,
+        amount REAL NOT NULL,
+        description TEXT NOT NULL,
+        comment TEXT
+      )`,
+    },
   ];
 
   // Run CREATE TABLE statements concurrently to avoid Vercel 10s timeouts on cold starts
@@ -387,7 +397,8 @@ async function initDatabase() {
     { sql: `CREATE INDEX IF NOT EXISTS idx_porancha_hishob_entries_date ON porancha_hishob_entries(date)` },
     { sql: `CREATE INDEX IF NOT EXISTS idx_debtor_transactions_id_date ON debtor_transactions(debtor_id, transaction_date)` },
     { sql: `CREATE INDEX IF NOT EXISTS idx_employee_transactions_id_date ON employee_transactions(employee_id, transaction_date)` },
-    { sql: `CREATE INDEX IF NOT EXISTS idx_porancha_hishob_date ON porancha_hishob_entries(date)` }
+    { sql: `CREATE INDEX IF NOT EXISTS idx_porancha_hishob_date ON porancha_hishob_entries(date)` },
+    { sql: `CREATE INDEX IF NOT EXISTS idx_sopan_upi_transactions_date ON sopan_upi_transactions(date)` }
   ];
   await Promise.all(indexStatements.map(stmt => run(stmt.sql, stmt.args || [])));
   console.log('[DB] All indexes initialized successfully.');
