@@ -15,6 +15,55 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
   <style>
+    /* Wizard Button Custom styles */
+    .wizard-btn-custom {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 0.4rem !important;
+      height: 38px !important;
+      font-weight: 600 !important;
+      font-size: 0.85rem !important;
+      border-radius: 0.35rem !important;
+      white-space: nowrap !important;
+      cursor: pointer !important;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      box-sizing: border-box !important;
+    }
+    #btn-wizard-back {
+      border: 1px solid var(--card-border, #475569) !important;
+      background: rgba(255,255,255,0.05) !important;
+      color: var(--text-main, #f8fafc) !important;
+      padding: 0 1.25rem !important;
+    }
+    #btn-wizard-back:hover {
+      background: rgba(255,255,255,0.1) !important;
+      border-color: rgba(255,255,255,0.3) !important;
+      transform: translateY(-1px);
+    }
+    #btn-wizard-print {
+      background: linear-gradient(135deg, #b71c1c, #d32f2f) !important;
+      border: none !important;
+      color: #fff !important;
+      padding: 0 1.5rem !important;
+      box-shadow: 0 4px 15px rgba(183, 28, 28, 0.3) !important;
+      font-weight: 700 !important;
+    }
+    #btn-wizard-print:hover {
+      box-shadow: 0 6px 20px rgba(183, 28, 28, 0.5) !important;
+      transform: translateY(-1px);
+    }
+    #btn-wizard-exit {
+      border: 1px solid #ef4444 !important;
+      background: rgba(239, 68, 68, 0.1) !important;
+      color: #ef4444 !important;
+      padding: 0 1.25rem !important;
+    }
+    #btn-wizard-exit:hover {
+      background: rgba(239, 68, 68, 0.2) !important;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2) !important;
+    }
     /* Print Stylesheet for Label Wizard */
     #label-wizard-print-container {
       display: none;
@@ -2973,15 +3022,15 @@
               </h3>
               <p style="margin: 0.25rem 0 0 0; color: var(--text-muted); font-size: 0.85rem;">Review the card layouts below. The 4 labels fit on a single A4 page for printing.</p>
             </div>
-            <div style="display: flex; gap: 0.75rem;">
-              <button type="button" class="btn btn-secondary" id="btn-wizard-back" style="padding: 0.5rem 1.25rem; font-weight: 600; border-radius: 0.35rem; display: flex; align-items: center; gap: 0.35rem; height: 38px;">
-                ⬅️ Edit Answers
+            <div style="display: flex; gap: 0.75rem; align-items: center;">
+              <button type="button" class="wizard-btn-custom" id="btn-wizard-back">
+                <span>✏️</span> Edit
               </button>
-              <button type="button" class="btn btn-primary" id="btn-wizard-print" style="padding: 0.5rem 1.5rem; font-weight: 700; background: linear-gradient(135deg, #b71c1c, #d32f2f); border: none; border-radius: 0.35rem; box-shadow: 0 4px 15px rgba(183, 28, 28, 0.4); display: flex; align-items: center; gap: 0.4rem; height: 38px; cursor: pointer;">
-                <span>🖨️</span> Print Labels / Save PDF
+              <button type="button" class="wizard-btn-custom" id="btn-wizard-print">
+                <span>🖨️</span> Print
               </button>
-              <button type="button" class="btn btn-secondary" id="btn-wizard-exit" style="padding: 0.5rem 1.25rem; font-weight: 600; border-radius: 0.35rem; display: flex; align-items: center; gap: 0.35rem; height: 38px; background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid rgba(255,255,255,0.15);">
-                ❌ Exit Wizard
+              <button type="button" class="wizard-btn-custom" id="btn-wizard-exit">
+                <span>❌</span> Exit
               </button>
             </div>
           </div>
