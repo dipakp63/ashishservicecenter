@@ -6991,6 +6991,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  const btnWizardExit = document.getElementById('btn-wizard-exit');
+  if (btnWizardExit) {
+    btnWizardExit.addEventListener('click', () => {
+      showView('du');
+    });
+  }
+
   const btnWizardBack = document.getElementById('btn-wizard-back');
   if (btnWizardBack) {
     btnWizardBack.addEventListener('click', () => {
@@ -7271,12 +7278,6 @@ document.addEventListener('DOMContentLoaded', () => {
   function printRetentionLabels() {
     if (!currentWizardData) return;
 
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      alert('Please allow popups to print/save labels.');
-      return;
-    }
-
     const totalCopies = currentWizardData.copies || 4;
     let pagesHtml = '';
 
@@ -7308,120 +7309,26 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }
 
-    let docTitle = 'Retention Labels';
+    // Set document title temporarily to reflect print label title
+    const oldTitle = document.title;
     if (currentWizardData.invoice_no) {
-      docTitle = `Retention Labels - Invoice ${currentWizardData.invoice_no}`;
+      document.title = `Retention Labels - Invoice ${currentWizardData.invoice_no}`;
+    } else {
+      document.title = 'Retention Labels';
     }
 
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>${docTitle}</title>
-        <style>
-          @page {
-            size: A4 portrait;
-            margin: 0;
-          }
-          body {
-            margin: 0;
-            padding: 5mm 5mm;
-            font-family: "Times New Roman", Times, Baskerville, Georgia, serif;
-            background: #fff;
-            color: #800000;
-          }
-          .print-page {
-            position: relative;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            grid-template-rows: 1fr 1fr;
-            gap: 2mm 2mm;
-            width: 200mm;
-            height: 287mm;
-            box-sizing: border-box;
-          }
-          .print-page:not(:last-child) {
-            page-break-after: always;
-          }
-          .print-label {
-            border: 2px solid #800000;
-            border-radius: 4px;
-            padding: 6px;
-            box-sizing: border-box;
-            color: #800000;
-            background: #fff;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-            gap: 8px;
-            height: 142.5mm;
-            width: 99mm;
-            position: relative;
-          }
-          .empty-label-cell {
-            height: 142.5mm;
-            width: 99mm;
-            box-sizing: border-box;
-          }
-          .print-color-strip {
-            position: absolute;
-            bottom: 1mm;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            align-items: center;
-            font-family: Arial, sans-serif;
-            font-size: 8px;
-            color: #888;
-            opacity: 0.8;
-          }
-          .print-btn-container {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: #800000;
-            color: #fff;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 30px;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-          }
-          .print-btn-container:hover {
-            background: #600000;
-          }
-          @media print {
-            .print-btn-container {
-              display: none;
-            }
-            .print-color-strip {
-              /* Keep visible during printing */
-            }
-          }
-        </style>
-      </head>
-      <body>
-        <button class="print-btn-container" onclick="window.print()">
-          <span>🖨️</span> Print Labels / Save as PDF
-        </button>
-        ${pagesHtml}
-        <script>
-          setTimeout(() => {
-            window.print();
-          }, 300);
-        </script>
-      </body>
-      </html>
-    `);
+    // Create print container and append to body
+    const printContainer = document.createElement('div');
+    printContainer.id = 'label-wizard-print-container';
+    printContainer.innerHTML = pagesHtml;
+    document.body.appendChild(printContainer);
 
-    printWindow.document.close();
+    // Trigger printing directly inside the current tab (ensures printer and preview settings dialog are loaded)
+    window.print();
+
+    // Clean up title and print container
+    document.title = oldTitle;
+    document.body.removeChild(printContainer);
   }
 
 

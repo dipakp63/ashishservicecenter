@@ -14,6 +14,75 @@
   <!-- Flatpickr CSS for custom calendar dropdown -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+  <style>
+    /* Print Stylesheet for Label Wizard */
+    #label-wizard-print-container {
+      display: none;
+    }
+    @media print {
+      /* Hide standard page layout and UI */
+      .app-layout, #landing-login-page {
+        display: none !important;
+      }
+      /* Show only print container */
+      #label-wizard-print-container {
+        display: block !important;
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 200mm !important;
+        box-sizing: border-box !important;
+        background: #fff !important;
+        color: #800000 !important;
+      }
+      .print-page {
+        position: relative !important;
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        grid-template-rows: 1fr 1fr !important;
+        gap: 2mm 2mm !important;
+        width: 200mm !important;
+        height: 287mm !important;
+        box-sizing: border-box !important;
+        padding: 5mm 5mm !important;
+        page-break-after: always !important;
+        page-break-inside: avoid !important;
+        background: #fff !important;
+      }
+      .print-label {
+        border: 2px solid #800000 !important;
+        border-radius: 4px !important;
+        padding: 6px !important;
+        box-sizing: border-box !important;
+        color: #800000 !important;
+        background: #fff !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: flex-start !important;
+        gap: 8px !important;
+        height: 142.5mm !important;
+        width: 99mm !important;
+        position: relative !important;
+      }
+      .empty-label-cell {
+        height: 142.5mm !important;
+        width: 99mm !important;
+        box-sizing: border-box !important;
+      }
+      .print-color-strip {
+        position: absolute !important;
+        bottom: 1mm !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        display: flex !important;
+        align-items: center !important;
+        font-family: Arial, sans-serif !important;
+        font-size: 8px !important;
+        color: #888 !important;
+        opacity: 0.8 !important;
+      }
+    }
+  </style>
 </head>
 <body>
   <!-- Authorization Landing Page -->
@@ -2910,6 +2979,9 @@
               </button>
               <button type="button" class="btn btn-primary" id="btn-wizard-print" style="padding: 0.5rem 1.5rem; font-weight: 700; background: linear-gradient(135deg, #b71c1c, #d32f2f); border: none; border-radius: 0.35rem; box-shadow: 0 4px 15px rgba(183, 28, 28, 0.4); display: flex; align-items: center; gap: 0.4rem; height: 38px; cursor: pointer;">
                 <span>🖨️</span> Print Labels / Save PDF
+              </button>
+              <button type="button" class="btn btn-secondary" id="btn-wizard-exit" style="padding: 0.5rem 1.25rem; font-weight: 600; border-radius: 0.35rem; display: flex; align-items: center; gap: 0.35rem; height: 38px; background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid rgba(255,255,255,0.15);">
+                ❌ Exit Wizard
               </button>
             </div>
           </div>
