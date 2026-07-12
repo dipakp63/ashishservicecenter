@@ -103,8 +103,21 @@
   // Edit Employee — open modal
   window.openEditEmployee = function(id, name, mobile) {
     document.getElementById('edit-emp-id').value = id;
-    document.getElementById('edit-emp-name').value = name;
+    const nameInput = document.getElementById('edit-emp-name');
+    nameInput.value = name;
     document.getElementById('edit-emp-mobile').value = mobile || '';
+    
+    // Protect system-defined employees from being renamed
+    if (name === 'Third Shift' || name === 'Dipak Patil') {
+      nameInput.readOnly = true;
+      nameInput.style.background = 'rgba(255,255,255,0.05)';
+      nameInput.style.cursor = 'not-allowed';
+    } else {
+      nameInput.readOnly = false;
+      nameInput.style.background = '';
+      nameInput.style.cursor = '';
+    }
+    
     if (modalEditEmployee) modalEditEmployee.style.display = 'flex';
   };
 
@@ -198,6 +211,7 @@
         const settled = Number(emp.month_settled || 0);
         const closing = opening + given - settled;
         const closingStyle = closing > 0.01 ? 'color:var(--danger); font-weight:700;' : closing < -0.01 ? 'color:var(--success); font-weight:700;' : 'color:var(--text-muted);';
+
         const safeName = emp.name.replace(/'/g, "\\'");
         const safeMobile = (emp.mobile || '').replace(/'/g, "\\'");
 
@@ -214,7 +228,7 @@
             <button class="btn btn-secondary" style="padding:0.2rem 0.6rem; font-size:0.75rem; margin-right:0.25rem;" onclick="openEditEmployee(${emp.id}, '${safeName}', '${safeMobile}')">Edit</button>
             <button class="btn btn-secondary" style="padding:0.2rem 0.6rem; font-size:0.75rem; margin-right:0.25rem;" onclick="openEmployeeTxn(${emp.id}, '${safeName}')">+ Txn</button>
             <button class="btn btn-secondary" style="padding:0.2rem 0.6rem; font-size:0.75rem; margin-right:0.25rem;" onclick="openEmployeeLedger(${emp.id}, '${safeName}')">Ledger</button>
-            <button style="padding:0.2rem 0.6rem; font-size:0.75rem; background:var(--danger); color:#fff; border:none; border-radius:0.4rem; cursor:pointer;" onclick="deleteEmployee(${emp.id}, ${closing})">Del</button>
+            <button style="padding:0.2rem 0.6rem; font-size:0.75rem; background:var(--danger); color:#fff; border:none; border-radius:0.4rem; cursor:pointer;" onclick="deleteEmployee(${emp.id}, '${safeName}', ${closing})">Del</button>
           </td>
         `;
         tbody.appendChild(tr);
@@ -226,7 +240,11 @@
   }
 
   // Delete Employee
-  window.deleteEmployee = async function(id, closingBalance) {
+  window.deleteEmployee = async function(id, name, closingBalance) {
+    if (name === 'Third Shift' || name === 'Dipak Patil') {
+      showToast('System defined employees cannot be deleted.', 'error');
+      return;
+    }
     if (Math.abs(closingBalance) > 0.01) {
       showToast('Cannot delete employee with outstanding advance.', 'error'); return;
     }

@@ -442,7 +442,7 @@ app.post('/api/admin/reverse-last-day', async (req, res) => {
       { sql: 'DELETE FROM readings WHERE date = ?', args: [latestClosedDate] },
       { sql: 'DELETE FROM tank_readings WHERE date = ?', args: [latestClosedDate] },
       { sql: 'DELETE FROM rates WHERE date = ?', args: [latestClosedDate] },
-      { sql: 'DELETE FROM debtor_transactions WHERE transaction_date = ? AND description = ?', args: [latestClosedDate, 'Credit Sale (Day Closing)'] },
+      { sql: 'DELETE FROM debtor_transactions WHERE transaction_date = ? AND (description = ? OR debtor_id IN (SELECT id FROM debtors WHERE debtor_name IN (\'Other\', \'Discount\')))', args: [latestClosedDate, 'Credit Sale (Day Closing)'] },
       { sql: 'DELETE FROM employee_transactions WHERE transaction_date = ? AND description = ?', args: [latestClosedDate, 'Employee Payment (Day Closing)'] },
       { sql: 'DELETE FROM tt_transactions WHERE date = ? AND (notes = ? OR description = ? OR (source = ? AND particular1 = ?))', args: [latestClosedDate, 'Auto-logged from Day Closing non-cash payments', 'Day Closing Auto-Entry', 'AUTO', 'Day Closing'] },
       { sql: 'DELETE FROM tt_trips WHERE date = ? AND notes = ?', args: [latestClosedDate, 'Auto-logged from Day Closing'] },
@@ -887,7 +887,7 @@ app.post('/api/cash', async (req, res) => {
         args: [date],
       },
       {
-        sql: `DELETE FROM debtor_transactions WHERE transaction_date = ? AND description LIKE 'Credit Sale (Day Closing)%'`,
+        sql: `DELETE FROM debtor_transactions WHERE transaction_date = ? AND (description LIKE 'Credit Sale (Day Closing)%' OR debtor_id IN (SELECT id FROM debtors WHERE debtor_name IN ('Other', 'Discount')))`,
         args: [date],
       },
       {
@@ -924,6 +924,24 @@ app.post('/api/cash', async (req, res) => {
               args: [debtorId, date, amount],
             });
           }
+        }
+
+        // Automatically create a DEBIT transaction in the 'Other' debtor ledger if this is an 'Other' type payment
+        if (type === 'Other' && amount > 0) {
+          statements.push({
+            sql: `INSERT INTO debtor_transactions (debtor_id, transaction_date, transaction_type, description, debit_amount, credit_amount)
+                  SELECT id, ?, 'DEBIT', ?, ?, 0 FROM debtors WHERE debtor_name = 'Other'`,
+            args: [date, description || 'Other Payment (Day Closing)', amount],
+          });
+        }
+
+        // Automatically create a DEBIT transaction in the 'Discount' debtor ledger if this is a 'Discount' type payment
+        if (type === 'Discount' && amount > 0) {
+          statements.push({
+            sql: `INSERT INTO debtor_transactions (debtor_id, transaction_date, transaction_type, description, debit_amount, credit_amount)
+                  SELECT id, ?, 'DEBIT', ?, ?, 0 FROM debtors WHERE debtor_name = 'Discount'`,
+            args: [date, description || 'Discount (Day Closing)', amount],
+          });
         }
 
         // Automatically create an Advance Given transaction in the employee ledger if this is an Employee type payment
@@ -1006,7 +1024,7 @@ app.post('/api/cash', async (req, res) => {
     // Sync with Chillar Record
     try {
       await db.run(`DELETE FROM chillar_transactions WHERE date = ? AND type = 'DAY_CLOSE'`, [date]);
-      const chillarNotes20 = parseInt(notes_20 || 0, 10);
+      const chillarNotes20 = 0; // ₹20 notes are now deposited in the bank, not held in Chillar.
       const chillarNotes10 = parseInt(notes_10 || 0, 10);
       const chillarCoins20 = parseInt(coins_20 || 0, 10);
       const chillarCoins10 = parseInt(coins_10 || 0, 10);
@@ -1508,6 +1526,11 @@ app.put('/api/debtors/:id', async (req, res) => {
     if (!debtor_name || debtor_name.trim() === '') {
       return res.status(400).json({ error: 'Debtor name is required.' });
     }
+
+    const existing = await db.get(`SELECT debtor_name FROM debtors WHERE id = ?`, [debtorId]);
+    if (existing && (existing.debtor_name === 'Other' || existing.debtor_name === 'Discount') && existing.debtor_name !== debtor_name.trim()) {
+      return res.status(400).json({ error: 'System defined debtors cannot be renamed.' });
+    }
     
     await db.run(
       `UPDATE debtors SET debtor_name = ?, mobile = ?, address = ? WHERE id = ?`,
@@ -1528,6 +1551,11 @@ app.put('/api/debtors/:id', async (req, res) => {
 app.delete('/api/debtors/:id', async (req, res) => {
   try {
     const { id } = req.params;
+
+    const debtor = await db.get(`SELECT debtor_name FROM debtors WHERE id = ?`, [id]);
+    if (debtor && (debtor.debtor_name === 'Other' || debtor.debtor_name === 'Discount')) {
+      return res.status(403).json({ error: 'System defined debtors cannot be deleted.' });
+    }
 
     // Check outstanding balance
     const balanceRow = await db.get(`
@@ -1843,6 +1871,12 @@ app.put('/api/employees/:id', async (req, res) => {
       return res.status(400).json({ error: 'Employee name is required.' });
     }
     const trimmedName = name.trim();
+
+    const emp = await db.get(`SELECT name FROM employees WHERE id = ?`, [id]);
+    if (emp && (emp.name === 'Third Shift' || emp.name === 'Dipak Patil') && emp.name !== trimmedName) {
+      return res.status(400).json({ error: 'System defined employees cannot be renamed.' });
+    }
+
     const existing = await db.get(`SELECT id FROM employees WHERE name = ? AND id != ?`, [trimmedName, id]);
     if (existing) {
       return res.status(400).json({ error: 'Another employee with this name already exists.' });
@@ -1865,6 +1899,12 @@ app.put('/api/employees/:id', async (req, res) => {
 app.delete('/api/employees/:id', async (req, res) => {
   try {
     const { id } = req.params;
+
+    const emp = await db.get(`SELECT name FROM employees WHERE id = ?`, [id]);
+    if (emp && (emp.name === 'Third Shift' || emp.name === 'Dipak Patil')) {
+      return res.status(403).json({ error: 'System defined employees cannot be deleted.' });
+    }
+
     const activeDate = await getActiveDate();
     const lockedTx = await db.get(`
       SELECT id FROM employee_transactions 
@@ -2605,6 +2645,121 @@ app.post('/api/porancha-hishob', async (req, res) => {
   } catch (err) {
     console.error('Error saving shift entries:', err.message);
     res.status(500).json({ error: 'Database error saving shift entries.' });
+  }
+});
+
+// GET /api/porancha-hishob/non-cash — Fetch non-cash payments for a date (with resolved names)
+app.get('/api/porancha-hishob/non-cash', async (req, res) => {
+  try {
+    const { date } = req.query;
+    if (!date) {
+      return res.status(400).json({ error: 'Date is required.' });
+    }
+    const rows = await db.all(
+      `SELECT type, description, amount FROM non_cash_payments WHERE date = ? ORDER BY entry_index ASC`,
+      [date]
+    );
+
+    // Resolve encoded debtor_id: and employee_id: descriptions into human-readable names
+    const resolved = await Promise.all((rows || []).map(async (row) => {
+      let displayName = row.description || '';
+
+      if (row.description && row.description.startsWith('debtor_id:')) {
+        const debtorId = parseInt(row.description.split(':')[1], 10);
+        if (!isNaN(debtorId)) {
+          const debtor = await db.get('SELECT debtor_name FROM debtors WHERE id = ?', [debtorId]);
+          displayName = debtor ? debtor.debtor_name : row.description;
+        }
+      } else if (row.description && row.description.startsWith('employee_id:')) {
+        const empId = parseInt(row.description.split(':')[1], 10);
+        if (!isNaN(empId)) {
+          const emp = await db.get('SELECT name FROM employees WHERE id = ?', [empId]);
+          displayName = emp ? emp.name : row.description;
+        }
+      }
+
+      return {
+        type: row.type,
+        description: displayName,
+        amount: row.amount
+      };
+    }));
+
+    res.json({ nonCashPayments: resolved });
+  } catch (err) {
+    console.error('Error fetching daily non-cash payments:', err.message);
+    res.status(500).json({ error: 'Database error fetching daily non-cash payments.' });
+  }
+});
+
+// GET /api/porancha-hishob/reconciliation — Fetch employee reconciliation data for a date
+app.get('/api/porancha-hishob/reconciliation', async (req, res) => {
+  try {
+    const { date } = req.query;
+    if (!date) {
+      return res.status(400).json({ error: 'Date is required.' });
+    }
+    const rows = await db.all(
+      `SELECT date, employee_id, notes_500, notes_200, notes_100, notes_50, notes_20, notes_10, coins, phonepe, dropdowns, shortfall 
+       FROM porancha_hishob_reconciliation 
+       WHERE date = ?`,
+      [date]
+    );
+    rows.forEach(r => {
+      try {
+        r.dropdowns = r.dropdowns ? JSON.parse(r.dropdowns) : [];
+      } catch (e) {
+        r.dropdowns = [];
+      }
+    });
+    res.json({ reconciliation: rows });
+  } catch (err) {
+    console.error('Error fetching shift reconciliation:', err.message);
+    res.status(500).json({ error: 'Database error fetching shift reconciliation.' });
+  }
+});
+
+// POST /api/porancha-hishob/reconciliation — Save/update shift reconciliation entries
+app.post('/api/porancha-hishob/reconciliation', async (req, res) => {
+  try {
+    const { date, data } = req.body;
+    if (!date || !Array.isArray(data)) {
+      return res.status(400).json({ error: 'Date and data array are required.' });
+    }
+
+    const statements = [];
+    statements.push({
+      sql: `DELETE FROM porancha_hishob_reconciliation WHERE date = ?`,
+      args: [date]
+    });
+
+    data.forEach(r => {
+      statements.push({
+        sql: `INSERT INTO porancha_hishob_reconciliation 
+              (date, employee_id, notes_500, notes_200, notes_100, notes_50, notes_20, notes_10, coins, phonepe, dropdowns, shortfall)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [
+          date,
+          r.employee_id,
+          r.notes_500 || 0,
+          r.notes_200 || 0,
+          r.notes_100 || 0,
+          r.notes_50 || 0,
+          r.notes_20 || 0,
+          r.notes_10 || 0,
+          r.coins || 0,
+          r.phonepe || 0,
+          JSON.stringify(r.dropdowns || []),
+          r.shortfall || 0
+        ]
+      });
+    });
+
+    await db.batch(statements);
+    res.json({ success: true, message: 'Employee reconciliation data saved successfully.' });
+  } catch (err) {
+    console.error('Error saving shift reconciliation:', err.message);
+    res.status(500).json({ error: 'Database error saving shift reconciliation.' });
   }
 });
 

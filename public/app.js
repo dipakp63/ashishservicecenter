@@ -150,7 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <option value="Fresh Credit">Fresh Credit</option>
               <option value="Employee">Employee</option>
               <option value="MH-19-CY-5682">MH-19-CY-5682</option>
-              <option value="Alto 800">Alto 800</option>
+              <option value="Discount">Discount</option>
               <option value="Other">Other</option>
             </select>
           </td>
@@ -351,7 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
       set('calc-count-200', window.lastClosedCashData.notes200);
       set('calc-count-100', window.lastClosedCashData.notes100);
       set('calc-count-50',  window.lastClosedCashData.notes50);
-      set('calc-count-20',  0);
+      set('calc-count-20',  window.lastClosedCashData.notes20);
       set('calc-count-10',  0);
 
       showView('cash-calc');
@@ -6903,20 +6903,70 @@ document.addEventListener('DOMContentLoaded', () => {
     for (let i = 1; i <= numSamples; i++) {
       const val = existingValues[i - 1] || { container: '', wooden: '' };
       html += `
-        <div class="seal-row" style="display: grid; grid-template-columns: 90px 1fr 1fr; gap: 0.5rem; align-items: center; background: rgba(15, 23, 42, 0.3); padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.06); transition: all 0.2s ease;">
+        <div class="wizard-seal-row">
           <div style="font-weight: 600; font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.3rem;">
             <span style="color: var(--accent);">📦</span> Box ${i}
           </div>
           <div>
-            <input type="text" id="wizard-container-seal-${i}" placeholder="Alu Container Seal" value="${val.container}" style="width: 100%; padding: 0.35rem 0.5rem; height: 32px; font-size: 0.8rem; border-radius: 0.35rem; background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255,255,255,0.1); color: #fff; outline: none;">
+            <input type="text" id="wizard-container-seal-${i}" class="wizard-input" style="height: 32px !important;" placeholder="Alu Container Seal" value="${val.container}">
           </div>
           <div>
-            <input type="text" id="wizard-wooden-seal-${i}" placeholder="Wooden Box Seal" value="${val.wooden}" style="width: 100%; padding: 0.35rem 0.5rem; height: 32px; font-size: 0.8rem; border-radius: 0.35rem; background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255,255,255,0.1); color: #fff; outline: none;">
+            <input type="text" id="wizard-wooden-seal-${i}" class="wizard-input" style="height: 32px !important;" placeholder="Wooden Box Seal" value="${val.wooden}">
           </div>
         </div>
       `;
     }
     container.innerHTML = html;
+    setupSealInputNavigation(numSamples);
+  }
+
+  // Set up custom Enter key navigation for seal inputs (Container first, then Wooden)
+  function setupSealInputNavigation(numSamples) {
+    for (let i = 1; i <= numSamples; i++) {
+      const cInput = document.getElementById(`wizard-container-seal-${i}`);
+      const wInput = document.getElementById(`wizard-wooden-seal-${i}`);
+
+      if (cInput) {
+        cInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+            let nextTarget;
+            if (i < numSamples) {
+              nextTarget = document.getElementById(`wizard-container-seal-${i + 1}`);
+            } else {
+              nextTarget = document.getElementById(`wizard-wooden-seal-1`);
+            }
+            if (nextTarget) {
+              nextTarget.focus();
+              nextTarget.select();
+            }
+          }
+        });
+      }
+
+      if (wInput) {
+        wInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+            let nextTarget;
+            if (i < numSamples) {
+              nextTarget = document.getElementById(`wizard-wooden-seal-${i + 1}`);
+            }
+            if (nextTarget) {
+              nextTarget.focus();
+              nextTarget.select();
+            } else {
+              const nextBtn = document.querySelector('#form-label-wizard button[type="submit"]');
+              if (nextBtn) {
+                nextBtn.click();
+              }
+            }
+          }
+        });
+      }
+    }
   }
 
   // Open Wizard & Pre-fill
@@ -7733,6 +7783,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const employeesList = employeesData.employees || [];
+      const thirdShiftEmp = employeesList.find(emp => emp.name === 'Third Shift');
+      const thirdShiftEmpId = thirdShiftEmp ? thirdShiftEmp.id : '';
       const currentRates = ratesData.rates || { rate_petrol: 100, rate_diesel: 90, rate_power: 110 };
 
       // Helper to generate options for employee select
@@ -7796,7 +7848,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
           // Find if there is a saved entry for this shift and nozzle
           const savedEntry = hishobData.entries.find(e => e.shift === shiftNum && e.nozzle_index === noz.id);
-          const activeEmployeeId = savedEntry ? savedEntry.employee_id : '';
+          const activeEmployeeId = savedEntry ? savedEntry.employee_id : (shiftNum === 3 ? thirdShiftEmpId : '');
           
           let openingVal = '';
           let closingVal = '';
@@ -7858,7 +7910,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <td style="padding: 0.3rem 0.05rem; text-align: right; font-weight: 600; font-size: 0.72rem;"><span class="row-sale-val">0.00</span></td>
             <td style="padding: 0.3rem 0.05rem; text-align: right; font-size: 0.72rem; color: var(--text-muted); font-family: monospace;">${noz.rate.toFixed(2)}</td>
             <td style="padding: 0.3rem 0.05rem; text-align: right; font-weight: 700; font-size: 0.72rem; color: var(--success);"><span class="row-amount-val">₹ 0.00</span></td>
-            <td style="padding: 0.3rem 0.05rem;">
+            <td style="padding: 0.3rem 0.05rem; display: none;">
               <input type="number" step="0.01" class="row-phonepe-input" value="${phonepeVal}" ${phonepeReadonly} style="${phonepeStyle}">
             </td>
           `;
@@ -7983,7 +8035,7 @@ document.addEventListener('DOMContentLoaded', () => {
         nozzles.forEach(noz => {
           const dayReading = currentDayReadingsMap[noz.id];
           const savedTest = hishobData.testing.find(t => t.nozzle_index === noz.id);
-          const activeEmployeeId = savedTest ? savedTest.employee_id : '';
+          const activeEmployeeId = savedTest ? savedTest.employee_id : thirdShiftEmpId;
           const testingQty = savedTest ? savedTest.testing_qty : (dayReading ? dayReading.testing_qty : 5.0);
           const phonepeVal = savedTest ? savedTest.phonepe_amount : 0;
 
@@ -8015,7 +8067,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </td>
             <td style="padding: 0.3rem 0.05rem; text-align: right; font-size: 0.72rem; color: var(--text-muted); font-family: monospace;">${noz.rate.toFixed(2)}</td>
             <td style="padding: 0.3rem 0.05rem; text-align: right; font-weight: 700; font-size: 0.72rem; color: var(--success);"><span class="row-testing-amount-val">₹ 0.00</span></td>
-            <td style="padding: 0.3rem 0.05rem;">
+            <td style="padding: 0.3rem 0.05rem; display: none;">
               <input type="number" step="0.01" class="row-testing-phonepe-input" value="${phonepeVal}" ${phonepeReadonly} style="${phonepeStyle}">
             </td>
           `;
@@ -8147,7 +8199,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const closing = parseFloat(tr.querySelector('.row-closing-input').value) || 0;
             
             const dayReading = currentDayReadingsMap[nozzleId];
-            if (dayReading) {
+if (dayReading) {
               if (opening < dayReading.opening_reading || opening > dayReading.closing_reading) {
                 showToast(`Nozzle N${nozzleId} Shift ${shiftNum} opening reading (${opening}) is out of day boundaries [${dayReading.opening_reading}, ${dayReading.closing_reading}].`, 'error');
                 isValid = false;
@@ -8231,8 +8283,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // ── Employee Shift Reconciliation Logic ──────────────────────────────────────
   let reconShiftData = null;   // { entries: [], testing: [] }
   let reconEmployeeMap = {};   // id -> name
-  let reconActiveShift = 1;
   let reconDate = '';
+  let reconEmployees = [];     // Array of employee objects with their reconciliation entries
+  let reconCurrentIndex = 0;   // Current active employee step
+  let dailyNonCashList = [];   // Loaded daily non-cash payments list
 
   // Navigate to reconciliation from porancha hishob
   const btnGotoReconciliation = document.getElementById('btn-goto-reconciliation');
@@ -8264,16 +8318,89 @@ document.addEventListener('DOMContentLoaded', () => {
           (empData.employees || []).forEach(e => { reconEmployeeMap[e.id] = e.name; });
         }
 
-        reconActiveShift = 1;
+        // Fetch daily non-cash payments list
+        const nonCashRes = await fetch(`/api/porancha-hishob/non-cash?date=${reconDate}`);
+        if (nonCashRes.ok) {
+          const nonCashData = await nonCashRes.json();
+          dailyNonCashList = nonCashData.nonCashPayments || [];
+        }
+
+        // Build employees reconciliation list
+        const empIdsSeen = new Set();
+        reconEmployees = [];
+        reconShiftData.entries.forEach(e => {
+          if (e.employee_id && !empIdsSeen.has(e.employee_id)) {
+            empIdsSeen.add(e.employee_id);
+            reconEmployees.push({
+              employee_id: e.employee_id,
+              name: reconEmployeeMap[e.employee_id] || `Employee #${e.employee_id}`,
+              totalSale: 0,
+              notes_500: 0,
+              notes_200: 0,
+              notes_100: 0,
+              notes_50: 0,
+              notes_20: 0,
+              notes_10: 0,
+              coins: 0,
+              phonepe: 0,
+              dropdowns: Array(9).fill(null).map(() => ({ type: '', amount: 0 })),
+              shortfall: 0
+            });
+          }
+        });
+
+        // Sum up total sales per employee
+        reconEmployees.forEach(emp => {
+          reconShiftData.entries.forEach(e => {
+            if (e.employee_id === emp.employee_id) {
+              emp.totalSale += e.final_amount || 0;
+            }
+          });
+        });
+
+        // Fetch existing reconciliation details from server if any
+        try {
+          const savedRes = await fetch(`/api/porancha-hishob/reconciliation?date=${reconDate}`);
+          if (savedRes.ok) {
+            const savedData = await savedRes.json();
+            const savedMap = {};
+            (savedData.reconciliation || []).forEach(r => {
+              savedMap[r.employee_id] = r;
+            });
+            reconEmployees.forEach(emp => {
+              const saved = savedMap[emp.employee_id];
+              if (saved) {
+                emp.notes_500 = saved.notes_500 || 0;
+                emp.notes_200 = saved.notes_200 || 0;
+                emp.notes_100 = saved.notes_100 || 0;
+                emp.notes_50 = saved.notes_50 || 0;
+                emp.notes_20 = saved.notes_20 || 0;
+                emp.notes_10 = saved.notes_10 || 0;
+                emp.coins = saved.coins || 0;
+                emp.phonepe = saved.phonepe || 0;
+                const dpList = Array.isArray(saved.dropdowns) ? saved.dropdowns : [];
+                emp.dropdowns = Array(9).fill(null).map((_, i) => {
+                  const item = dpList[i];
+                  return { type: item ? item.type : '', amount: item ? item.amount : 0 };
+                });
+                emp.shortfall = saved.shortfall || 0;
+              }
+            });
+          }
+        } catch (err) {
+          console.error('Error fetching existing reconciliation entries:', err.message);
+        }
+
+        reconCurrentIndex = 0;
         showView('shift-reconciliation');
-        renderReconciliation();
+        renderReconciliationWizard();
       } catch (err) {
         showToast(err.message, 'error');
       }
     });
   }
 
-  // Back button
+  // Back to shifts button
   const btnBackToShifts = document.getElementById('btn-back-to-shifts');
   if (btnBackToShifts) {
     btnBackToShifts.addEventListener('click', () => {
@@ -8281,275 +8408,376 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Shift tab clicks
-  document.querySelectorAll('.recon-shift-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      reconActiveShift = parseInt(tab.getAttribute('data-shift')) || 1;
-      renderReconciliation();
-    });
-  });
+  // Prev / Next step buttons
+  const btnReconPrevStep = document.getElementById('btn-recon-prev-step');
+  const btnReconNextStep = document.getElementById('btn-recon-next-step');
 
-  // Prev/Next shift buttons
-  const btnReconPrevShift = document.getElementById('btn-recon-prev-shift');
-  const btnReconNextShift = document.getElementById('btn-recon-next-shift');
-
-  if (btnReconPrevShift) {
-    btnReconPrevShift.addEventListener('click', () => {
-      if (reconActiveShift > 1) {
-        reconActiveShift--;
-        renderReconciliation();
-      }
-    });
-  }
-
-  if (btnReconNextShift) {
-    btnReconNextShift.addEventListener('click', () => {
-      if (reconActiveShift < 3) {
-        reconActiveShift++;
-        renderReconciliation();
+  if (btnReconPrevStep) {
+    btnReconPrevStep.addEventListener('click', () => {
+      if (reconCurrentIndex > 0) {
+        reconCurrentIndex--;
+        renderReconciliationWizard();
       } else {
-        // Shift 3 done — go back
-        showToast('All shift reconciliations reviewed!', 'success');
         showView('porancha-hishob');
       }
     });
   }
 
-  function renderReconciliation() {
-    if (!reconShiftData) return;
+  if (btnReconNextStep) {
+    btnReconNextStep.addEventListener('click', async () => {
+      if (reconCurrentIndex < reconEmployees.length - 1) {
+        reconCurrentIndex++;
+        renderReconciliationWizard();
+      } else {
+        // Last employee step: Save to database!
+        try {
+          const saveRes = await fetch('/api/porancha-hishob/reconciliation', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              date: reconDate,
+              data: reconEmployees
+            })
+          });
+          if (!saveRes.ok) {
+            throw new Error('Failed to save reconciliation data.');
+          }
+          showToast('Employee Reconciliation saved successfully!', 'success');
+          showView('porancha-hishob');
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
+      }
+    });
+  }
 
-    // Update date display
+  function renderReconciliationWizard() {
+    const container = document.getElementById('recon-wizard-container');
+    const indicator = document.getElementById('recon-step-indicator');
     const dateDisplay = document.getElementById('recon-date-display');
+    if (!container) return;
+
     if (dateDisplay) dateDisplay.textContent = reconDate;
 
-    // Update tab active states
-    document.querySelectorAll('.recon-shift-tab').forEach(tab => {
-      const s = parseInt(tab.getAttribute('data-shift'));
-      tab.classList.toggle('active', s === reconActiveShift);
-      // Style active tab
-      if (s === reconActiveShift) {
-        tab.style.background = 'var(--accent)';
-        tab.style.color = '#fff';
-        tab.style.borderColor = 'var(--accent)';
-      } else {
-        tab.style.background = 'var(--panel-bg)';
-        tab.style.color = 'var(--text-muted)';
-        tab.style.borderColor = 'var(--panel-border)';
-      }
-    });
-
-    // Update prev/next buttons
-    if (btnReconPrevShift) {
-      btnReconPrevShift.style.display = reconActiveShift > 1 ? 'inline-flex' : 'none';
-    }
-    if (btnReconNextShift) {
-      if (reconActiveShift === 3) {
-        btnReconNextShift.textContent = '✓ Finish Reconciliation';
-      } else {
-        btnReconNextShift.textContent = 'Next Shift →';
-      }
-    }
-
-    // Filter entries for active shift
-    const shiftEntries = reconShiftData.entries.filter(e => e.shift === reconActiveShift);
-
-    // Group by employee_id
-    const employeeGroups = {};
-    shiftEntries.forEach(entry => {
-      const empId = entry.employee_id || 0;
-      if (!employeeGroups[empId]) {
-        employeeGroups[empId] = {
-          employee_id: empId,
-          employee_name: empId ? (reconEmployeeMap[empId] || `Employee #${empId}`) : 'Unassigned',
-          nozzles: [],
-          totalAmount: 0,
-          totalPhonePe: 0
-        };
-      }
-      employeeGroups[empId].nozzles.push(entry);
-      employeeGroups[empId].totalAmount += entry.final_amount || 0;
-      employeeGroups[empId].totalPhonePe += entry.phonepe_amount || 0;
-    });
-
-    // Render employee cards
-    const container = document.getElementById('recon-employee-cards');
-    if (!container) return;
-    container.innerHTML = '';
-
-    const fmt = (n) => '₹ ' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-    const empIds = Object.keys(employeeGroups);
-
-    if (empIds.length === 0) {
+    if (!reconEmployees || reconEmployees.length === 0) {
+      indicator.textContent = '0 of 0';
       container.innerHTML = `
-        <div style="text-align: center; padding: 3rem; color: var(--text-muted); font-size: 0.9rem;">
-          No shift entries found for Shift ${reconActiveShift}.
+        <div style="text-align: center; padding: 3rem; color: var(--text-muted); font-size: 0.95rem;">
+          No employees assigned in duty log for this date. Please allocate duties first.
         </div>`;
-      updateReconSummary();
+      if (btnReconPrevStep) btnReconPrevStep.style.display = 'none';
+      if (btnReconNextStep) btnReconNextStep.style.display = 'none';
       return;
     }
 
-    empIds.forEach(empId => {
-      const group = employeeGroups[empId];
-      const netAfterPhonePe = group.totalAmount - group.totalPhonePe;
-
-      const card = document.createElement('section');
-      card.className = 'card';
-      card.style.cssText = 'padding: 0.75rem 1rem; border-radius: 0.6rem;';
-      card.setAttribute('data-recon-emp-id', empId);
-
-      // Nozzle rows
-      let nozzleRowsHTML = '';
-      group.nozzles.forEach(n => {
-        nozzleRowsHTML += `
-          <tr style="border-bottom: 1px solid rgba(255,255,255,0.04);">
-            <td style="padding: 0.25rem 0.5rem; font-weight: 600; font-size: 0.75rem;">N${n.nozzle_index}</td>
-            <td style="padding: 0.25rem 0.5rem; font-size: 0.75rem; color: var(--text-muted);">${n.product}</td>
-            <td style="padding: 0.25rem 0.5rem; font-size: 0.75rem; text-align: right; font-family: monospace;">${(n.difference_sale || 0).toFixed(2)}</td>
-            <td style="padding: 0.25rem 0.5rem; font-size: 0.75rem; text-align: right; font-family: monospace;">${(n.rate || 0).toFixed(2)}</td>
-            <td style="padding: 0.25rem 0.5rem; font-size: 0.75rem; text-align: right; font-weight: 700; color: var(--success);">${fmt(n.final_amount)}</td>
-            <td style="padding: 0.25rem 0.5rem; font-size: 0.75rem; text-align: right; color: var(--accent);">${fmt(n.phonepe_amount)}</td>
-          </tr>`;
-      });
-
-      card.innerHTML = `
-        <!-- Employee Header -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; padding-bottom: 0.4rem; border-bottom: 2px solid rgba(255,255,255,0.06);">
-          <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <div style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6, #1d4ed8); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.7rem; color: #fff; flex-shrink: 0;">
-              ${group.employee_name.charAt(0).toUpperCase()}
-            </div>
-            <div>
-              <div style="font-weight: 700; font-size: 0.9rem; color: var(--text-main);">${group.employee_name}</div>
-              <div style="font-size: 0.68rem; color: var(--text-muted);">${group.nozzles.length} nozzle${group.nozzles.length > 1 ? 's' : ''} operated</div>
-            </div>
-          </div>
-          <div style="text-align: right;">
-            <div style="font-size: 0.68rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em;">Total Sale</div>
-            <div style="font-size: 1.1rem; font-weight: 800; color: var(--success);">${fmt(group.totalAmount)}</div>
-          </div>
-        </div>
-
-        <!-- Nozzle Details Table -->
-        <div style="overflow-x: auto; margin-bottom: 0.6rem;">
-          <table style="width: 100%; border-collapse: collapse; font-size: 0.78rem;">
-            <thead>
-              <tr style="border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.015);">
-                <th style="padding: 0.2rem 0.5rem; text-align: left; font-size: 0.65rem; color: var(--text-muted);">Nozzle</th>
-                <th style="padding: 0.2rem 0.5rem; text-align: left; font-size: 0.65rem; color: var(--text-muted);">Product</th>
-                <th style="padding: 0.2rem 0.5rem; text-align: right; font-size: 0.65rem; color: var(--text-muted);">Sale (L)</th>
-                <th style="padding: 0.2rem 0.5rem; text-align: right; font-size: 0.65rem; color: var(--text-muted);">Rate</th>
-                <th style="padding: 0.2rem 0.5rem; text-align: right; font-size: 0.65rem; color: var(--text-muted);">Amount</th>
-                <th style="padding: 0.2rem 0.5rem; text-align: right; font-size: 0.65rem; color: var(--text-muted);">PhonePe</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${nozzleRowsHTML}
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Cash / Credit Sale Inputs -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 0.5rem; align-items: end;">
-          <!-- PhonePe (readonly) -->
-          <div>
-            <label style="display: block; font-size: 0.65rem; font-weight: 600; color: var(--accent); margin-bottom: 0.15rem; text-transform: uppercase; letter-spacing: 0.03em;">PhonePe</label>
-            <input type="text" readonly value="${fmt(group.totalPhonePe)}" style="width: 100%; padding: 0.3rem 0.4rem; font-size: 0.8rem; font-weight: 700; border-radius: 0.3rem; background: rgba(255,255,255,0.02); color: var(--accent); border: 1px solid var(--panel-border); cursor: not-allowed; text-align: right;">
-          </div>
-          <!-- Cash Sale -->
-          <div>
-            <label style="display: block; font-size: 0.65rem; font-weight: 600; color: var(--success); margin-bottom: 0.15rem; text-transform: uppercase; letter-spacing: 0.03em;">Cash Sale (₹)</label>
-            <input type="number" step="0.01" class="recon-cash-input" data-emp-id="${empId}" value="${netAfterPhonePe > 0 ? netAfterPhonePe.toFixed(2) : '0.00'}" style="width: 100%; padding: 0.3rem 0.4rem; font-size: 0.8rem; font-weight: 700; border-radius: 0.3rem; background: var(--panel-bg); border: 1px solid var(--panel-border); text-align: right; color: var(--success);">
-          </div>
-          <!-- Credit Sale -->
-          <div>
-            <label style="display: block; font-size: 0.65rem; font-weight: 600; color: var(--danger); margin-bottom: 0.15rem; text-transform: uppercase; letter-spacing: 0.03em;">Credit Sale (₹)</label>
-            <input type="number" step="0.01" class="recon-credit-input" data-emp-id="${empId}" value="0.00" style="width: 100%; padding: 0.3rem 0.4rem; font-size: 0.8rem; font-weight: 700; border-radius: 0.3rem; background: var(--panel-bg); border: 1px solid var(--panel-border); text-align: right; color: var(--danger);">
-          </div>
-          <!-- Difference -->
-          <div>
-            <label style="display: block; font-size: 0.65rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.15rem; text-transform: uppercase; letter-spacing: 0.03em;">Difference</label>
-            <div class="recon-diff-display" data-emp-id="${empId}" style="padding: 0.3rem 0.4rem; font-size: 0.8rem; font-weight: 800; border-radius: 0.3rem; background: rgba(0,0,0,0.15); border: 1px solid var(--panel-border); text-align: right; color: var(--text-muted); min-height: 28px; line-height: 1.4;">
-              ₹ 0.00
-            </div>
-          </div>
-        </div>
-      `;
-
-      container.appendChild(card);
-
-      // Attach input listeners
-      const cashInput = card.querySelector('.recon-cash-input');
-      const creditInput = card.querySelector('.recon-credit-input');
-      const diffDisplay = card.querySelector('.recon-diff-display');
-
-      function updateDiff() {
-        const cash = parseFloat(cashInput.value) || 0;
-        const credit = parseFloat(creditInput.value) || 0;
-        const total = group.totalAmount;
-        const phonePe = group.totalPhonePe;
-        const diff = total - phonePe - cash - credit;
-
-        if (Math.abs(diff) < 0.01) {
-          diffDisplay.innerHTML = '<span style="color: var(--success);">✓ ₹ 0.00</span>';
-          diffDisplay.style.borderColor = 'var(--success)';
-        } else if (diff > 0) {
-          diffDisplay.innerHTML = `<span style="color: var(--danger);">−${fmt(Math.abs(diff))}</span>`;
-          diffDisplay.style.borderColor = 'var(--danger)';
-        } else {
-          diffDisplay.innerHTML = `<span style="color: var(--accent);">+${fmt(Math.abs(diff))}</span>`;
-          diffDisplay.style.borderColor = 'var(--accent)';
-        }
-
-        updateReconSummary();
+    if (btnReconPrevStep) {
+      if (reconCurrentIndex === 0) {
+        btnReconPrevStep.textContent = '← Back to Shift Log';
+      } else {
+        btnReconPrevStep.textContent = '← Previous Employee';
       }
+      btnReconPrevStep.style.display = 'block';
+    }
+    if (btnReconNextStep) {
+      if (reconCurrentIndex === reconEmployees.length - 1) {
+        btnReconNextStep.textContent = '✓ Save & Finish';
+      } else {
+        btnReconNextStep.textContent = 'Next Employee →';
+      }
+      btnReconNextStep.style.display = 'block';
+    }
 
-      cashInput.addEventListener('input', updateDiff);
-      creditInput.addEventListener('input', updateDiff);
+    const emp = reconEmployees[reconCurrentIndex];
+    indicator.textContent = `Employee ${reconCurrentIndex + 1} of ${reconEmployees.length}`;
 
-      // Trigger initial diff calc
-      updateDiff();
+    // Select dropdown options list: Daily Non-Cash Payments from Day Closing
+    let selectOptionsHTML = `<option value="">[Select Adjustment Type]</option>`;
+    
+    const dailyValsSeen = new Set([""]);
+    dailyNonCashList.forEach((item, idx) => {
+      // Use description as the primary display name (server resolves debtor_id/employee_id to actual names)
+      const desc = item.description || item.type;
+      const optVal = `${desc}__${idx}`; // Unique value per row to handle duplicates
+      dailyValsSeen.add(desc);
+      const amtStr = Number(item.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const optText = `${desc} (₹${amtStr})`;
+      selectOptionsHTML += `<option value="${desc}" data-amount="${item.amount || 0}">${optText}</option>`;
     });
 
-    updateReconSummary();
-  }
+    // Appending saved values defensively (in case a previously saved value is no longer in today's list)
+    emp.dropdowns.forEach(rowData => {
+      if (rowData && rowData.type && !dailyValsSeen.has(rowData.type)) {
+        dailyValsSeen.add(rowData.type);
+        selectOptionsHTML += `<option value="${rowData.type}">${rowData.type} (Saved)</option>`;
+      }
+    });
 
-  function updateReconSummary() {
-    const container = document.getElementById('recon-employee-cards');
-    if (!container) return;
+    let cardHTML = `
+      <section class="card" style="padding: 1rem; border-radius: 0.75rem; display: flex; flex-direction: column; gap: 0.85rem;">
+        <!-- Header Details: Name, Sales -->
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--panel-border); padding-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+          <div>
+            <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Employee Name</div>
+            <h2 style="margin: 0.1rem 0 0 0; font-size: 1.25rem; color: var(--accent); font-family: var(--font-header);">${emp.name}</h2>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Sale</div>
+            <div style="font-size: 1.15rem; font-weight: 800; color: var(--success);">₹ ${Number(emp.totalSale).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+          </div>
+        </div>
 
-    let totalSale = 0;
-    let totalPhonePe = 0;
-    let totalCash = 0;
-    let totalCredit = 0;
+        <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 1.25rem; flex-wrap: wrap;">
+          <!-- Left Column: Cash Denominations (Yellow Inputs in Excel) -->
+          <div style="border-right: 1px solid var(--panel-border); padding-right: 1.25rem;" class="recon-left-col">
+            <h3 style="font-size: 0.82rem; color: var(--text-main); margin: 0 0 0.65rem 0; text-transform: uppercase; letter-spacing: 0.5px;">💵 Cash Note Counts</h3>
+            <div style="display: flex; flex-direction: column; gap: 0.4rem;">`;
 
-    // Sum from shift data
-    if (reconShiftData) {
-      reconShiftData.entries.filter(e => e.shift === reconActiveShift).forEach(entry => {
-        totalSale += entry.final_amount || 0;
-        totalPhonePe += entry.phonepe_amount || 0;
+    const denoms = [500, 200, 100, 50, 20, 10];
+    denoms.forEach(d => {
+      const valKey = `notes_${d}`;
+      const countVal = emp[valKey] || 0;
+      cardHTML += `
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); width: 45px;">₹ ${d}</span>
+                <span style="font-size: 0.8rem; color: var(--text-muted);">x</span>
+                <input type="number" class="form-control count-input" data-denom="${d}" value="${countVal}" min="0" style="width: 80px; text-align: right; height: 28px; padding: 0.15rem 0.4rem; background: #fffbeb; color: #78350f; border: 1px solid #fde68a; font-size: 0.85rem; font-weight: 700;">
+                <span style="font-size: 0.8rem; color: var(--text-muted); width: 15px; text-align: center;">=</span>
+                <span class="denom-total" data-denom="${d}" style="font-size: 0.85rem; font-weight: 700; font-family: monospace; width: 80px; text-align: right; color: var(--text-main);">₹ 0.00</span>
+              </div>`;
+    });
+
+    cardHTML += `
+              <!-- Coins Row -->
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; border-top: 1px solid var(--panel-border); padding-top: 0.5rem; margin-top: 0.15rem;">
+                <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-main);">चिल्लर/Coins</span>
+                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                  <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted);">₹</span>
+                  <input type="number" class="form-control coins-input" value="${emp.coins || 0}" min="0" step="0.01" style="width: 100px; text-align: right; height: 28px; padding: 0.15rem 0.4rem; background: #fffbeb; color: #78350f; border: 1px solid #fde68a; font-weight: 700; font-size: 0.85rem;">
+                </div>
+              </div>
+
+              <!-- PhonePe Input Row -->
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; border-top: 1px solid var(--panel-border); padding-top: 0.5rem; margin-top: 0.15rem;">
+                <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-main);">PhonePe (UPI)</span>
+                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                  <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted);">₹</span>
+                  <input type="number" class="form-control phonepe-input" value="${emp.phonepe || ''}" min="0" step="0.01" placeholder="0.00" style="width: 100px; text-align: right; height: 28px; padding: 0.15rem 0.4rem; background: #fffbeb; color: #78350f; border: 1px solid #fde68a; font-weight: 700; font-size: 0.85rem;">
+                </div>
+              </div>
+
+              <!-- Subtotal Cash Display -->
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem; padding: 0.45rem 0.55rem; background: rgba(0,0,0,0.15); border-radius: 0.4rem;">
+                <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Cash</span>
+                <span id="recon-card-total-cash" style="font-size: 0.95rem; font-weight: 800; color: var(--success);">₹ 0.00</span>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Right Column: Other Settlements Dropdowns -->
+          <div>
+            <h3 style="font-size: 0.82rem; color: var(--text-main); margin: 0 0 0.65rem 0; text-transform: uppercase; letter-spacing: 0.5px;">📝 Other Adjustments</h3>
+            <div style="display: flex; flex-direction: column; gap: 0.4rem;">`;
+
+    for (let i = 0; i < 9; i++) {
+      const rowData = emp.dropdowns[i] || { type: '', amount: 0 };
+      cardHTML += `
+              <div class="adj-row" data-row="${i}" style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 0.4rem; align-items: center;">
+                <select class="form-control adj-type-select" style="font-size: 0.8rem; height: 28px; padding: 0.15rem 0.3rem; appearance: auto; background: #fffbeb; color: #78350f; border: 1px solid #fde68a;">
+                  ${selectOptionsHTML}
+                </select>
+                <input type="number" class="form-control adj-amount-input" value="${rowData.amount || ''}" min="0" step="0.01" placeholder="0.00" style="text-align: right; font-size: 0.85rem; height: 28px; padding: 0.15rem 0.4rem; background: #fffbeb; color: #78350f; border: 1px solid #fde68a; font-weight: 700;">
+              </div>`;
+    }
+
+    cardHTML += `
+            </div>
+          </div>
+        </div>
+
+        <!-- Big Summary Block: Shortfall, cash total, total adjustments -->
+        <div style="border-top: 1px dashed var(--panel-border); padding-top: 0.65rem; margin-top: 0.5rem; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; background: rgba(255,255,255,0.015); padding: 0.65rem 0.8rem; border-radius: 0.6rem;">
+          <div style="text-align: center;">
+            <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Settled</span>
+            <h4 id="recon-card-settled" style="margin: 0.15rem 0 0 0; font-size: 1.1rem; font-weight: 800; color: var(--accent);">₹ 0.00</h4>
+          </div>
+          <div style="text-align: center;">
+            <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Sales</span>
+            <h4 style="margin: 0.15rem 0 0 0; font-size: 1.1rem; font-weight: 800; color: var(--success);">₹ ${Number(emp.totalSale).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h4>
+          </div>
+          <div style="text-align: center;">
+            <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Shortfall (तूट)</span>
+            <h4 id="recon-card-shortfall" style="margin: 0.15rem 0 0 0; font-size: 1.1rem; font-weight: 800; color: var(--danger);">₹ 0.00</h4>
+          </div>
+        </div>
+      </section>`;
+
+    container.innerHTML = cardHTML;
+
+    // Prefill dropdown values
+    const selectElements = container.querySelectorAll('.adj-type-select');
+    selectElements.forEach((sel, i) => {
+      const rowData = emp.dropdowns[i];
+      if (rowData && rowData.type) {
+        sel.value = rowData.type;
+      }
+    });
+
+    // Function to dynamically refresh select options across all rows, filtering already selected options
+    function updateDropdownOptions() {
+      const selectedValuesGlobal = new Set();
+      reconEmployees.forEach(otherEmp => {
+        otherEmp.dropdowns.forEach(d => {
+          if (d && d.type && d.type !== 'Expense (खर्च)') {
+            selectedValuesGlobal.add(d.type);
+          }
+        });
+      });
+
+      const rows = container.querySelectorAll('.adj-row');
+      rows.forEach(row => {
+        const sel = row.querySelector('.adj-type-select');
+        if (!sel) return;
+        const currentVal = sel.value;
+
+        let html = `<option value="">[Select Adjustment Type]</option>`;
+        html += `<option value="Expense (खर्च)" ${currentVal === 'Expense (खर्च)' ? 'selected' : ''}>Expense (खर्च)</option>`;
+
+        dailyNonCashList.forEach((item) => {
+          const desc = item.description || item.type;
+          const isSelectedElsewhere = selectedValuesGlobal.has(desc);
+          const isCurrentSelected = (desc === currentVal);
+
+          if (!isSelectedElsewhere || isCurrentSelected) {
+            const amtStr = Number(item.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            html += `<option value="${desc}" data-amount="${item.amount || 0}" ${isCurrentSelected ? 'selected' : ''}>${desc} (₹${amtStr})</option>`;
+          }
+        });
+
+        // Append saved value defensively if it is not in the active options list
+        const rowIdx = parseInt(row.getAttribute('data-row'), 10);
+        const rowData = emp.dropdowns[rowIdx];
+        if (rowData && rowData.type && rowData.type !== 'Expense (खर्च)' && !html.includes(`value="${rowData.type}"`)) {
+          html += `<option value="${rowData.type}" selected>${rowData.type} (Saved)</option>`;
+        }
+
+        sel.innerHTML = html;
+        sel.value = currentVal;
       });
     }
 
-    // Sum from inputs
-    container.querySelectorAll('.recon-cash-input').forEach(inp => {
-      totalCash += parseFloat(inp.value) || 0;
+    // Filter dropdown options based on current selections
+    updateDropdownOptions();
+
+    // Add interactive listeners
+    const inputs = container.querySelectorAll('.count-input');
+    const coinsInput = container.querySelector('.coins-input');
+    const phonepeInput = container.querySelector('.phonepe-input');
+    const adjRows = container.querySelectorAll('.adj-row');
+
+    function calculateCardTotals() {
+      let cashTotal = 0;
+      inputs.forEach(inp => {
+        const denom = parseInt(inp.getAttribute('data-denom'), 10);
+        const count = parseInt(inp.value, 10) || 0;
+        const totalSpan = container.querySelector(`.denom-total[data-denom="${denom}"]`);
+        const rowTotal = denom * count;
+        cashTotal += rowTotal;
+        if (totalSpan) {
+          totalSpan.textContent = '₹ ' + rowTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+      });
+      const coins = parseFloat(coinsInput.value) || 0;
+      cashTotal += coins;
+
+      const totalCashSpan = document.getElementById('recon-card-total-cash');
+      if (totalCashSpan) {
+        totalCashSpan.textContent = '₹ ' + cashTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+
+      // Sum adjustments
+      let adjTotal = 0;
+      adjRows.forEach(row => {
+        const sel = row.querySelector('.adj-type-select');
+        const valInp = row.querySelector('.adj-amount-input');
+        if (sel.value) {
+          adjTotal += parseFloat(valInp.value) || 0;
+        }
+      });
+
+      // PhonePe
+      const phonepeVal = parseFloat(phonepeInput.value) || 0;
+
+      // Total Settled
+      const totalSettled = cashTotal + adjTotal + phonepeVal;
+      const settledSpan = document.getElementById('recon-card-settled');
+      if (settledSpan) {
+        settledSpan.textContent = '₹ ' + totalSettled.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+
+      // Shortfall
+      const shortfall = emp.totalSale - totalSettled;
+      const shortfallSpan = document.getElementById('recon-card-shortfall');
+      if (shortfallSpan) {
+        if (Math.abs(shortfall) < 0.01) {
+          shortfallSpan.textContent = '₹ 0.00';
+          shortfallSpan.style.color = 'var(--success)';
+        } else if (shortfall > 0) {
+          shortfallSpan.textContent = '₹ ' + shortfall.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          shortfallSpan.style.color = 'var(--danger)';
+        } else {
+          shortfallSpan.textContent = '₹ ' + shortfall.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          shortfallSpan.style.color = 'var(--accent)';
+        }
+      }
+
+      // Store inputs in current employee object in real-time
+      inputs.forEach(inp => {
+        const denom = parseInt(inp.getAttribute('data-denom'), 10);
+        emp[`notes_${denom}`] = parseInt(inp.value, 10) || 0;
+      });
+      emp.coins = coins;
+      adjRows.forEach(row => {
+        const i = parseInt(row.getAttribute('data-row'), 10);
+        const sel = row.querySelector('.adj-type-select');
+        const valInp = row.querySelector('.adj-amount-input');
+        emp.dropdowns[i] = {
+          type: sel.value,
+          amount: parseFloat(valInp.value) || 0
+        };
+      });
+      emp.phonepe = phonepeVal;
+      emp.shortfall = shortfall;
+    }
+
+    // Bind inputs change
+    inputs.forEach(inp => inp.addEventListener('input', calculateCardTotals));
+    coinsInput.addEventListener('input', calculateCardTotals);
+    phonepeInput.addEventListener('input', calculateCardTotals);
+    adjRows.forEach(row => {
+      const sel = row.querySelector('.adj-type-select');
+      const valInp = row.querySelector('.adj-amount-input');
+      
+      sel.addEventListener('change', () => {
+        const selectedOption = sel.options[sel.selectedIndex];
+        const amountAttr = selectedOption.getAttribute('data-amount');
+        if (amountAttr) {
+          valInp.value = parseFloat(amountAttr);
+        } else if (!sel.value) {
+          valInp.value = '';
+        }
+        calculateCardTotals();
+        updateDropdownOptions(); // Refresh dropdown lists to update filtered selections
+      });
+      
+      valInp.addEventListener('input', () => {
+        calculateCardTotals();
+        updateDropdownOptions(); // Refresh dropdown lists to update filtered selections
+      });
     });
-    container.querySelectorAll('.recon-credit-input').forEach(inp => {
-      totalCredit += parseFloat(inp.value) || 0;
-    });
 
-    const fmt = (n) => '₹ ' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-    const elSale = document.getElementById('recon-shift-total-sale');
-    const elPhonePe = document.getElementById('recon-shift-total-phonepe');
-    const elCash = document.getElementById('recon-shift-total-cash');
-    const elCredit = document.getElementById('recon-shift-total-credit');
-
-    if (elSale) elSale.textContent = fmt(totalSale);
-    if (elPhonePe) elPhonePe.textContent = fmt(totalPhonePe);
-    if (elCash) elCash.textContent = fmt(totalCash);
-    if (elCredit) elCredit.textContent = fmt(totalCredit);
+    // Run initial calculations
+    calculateCardTotals();
   }
 
   async function validateDynamicPassword(input) {

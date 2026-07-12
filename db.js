@@ -372,6 +372,24 @@ async function initDatabase() {
         comment TEXT
       )`,
     },
+    {
+      sql: `CREATE TABLE IF NOT EXISTS porancha_hishob_reconciliation (
+        date TEXT NOT NULL,
+        employee_id INTEGER NOT NULL,
+        notes_500 INTEGER DEFAULT 0,
+        notes_200 INTEGER DEFAULT 0,
+        notes_100 INTEGER DEFAULT 0,
+        notes_50 INTEGER DEFAULT 0,
+        notes_20 INTEGER DEFAULT 0,
+        notes_10 INTEGER DEFAULT 0,
+        coins REAL DEFAULT 0,
+        phonepe REAL DEFAULT 0,
+        dropdowns TEXT,
+        shortfall REAL DEFAULT 0,
+        PRIMARY KEY (date, employee_id),
+        FOREIGN KEY (employee_id) REFERENCES employees(id)
+      )`,
+    },
   ];
 
   // Run CREATE TABLE statements concurrently to avoid Vercel 10s timeouts on cold starts
@@ -379,6 +397,10 @@ async function initDatabase() {
 
   // Run seed inserts after tables have been created
   await run(`INSERT OR IGNORE INTO hpcl_config (key, value) VALUES ('hpcl_opening_balance', '0')`);
+  await run(`INSERT OR IGNORE INTO debtors (debtor_name, is_active) VALUES ('Other', 1)`);
+  await run(`INSERT OR IGNORE INTO debtors (debtor_name, is_active) VALUES ('Discount', 1)`);
+  await run(`INSERT OR IGNORE INTO employees (name, is_active) VALUES ('Third Shift', 1)`);
+  await run(`INSERT OR IGNORE INTO employees (name, is_active) VALUES ('Dipak Patil', 1)`);
 
   console.log('[DB] All tables initialized successfully.');
 
@@ -410,12 +432,29 @@ async function initDatabase() {
     run(`ALTER TABLE employee_transactions ADD COLUMN remarks TEXT`),
     run(`ALTER TABLE chillar_transactions ADD COLUMN notes_20 INTEGER DEFAULT 0`),
     run(`ALTER TABLE tt_transactions ADD COLUMN tt_entry_id INTEGER DEFAULT NULL`),
+    run(`ALTER TABLE porancha_hishob_reconciliation ADD COLUMN phonepe REAL DEFAULT 0`),
     run(`CREATE INDEX IF NOT EXISTS idx_debtor_transactions_id_date ON debtor_transactions(debtor_id, transaction_date)`),
     run(`CREATE INDEX IF NOT EXISTS idx_employee_transactions_id_date ON employee_transactions(employee_id, transaction_date)`),
     run(`CREATE INDEX IF NOT EXISTS idx_tt_transactions_date ON tt_transactions(date)`),
     run(`CREATE INDEX IF NOT EXISTS idx_tt_trips_date ON tt_trips(date)`),
     run(`CREATE INDEX IF NOT EXISTS idx_tt_entries_date ON tt_entries(date)`),
-    run(`CREATE INDEX IF NOT EXISTS idx_porancha_hishob_date ON porancha_hishob_entries(date)`)
+    run(`CREATE INDEX IF NOT EXISTS idx_porancha_hishob_date ON porancha_hishob_entries(date)`),
+    run(`CREATE TABLE IF NOT EXISTS porancha_hishob_reconciliation (
+      date TEXT NOT NULL,
+      employee_id INTEGER NOT NULL,
+      notes_500 INTEGER DEFAULT 0,
+      notes_200 INTEGER DEFAULT 0,
+      notes_100 INTEGER DEFAULT 0,
+      notes_50 INTEGER DEFAULT 0,
+      notes_20 INTEGER DEFAULT 0,
+      notes_10 INTEGER DEFAULT 0,
+      coins REAL DEFAULT 0,
+      phonepe REAL DEFAULT 0,
+      dropdowns TEXT,
+      shortfall REAL DEFAULT 0,
+      PRIMARY KEY (date, employee_id),
+      FOREIGN KEY (employee_id) REFERENCES employees(id)
+    )`)
   ]);
   console.log('[DB] Migrations processed.');
 }
