@@ -8343,7 +8343,7 @@ if (dayReading) {
               notes_10: 0,
               coins: 0,
               phonepe: 0,
-              dropdowns: Array(9).fill(null).map(() => ({ type: '', amount: 0 })),
+              dropdowns: Array(10).fill(null).map(() => ({ type: '', amount: 0 })),
               shortfall: 0
             });
           }
@@ -8379,7 +8379,7 @@ if (dayReading) {
                 emp.coins = saved.coins || 0;
                 emp.phonepe = saved.phonepe || 0;
                 const dpList = Array.isArray(saved.dropdowns) ? saved.dropdowns : [];
-                emp.dropdowns = Array(9).fill(null).map((_, i) => {
+                emp.dropdowns = Array(10).fill(null).map((_, i) => {
                   const item = dpList[i];
                   return { type: item ? item.type : '', amount: item ? item.amount : 0 };
                 });
@@ -8492,8 +8492,11 @@ if (dayReading) {
 
     // Select dropdown options list: Daily Non-Cash Payments from Day Closing
     let selectOptionsHTML = `<option value="">[Select Adjustment Type]</option>`;
+    selectOptionsHTML += `<option value="Expense (खर्च)">Expense (खर्च)</option>`;
+    selectOptionsHTML += `<option value="हिशोबात कमी">हिशोबात कमी</option>`;
+    selectOptionsHTML += `<option value="मीटर मायनस">मीटर मायनस</option>`;
     
-    const dailyValsSeen = new Set([""]);
+    const dailyValsSeen = new Set(["", "Expense (खर्च)", "हिशोबात कमी", "मीटर मायनस"]);
     dailyNonCashList.forEach((item, idx) => {
       // Use description as the primary display name (server resolves debtor_id/employee_id to actual names)
       const desc = item.description || item.type;
@@ -8542,7 +8545,7 @@ if (dayReading) {
                 <span style="font-size: 0.8rem; color: var(--text-muted);">x</span>
                 <input type="number" class="form-control count-input" data-denom="${d}" value="${countVal}" min="0" style="width: 80px; text-align: right; height: 28px; padding: 0.15rem 0.4rem; background: #fffbeb; color: #78350f; border: 1px solid #fde68a; font-size: 0.85rem; font-weight: 700;">
                 <span style="font-size: 0.8rem; color: var(--text-muted); width: 15px; text-align: center;">=</span>
-                <span class="denom-total" data-denom="${d}" style="font-size: 0.85rem; font-weight: 700; font-family: monospace; width: 80px; text-align: right; color: var(--text-main);">₹ 0.00</span>
+                <span class="denom-total" data-denom="${d}" style="font-size: 0.85rem; font-weight: 700; font-family: monospace; width: 105px; text-align: right; color: var(--text-main); white-space: nowrap;">₹ 0.00</span>
               </div>`;
     });
 
@@ -8579,13 +8582,14 @@ if (dayReading) {
             <h3 style="font-size: 0.82rem; color: var(--text-main); margin: 0 0 0.65rem 0; text-transform: uppercase; letter-spacing: 0.5px;">📝 Other Adjustments</h3>
             <div style="display: flex; flex-direction: column; gap: 0.4rem;">`;
 
-    for (let i = 0; i < 9; i++) {
+    for (let i = 0; i < 10; i++) {
       const rowData = emp.dropdowns[i] || { type: '', amount: 0 };
       cardHTML += `
               <div class="adj-row" data-row="${i}" style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 0.4rem; align-items: center;">
-                <select class="form-control adj-type-select" style="font-size: 0.8rem; height: 28px; padding: 0.15rem 0.3rem; appearance: auto; background: #fffbeb; color: #78350f; border: 1px solid #fde68a;">
+                <input type="text" class="form-control adj-type-input" list="adj-options-list-${i}" placeholder="[Select or Type Type]" style="font-size: 0.8rem; height: 28px; padding: 0.15rem 0.3rem; background: #fffbeb; color: #78350f; border: 1px solid #fde68a;">
+                <datalist id="adj-options-list-${i}">
                   ${selectOptionsHTML}
-                </select>
+                </datalist>
                 <input type="number" class="form-control adj-amount-input" value="${rowData.amount || ''}" min="0" step="0.01" placeholder="0.00" style="text-align: right; font-size: 0.85rem; height: 28px; padding: 0.15rem 0.4rem; background: #fffbeb; color: #78350f; border: 1px solid #fde68a; font-weight: 700;">
               </div>`;
     }
@@ -8615,11 +8619,11 @@ if (dayReading) {
     container.innerHTML = cardHTML;
 
     // Prefill dropdown values
-    const selectElements = container.querySelectorAll('.adj-type-select');
-    selectElements.forEach((sel, i) => {
+    const inputElements = container.querySelectorAll('.adj-type-input');
+    inputElements.forEach((inp, i) => {
       const rowData = emp.dropdowns[i];
       if (rowData && rowData.type) {
-        sel.value = rowData.type;
+        inp.value = rowData.type;
       }
     });
 
@@ -8628,7 +8632,7 @@ if (dayReading) {
       const selectedValuesGlobal = new Set();
       reconEmployees.forEach(otherEmp => {
         otherEmp.dropdowns.forEach(d => {
-          if (d && d.type && d.type !== 'Expense (खर्च)') {
+          if (d && d.type && d.type !== 'Expense (खर्च)' && d.type !== 'हिशोबात कमी' && d.type !== 'मीटर मायनस') {
             selectedValuesGlobal.add(d.type);
           }
         });
@@ -8636,12 +8640,14 @@ if (dayReading) {
 
       const rows = container.querySelectorAll('.adj-row');
       rows.forEach(row => {
-        const sel = row.querySelector('.adj-type-select');
-        if (!sel) return;
-        const currentVal = sel.value;
+        const inp = row.querySelector('.adj-type-input');
+        if (!inp) return;
+        const currentVal = inp.value;
 
         let html = `<option value="">[Select Adjustment Type]</option>`;
-        html += `<option value="Expense (खर्च)" ${currentVal === 'Expense (खर्च)' ? 'selected' : ''}>Expense (खर्च)</option>`;
+        html += `<option value="Expense (खर्च)">Expense (खर्च)</option>`;
+        html += `<option value="हिशोबात कमी">हिशोबात कमी</option>`;
+        html += `<option value="मीटर मायनस">मीटर मायनस</option>`;
 
         dailyNonCashList.forEach((item) => {
           const desc = item.description || item.type;
@@ -8650,19 +8656,22 @@ if (dayReading) {
 
           if (!isSelectedElsewhere || isCurrentSelected) {
             const amtStr = Number(item.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-            html += `<option value="${desc}" data-amount="${item.amount || 0}" ${isCurrentSelected ? 'selected' : ''}>${desc} (₹${amtStr})</option>`;
+            html += `<option value="${desc}" data-amount="${item.amount || 0}">${desc} (₹${amtStr})</option>`;
           }
         });
 
         // Append saved value defensively if it is not in the active options list
         const rowIdx = parseInt(row.getAttribute('data-row'), 10);
         const rowData = emp.dropdowns[rowIdx];
-        if (rowData && rowData.type && rowData.type !== 'Expense (खर्च)' && !html.includes(`value="${rowData.type}"`)) {
-          html += `<option value="${rowData.type}" selected>${rowData.type} (Saved)</option>`;
+        if (rowData && rowData.type && rowData.type !== 'Expense (खर्च)' && rowData.type !== 'हिशोबात कमी' && rowData.type !== 'मीटर मायनस' && !html.includes(`value="${rowData.type}"`)) {
+          html += `<option value="${rowData.type}">${rowData.type} (Saved)</option>`;
         }
 
-        sel.innerHTML = html;
-        sel.value = currentVal;
+        const datalist = row.querySelector('datalist');
+        if (datalist) {
+          datalist.innerHTML = html;
+        }
+        inp.value = currentVal;
       });
     }
 
@@ -8698,9 +8707,9 @@ if (dayReading) {
       // Sum adjustments
       let adjTotal = 0;
       adjRows.forEach(row => {
-        const sel = row.querySelector('.adj-type-select');
+        const inp = row.querySelector('.adj-type-input');
         const valInp = row.querySelector('.adj-amount-input');
-        if (sel.value) {
+        if (inp && inp.value.trim()) {
           adjTotal += parseFloat(valInp.value) || 0;
         }
       });
@@ -8739,10 +8748,10 @@ if (dayReading) {
       emp.coins = coins;
       adjRows.forEach(row => {
         const i = parseInt(row.getAttribute('data-row'), 10);
-        const sel = row.querySelector('.adj-type-select');
+        const inp = row.querySelector('.adj-type-input');
         const valInp = row.querySelector('.adj-amount-input');
         emp.dropdowns[i] = {
-          type: sel.value,
+          type: inp ? inp.value.trim() : '',
           amount: parseFloat(valInp.value) || 0
         };
       });
@@ -8755,20 +8764,29 @@ if (dayReading) {
     coinsInput.addEventListener('input', calculateCardTotals);
     phonepeInput.addEventListener('input', calculateCardTotals);
     adjRows.forEach(row => {
-      const sel = row.querySelector('.adj-type-select');
+      const inp = row.querySelector('.adj-type-input');
       const valInp = row.querySelector('.adj-amount-input');
       
-      sel.addEventListener('change', () => {
-        const selectedOption = sel.options[sel.selectedIndex];
-        const amountAttr = selectedOption.getAttribute('data-amount');
+      const handleInputChange = () => {
+        const datalist = row.querySelector('datalist');
+        let amountAttr = null;
+        if (datalist) {
+          const opt = Array.from(datalist.options).find(o => o.value === inp.value);
+          if (opt) {
+            amountAttr = opt.getAttribute('data-amount');
+          }
+        }
         if (amountAttr) {
           valInp.value = parseFloat(amountAttr);
-        } else if (!sel.value) {
+        } else if (!inp.value.trim()) {
           valInp.value = '';
         }
         calculateCardTotals();
         updateDropdownOptions(); // Refresh dropdown lists to update filtered selections
-      });
+      };
+
+      inp.addEventListener('input', handleInputChange);
+      inp.addEventListener('change', handleInputChange);
       
       valInp.addEventListener('input', () => {
         calculateCardTotals();
