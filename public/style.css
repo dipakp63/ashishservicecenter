@@ -2474,3 +2474,7 @@ body.theme-hpcl .custom-scrollbar::-webkit-scrollbar-thumb {
 body.theme-hpcl .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+#admin-dashboard-date {
+  text-align: right !important;
+}
