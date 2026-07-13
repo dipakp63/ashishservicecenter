@@ -8,7 +8,7 @@ function initialize() {
   if (pool) return;
 
   // Hardcoded to guarantee connection, bypassing any broken Vercel environment variables
-  const connectionString = 'postgresql://postgres:Jivesh%402751@db.jsrqqafwhxcfigpqhumy.supabase.co:5432/postgres';
+  const connectionString = 'postgresql://postgres.jsrqqafwhxcfigpqhumy:Jivesh%402751@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres';
   
   pool = new Pool({
     connectionString,
