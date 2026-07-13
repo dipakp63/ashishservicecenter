@@ -438,6 +438,7 @@ app.post('/api/admin/reverse-last-day', async (req, res) => {
     // 2. Perform deletions in a transaction (batch)
     const statements = [
       { sql: 'DELETE FROM cash_reconciliation WHERE date = ?', args: [latestClosedDate] },
+      { sql: 'DELETE FROM porancha_hishob_reconciliation WHERE date = ?', args: [latestClosedDate] },
       { sql: 'DELETE FROM non_cash_payments WHERE date = ?', args: [latestClosedDate] },
       { sql: 'DELETE FROM readings WHERE date = ?', args: [latestClosedDate] },
       { sql: 'DELETE FROM tank_readings WHERE date = ?', args: [latestClosedDate] },
@@ -2725,6 +2726,12 @@ app.post('/api/porancha-hishob/reconciliation', async (req, res) => {
     const { date, data } = req.body;
     if (!date || !Array.isArray(data)) {
       return res.status(400).json({ error: 'Date and data array are required.' });
+    }
+
+    // Check if reconciliation already exists and is locked
+    const existing = await db.get(`SELECT COUNT(*) AS count FROM porancha_hishob_reconciliation WHERE date = ?`, [date]);
+    if (existing && existing.count > 0) {
+      return res.status(400).json({ error: 'Reconciliation has already been finalized and locked for this date.' });
     }
 
     const statements = [];

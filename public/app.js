@@ -8289,6 +8289,7 @@ if (dayReading) {
   let reconEmployees = [];     // Array of employee objects with their reconciliation entries
   let reconCurrentIndex = 0;   // Current active employee step
   let dailyNonCashList = [];   // Loaded daily non-cash payments list
+  let reconIsLocked = false;   // Whether the reconciliation is finalized and locked
 
   // Navigate to reconciliation from porancha hishob
   const btnGotoReconciliation = document.getElementById('btn-goto-reconciliation');
@@ -8360,11 +8361,15 @@ if (dayReading) {
           });
         });
 
+        reconIsLocked = false;
         // Fetch existing reconciliation details from server if any
         try {
           const savedRes = await fetch(`/api/porancha-hishob/reconciliation?date=${reconDate}`);
           if (savedRes.ok) {
             const savedData = await savedRes.json();
+            if (savedData.reconciliation && savedData.reconciliation.length > 0) {
+              reconIsLocked = true;
+            }
             const savedMap = {};
             (savedData.reconciliation || []).forEach(r => {
               savedMap[r.employee_id] = r;
@@ -8432,6 +8437,10 @@ if (dayReading) {
         renderReconciliationWizard();
       } else {
         // Last employee step: Save to database!
+        if (reconIsLocked) {
+          showView('porancha-hishob');
+          return;
+        }
         try {
           const saveRes = await fetch('/api/porancha-hishob/reconciliation', {
             method: 'POST',
@@ -8482,7 +8491,7 @@ if (dayReading) {
     }
     if (btnReconNextStep) {
       if (reconCurrentIndex === reconEmployees.length - 1) {
-        btnReconNextStep.textContent = '✓ Save & Finish';
+        btnReconNextStep.textContent = reconIsLocked ? '✓ Close / Finish' : '✓ Save & Finish';
       } else {
         btnReconNextStep.textContent = 'Next Employee →';
       }
@@ -8517,6 +8526,12 @@ if (dayReading) {
     selectOptionsHTML += `<option value="हिशोबात कमी">हिशोबात कमी</option>`;
     selectOptionsHTML += `<option value="मीटर मायनस">मीटर मायनस</option>`;
 
+    const isDisabled = reconIsLocked ? 'disabled' : '';
+    const inputBg = reconIsLocked ? 'rgba(255,255,255,0.02)' : '#fffbeb';
+    const inputColor = reconIsLocked ? 'var(--text-muted)' : '#78350f';
+    const inputBorder = reconIsLocked ? '1px solid var(--panel-border)' : '1px solid #fde68a';
+    const inputCursor = reconIsLocked ? 'not-allowed' : 'text';
+
     let cardHTML = `
       <section class="card" style="padding: 1rem; border-radius: 0.75rem; display: flex; flex-direction: column; gap: 0.85rem;">
         <!-- Header Details: Name, Sales -->
@@ -8545,7 +8560,7 @@ if (dayReading) {
               <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
                 <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); width: 45px;">₹ ${d}</span>
                 <span style="font-size: 0.8rem; color: var(--text-muted);">x</span>
-                <input type="number" class="form-control count-input" data-denom="${d}" value="${countVal}" min="0" style="width: 80px; text-align: right; height: 28px; padding: 0.15rem 0.4rem; background: #fffbeb; color: #78350f; border: 1px solid #fde68a; font-size: 0.85rem; font-weight: 700;">
+                <input type="number" class="form-control count-input" data-denom="${d}" value="${countVal}" min="0" ${isDisabled} style="width: 80px; text-align: right; height: 28px; padding: 0.15rem 0.4rem; background: ${inputBg}; color: ${inputColor}; border: ${inputBorder}; font-size: 0.85rem; font-weight: 700; cursor: ${inputCursor};">
                 <span style="font-size: 0.8rem; color: var(--text-muted); width: 15px; text-align: center;">=</span>
                 <span class="denom-total" data-denom="${d}" style="font-size: 0.85rem; font-weight: 700; font-family: monospace; width: 105px; text-align: right; color: var(--text-main); white-space: nowrap;">₹ 0.00</span>
               </div>`;
@@ -8557,7 +8572,7 @@ if (dayReading) {
                 <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-main);">चिल्लर/Coins</span>
                 <div style="display: flex; align-items: center; gap: 0.4rem;">
                   <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted);">₹</span>
-                  <input type="number" class="form-control coins-input" value="${emp.coins || 0}" min="0" step="0.01" style="width: 100px; text-align: right; height: 28px; padding: 0.15rem 0.4rem; background: #fffbeb; color: #78350f; border: 1px solid #fde68a; font-weight: 700; font-size: 0.85rem;">
+                  <input type="number" class="form-control coins-input" value="${emp.coins || 0}" min="0" step="0.01" ${isDisabled} style="width: 100px; text-align: right; height: 28px; padding: 0.15rem 0.4rem; background: ${inputBg}; color: ${inputColor}; border: ${inputBorder}; font-weight: 700; font-size: 0.85rem; cursor: ${inputCursor};">
                 </div>
               </div>
 
@@ -8566,7 +8581,7 @@ if (dayReading) {
                 <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-main);">PhonePe (UPI)</span>
                 <div style="display: flex; align-items: center; gap: 0.4rem;">
                   <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted);">₹</span>
-                  <input type="number" class="form-control phonepe-input" value="${emp.phonepe || ''}" min="0" step="0.01" placeholder="0.00" style="width: 100px; text-align: right; height: 28px; padding: 0.15rem 0.4rem; background: #fffbeb; color: #78350f; border: 1px solid #fde68a; font-weight: 700; font-size: 0.85rem;">
+                  <input type="number" class="form-control phonepe-input" value="${emp.phonepe || ''}" min="0" step="0.01" placeholder="0.00" ${isDisabled} style="width: 100px; text-align: right; height: 28px; padding: 0.15rem 0.4rem; background: ${inputBg}; color: ${inputColor}; border: ${inputBorder}; font-weight: 700; font-size: 0.85rem; cursor: ${inputCursor};">
                 </div>
               </div>
 
@@ -8588,11 +8603,11 @@ if (dayReading) {
       const rowData = emp.dropdowns[i] || { type: '', amount: 0 };
       cardHTML += `
               <div class="adj-row" data-row="${i}" style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 0.4rem; align-items: center;">
-                <input type="text" class="form-control adj-type-input" list="adj-options-list-${i}" placeholder="[Select or Type Type]" style="font-size: 0.8rem; height: 28px; padding: 0.15rem 0.3rem; background: #fffbeb; color: #78350f; border: 1px solid #fde68a;">
+                <input type="text" class="form-control adj-type-input" list="adj-options-list-${i}" placeholder="[Select or Type Type]" ${isDisabled} style="font-size: 0.8rem; height: 28px; padding: 0.15rem 0.3rem; background: ${inputBg}; color: ${inputColor}; border: ${inputBorder}; cursor: ${inputCursor};">
                 <datalist id="adj-options-list-${i}">
                   ${selectOptionsHTML}
                 </datalist>
-                <input type="number" class="form-control adj-amount-input" value="${rowData.amount || ''}" min="0" step="0.01" placeholder="0.00" style="text-align: right; font-size: 0.85rem; height: 28px; padding: 0.15rem 0.4rem; background: #fffbeb; color: #78350f; border: 1px solid #fde68a; font-weight: 700;">
+                <input type="number" class="form-control adj-amount-input" value="${rowData.amount || ''}" min="0" step="0.01" placeholder="0.00" ${isDisabled} style="text-align: right; font-size: 0.85rem; height: 28px; padding: 0.15rem 0.4rem; background: ${inputBg}; color: ${inputColor}; border: ${inputBorder}; font-weight: 700; cursor: ${inputCursor};">
               </div>`;
     }
 
