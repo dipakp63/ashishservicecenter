@@ -6191,6 +6191,9 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
 
+        // Sort descending by date (latest first)
+        data.entries.sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
+
         let html = '';
         data.entries.forEach(tr => {
           const editButton = `<button type="button" class="btn-icon" onclick="openEditTtEntryModal(${tr.id})" style="background:none; border:none; cursor:pointer; font-size:1.1rem; padding:0.1rem;" title="Edit">✏️</button>`;
@@ -6416,6 +6419,9 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
 
+        // Sort descending by date (latest first)
+        data.trips.sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
+
         let html = '';
         data.trips.forEach(t => {
           const fuelAvg = t.fuel_filled > 0 ? (t.run_km / t.fuel_filled).toFixed(2) : '0.00';
@@ -6500,17 +6506,31 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
 
+        // Sort chronologically ascending to calculate correct running balance
+        transactions.sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
+
         let currentBal = openingBalance;
+        transactions.forEach(t => {
+          const amt = parseFloat(t.amount) || 0;
+          if (t.type === 'DEBIT') {
+            currentBal -= amt;
+          } else {
+            currentBal += amt;
+          }
+          t.computedRunningBalance = currentBal;
+        });
+
+        // Now sort descending (newest/latest first) for table display
+        transactions.sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
+
         let html = '';
         transactions.forEach(t => {
           const amt = parseFloat(t.amount) || 0;
           let debitVal = '';
           let creditVal = '';
           if (t.type === 'DEBIT') {
-            currentBal -= amt;
             debitVal = amt > 0 ? amt.toFixed(2) : '';
           } else {
-            currentBal += amt;
             creditVal = amt > 0 ? amt.toFixed(2) : '';
           }
 
@@ -6536,7 +6556,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
               <td class="cell-txn-debit text-right" style="padding: 0.65rem 0.85rem; text-align:right; color:var(--danger); font-weight:600;">${debitVal}</td>
               <td class="cell-txn-credit text-right" style="padding: 0.65rem 0.85rem; text-align:right; color:var(--success); font-weight:600;">${creditVal}</td>
-              <td class="cell-txn-balance text-right" style="padding: 0.65rem 0.85rem; text-align:right; font-weight:700; color:var(--text-main);">₹ ${Math.round(currentBal).toLocaleString('en-IN')}</td>
+              <td class="cell-txn-balance text-right" style="padding: 0.65rem 0.85rem; text-align:right; font-weight:700; color:var(--text-main);">₹ ${Math.round(t.computedRunningBalance).toLocaleString('en-IN')}</td>
               <td style="padding: 0.65rem 0.85rem; text-align:center; white-space:nowrap;">
                 ${editButton}
                 ${deleteButton}
@@ -9189,7 +9209,7 @@ if (dayReading) {
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    // Sort transactions chronologically (ascending) for running balance
+    // Sort transactions chronologically (ascending) to calculate running balance
     sopanUpiTxns.sort((a, b) => {
       if (a.date !== b.date) {
         return a.date.localeCompare(b.date);
@@ -9216,6 +9236,21 @@ if (dayReading) {
           totalExpenses += amount;
         }
       }
+      txn.computedRunningBalance = runningBalance;
+    });
+
+    // Now sort descending (newest/latest on top) for table rendering
+    sopanUpiTxns.sort((a, b) => {
+      if (a.date !== b.date) {
+        return b.date.localeCompare(a.date);
+      }
+      return b.id - a.id;
+    });
+
+    sopanUpiTxns.forEach(txn => {
+      const isDeposit = txn.type === 'DEPOSIT';
+      const amount = parseFloat(txn.amount) || 0;
+      const isApproved = txn.approved === 1;
 
       const statusBadge = isApproved 
         ? `<span style="display: inline-block; padding: 0.15rem 0.4rem; border-radius: 0.25rem; font-size: 0.65rem; font-weight: 700; background: rgba(46, 204, 113, 0.15); color: #2ecc71;">Approved</span>`
@@ -9237,9 +9272,9 @@ if (dayReading) {
           ${isDeposit ? '+' : '-'} ₹${amount.toFixed(2)}
         </td>
         <td style="padding: 0.5rem 0.25rem; text-align: right; font-weight: 700; color: var(--accent);">
-          ${isApproved ? '₹' + runningBalance.toFixed(2) : '-'}
+          ${isApproved ? '₹' + txn.computedRunningBalance.toFixed(2) : '-'}
         </td>
-        <td style="padding: 0.5rem 0.25rem; text-align: center;">
+        <td style="padding: 0.5rem 0.25rem; text-align: center; white-space: nowrap;">
           ${(!isApproved && userRole === 'admin') ? `
             <button type="button" class="btn btn-success btn-approve-upi-txn" data-id="${txn.id}" style="padding: 0.15rem 0.4rem; font-size: 0.68rem; min-height: auto; border-radius: 0.25rem; background: var(--success); border: none; color: white; margin-right: 0.25rem;">
               Approve
@@ -9260,8 +9295,10 @@ if (dayReading) {
 
     // Update stats counters
     document.getElementById('sopan-upi-net-balance').textContent = `₹ ${runningBalance.toFixed(2)}`;
-    document.getElementById('sopan-upi-total-deposits').textContent = `₹ ${totalDeposits.toFixed(2)}`;
-    document.getElementById('sopan-upi-total-expenses').textContent = `₹ ${totalExpenses.toFixed(2)}`;
+    const depositsEl = document.getElementById('sopan-upi-total-deposits');
+    const expensesEl = document.getElementById('sopan-upi-total-expenses');
+    if (depositsEl) depositsEl.textContent = `₹ ${totalDeposits.toFixed(2)}`;
+    if (expensesEl) expensesEl.textContent = `₹ ${totalExpenses.toFixed(2)}`;
 
     // Attach listeners to dynamically generated buttons inside table body
     tbody.querySelectorAll('.btn-approve-upi-txn').forEach(btn => {
