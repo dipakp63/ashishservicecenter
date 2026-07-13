@@ -412,7 +412,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const a = li.querySelector('a');
         if (a) {
           const id = a.id;
-          if (id === 'nav-admin-dashboard' || id === 'nav-secret' || id === 'nav-reverse-day' || id === 'nav-sopan-upi') {
+          if (id === 'nav-admin-dashboard' || id === 'nav-secret' || id === 'nav-reverse-day') {
             li.style.display = 'none';
           } else {
             li.style.display = 'block';
@@ -676,13 +676,76 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
 
+      // Fetch and render Sopan UPI Transactions on Admin Dashboard
+      const adminSopanUpiBody = document.getElementById('admin-sopan-upi-body');
+      if (adminSopanUpiBody) {
+        adminSopanUpiBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 0.5rem;">Loading...</td></tr>';
+        try {
+          const upiRes = await fetch('/api/sopan-upi/transactions', {
+            headers: {
+              'x-user-role': 'admin'
+            }
+          });
+          if (upiRes.ok) {
+            const allTxns = await upiRes.json();
+            const dateTxns = allTxns.filter(t => t.date === dateValue);
+            
+            adminSopanUpiBody.innerHTML = '';
+            if (dateTxns.length === 0) {
+              adminSopanUpiBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 0.5rem;">None recorded for this date</td></tr>';
+            } else {
+              dateTxns.forEach(t => {
+                const isDeposit = t.type === 'DEPOSIT';
+                const amount = parseFloat(t.amount) || 0;
+                const isApproved = t.approved === 1;
+                const statusBadge = isApproved 
+                  ? `<span style="display: inline-block; padding: 0.1rem 0.35rem; border-radius: 0.2rem; font-size: 0.62rem; font-weight: 700; background: rgba(46, 204, 113, 0.15); color: #2ecc71;">Approved</span>`
+                  : `<span style="display: inline-block; padding: 0.1rem 0.35rem; border-radius: 0.2rem; font-size: 0.62rem; font-weight: 700; background: rgba(241, 196, 15, 0.15); color: #f1c40f;">Pending</span>`;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                  <td style="padding: 0.35rem 0.25rem; white-space: nowrap;">${formatDate(t.date)}</td>
+                  <td style="padding: 0.35rem 0.25rem;">
+                    <span style="display: inline-block; padding: 0.1rem 0.3rem; border-radius: 0.2rem; font-size: 0.6rem; font-weight: 700; background: ${isDeposit ? 'rgba(46, 204, 113, 0.15)' : 'rgba(231, 76, 60, 0.15)'}; color: ${isDeposit ? '#2ecc71' : '#e74c3c'};">
+                      ${isDeposit ? 'DEPOSIT' : 'EXPENSE'}
+                    </span>
+                  </td>
+                  <td style="padding: 0.35rem 0.25rem; word-break: break-all;">${t.description || ''}</td>
+                  <td style="padding: 0.35rem 0.25rem; text-align: right; font-weight: 700; color: ${isDeposit ? '#2ecc71' : 'var(--text-main)'};">
+                    ${isDeposit ? '+' : '-'} ₹${amount.toFixed(2)}
+                  </td>
+                  <td style="padding: 0.35rem 0.25rem; text-align: center;">${statusBadge}</td>
+                  <td style="padding: 0.35rem 0.25rem; text-align: center;">
+                    ${!isApproved ? `
+                      <button type="button" class="btn btn-success btn-admin-approve-upi" data-id="${t.id}" style="padding: 0.1rem 0.35rem; font-size: 0.65rem; min-height: auto; border-radius: 0.2rem; background: var(--success); border: none; color: white;">
+                        Approve
+                      </button>
+                    ` : '✓'}
+                  </td>
+                `;
+                adminSopanUpiBody.appendChild(tr);
+              });
+              
+              adminSopanUpiBody.querySelectorAll('.btn-admin-approve-upi').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                  const id = parseInt(e.target.getAttribute('data-id'), 10);
+                  await approveSopanUpiTransaction(id);
+                });
+              });
+            }
+          }
+        } catch (err) {
+          console.error('Error fetching admin Sopan UPI transactions:', err);
+        }
+      }
+
     } catch (err) {
       showToast('Error loading date details.', 'error');
     }
   }
 
   function showView(viewName) {
-    if (viewName === 'admin-dashboard' || viewName === 'secret' || viewName === 'sopan-upi') {
+    if (viewName === 'admin-dashboard' || viewName === 'secret') {
       const role = sessionStorage.getItem('pumperp_user_role') || 'manager';
       if (role !== 'admin') {
         showToast('Access denied: Admin only view.', 'error');
@@ -690,6 +753,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
     }
+
     if (viewName === 'tanker-receipts') {
       openLabelWizard(null, true);
       return;
@@ -9173,18 +9237,26 @@ if (dayReading) {
     let runningBalance = 0;
     let totalDeposits = 0;
     let totalExpenses = 0;
+    const userRole = sessionStorage.getItem('pumperp_user_role') || 'manager';
 
     sopanUpiTxns.forEach(txn => {
       const isDeposit = txn.type === 'DEPOSIT';
       const amount = parseFloat(txn.amount) || 0;
+      const isApproved = txn.approved === 1;
 
-      if (isDeposit) {
-        runningBalance += amount;
-        totalDeposits += amount;
-      } else {
-        runningBalance -= amount;
-        totalExpenses += amount;
+      if (isApproved) {
+        if (isDeposit) {
+          runningBalance += amount;
+          totalDeposits += amount;
+        } else {
+          runningBalance -= amount;
+          totalExpenses += amount;
+        }
       }
+
+      const statusBadge = isApproved 
+        ? `<span style="display: inline-block; padding: 0.15rem 0.4rem; border-radius: 0.25rem; font-size: 0.65rem; font-weight: 700; background: rgba(46, 204, 113, 0.15); color: #2ecc71;">Approved</span>`
+        : `<span style="display: inline-block; padding: 0.15rem 0.4rem; border-radius: 0.25rem; font-size: 0.65rem; font-weight: 700; background: rgba(241, 196, 15, 0.15); color: #f1c40f;">Pending</span>`;
 
       const tr = document.createElement('tr');
       tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
@@ -9197,19 +9269,27 @@ if (dayReading) {
         </td>
         <td style="padding: 0.5rem 0.25rem; word-break: break-all;">${txn.description || ''}</td>
         <td style="padding: 0.5rem 0.25rem; color: var(--text-muted); font-style: italic; word-break: break-all;">${txn.comment || ''}</td>
+        <td style="padding: 0.5rem 0.25rem; text-align: center;">${statusBadge}</td>
         <td style="padding: 0.5rem 0.25rem; text-align: right; font-weight: 700; color: ${isDeposit ? '#2ecc71' : 'var(--text-main)'};">
           ${isDeposit ? '+' : '-'} ₹${amount.toFixed(2)}
         </td>
         <td style="padding: 0.5rem 0.25rem; text-align: right; font-weight: 700; color: var(--accent);">
-          ₹${runningBalance.toFixed(2)}
+          ${isApproved ? '₹' + runningBalance.toFixed(2) : '-'}
         </td>
         <td style="padding: 0.5rem 0.25rem; text-align: center;">
-          <button type="button" class="btn btn-secondary btn-edit-upi-txn" data-id="${txn.id}" style="padding: 0.15rem 0.4rem; font-size: 0.68rem; min-height: auto; border-radius: 0.25rem; margin-right: 0.25rem;">
-            Edit
-          </button>
-          <button type="button" class="btn btn-danger btn-delete-upi-txn" data-id="${txn.id}" style="padding: 0.15rem 0.4rem; font-size: 0.68rem; min-height: auto; border-radius: 0.25rem; background: var(--danger); border: none;">
-            Delete
-          </button>
+          ${(!isApproved && userRole === 'admin') ? `
+            <button type="button" class="btn btn-success btn-approve-upi-txn" data-id="${txn.id}" style="padding: 0.15rem 0.4rem; font-size: 0.68rem; min-height: auto; border-radius: 0.25rem; background: var(--success); border: none; color: white; margin-right: 0.25rem;">
+              Approve
+            </button>
+          ` : ''}
+          ${(userRole === 'admin' || !isApproved) ? `
+            <button type="button" class="btn btn-secondary btn-edit-upi-txn" data-id="${txn.id}" style="padding: 0.15rem 0.4rem; font-size: 0.68rem; min-height: auto; border-radius: 0.25rem; margin-right: 0.25rem;">
+              Edit
+            </button>
+            <button type="button" class="btn btn-danger btn-delete-upi-txn" data-id="${txn.id}" style="padding: 0.15rem 0.4rem; font-size: 0.68rem; min-height: auto; border-radius: 0.25rem; background: var(--danger); border: none;">
+              Delete
+            </button>
+          ` : ''}
         </td>
       `;
       tbody.appendChild(tr);
@@ -9221,6 +9301,13 @@ if (dayReading) {
     document.getElementById('sopan-upi-total-expenses').textContent = `₹ ${totalExpenses.toFixed(2)}`;
 
     // Attach listeners to dynamically generated buttons inside table body
+    tbody.querySelectorAll('.btn-approve-upi-txn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const id = parseInt(e.target.getAttribute('data-id'), 10);
+        await approveSopanUpiTransaction(id);
+      });
+    });
+
     tbody.querySelectorAll('.btn-edit-upi-txn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const id = parseInt(e.target.getAttribute('data-id'), 10);
@@ -9234,6 +9321,34 @@ if (dayReading) {
         deleteSopanUpiTransaction(id);
       });
     });
+  }
+
+  async function approveSopanUpiTransaction(id) {
+    try {
+      const res = await fetch(`/api/sopan-upi/transaction/${id}/approve`, {
+        method: 'POST',
+        headers: {
+          'x-user-role': sessionStorage.getItem('pumperp_user_role') || 'manager'
+        }
+      });
+
+      if (res.ok) {
+        showToast('Transaction approved successfully.', 'success');
+        loadSopanUpiTransactions();
+        // If we are on the admin dashboard, refresh it
+        const role = sessionStorage.getItem('pumperp_user_role') || 'manager';
+        if (role === 'admin') {
+          const selected = adminFlatpickr ? adminFlatpickr.input.value : (document.getElementById('admin-dashboard-date').value || dateInput.value);
+          fetchAndPopulateAdminDashboard(selected);
+        }
+      } else {
+        const errData = await res.json();
+        showToast(errData.error || 'Failed to approve transaction.', 'error');
+      }
+    } catch (err) {
+      console.error('Error approving transaction:', err);
+      showToast('Server error approving transaction.', 'error');
+    }
   }
 
   // Handle adding new transaction
@@ -9368,6 +9483,15 @@ if (dayReading) {
       console.error('Error deleting transaction:', err);
       showToast('Server error deleting transaction.', 'error');
     }
+  }
+
+  // Refresh button on admin dashboard
+  const btnAdminRefreshSopanUpi = document.getElementById('btn-admin-refresh-sopan-upi');
+  if (btnAdminRefreshSopanUpi) {
+    btnAdminRefreshSopanUpi.addEventListener('click', () => {
+      const selected = adminFlatpickr ? adminFlatpickr.input.value : (document.getElementById('admin-dashboard-date').value || dateInput.value);
+      fetchAndPopulateAdminDashboard(selected);
+    });
   }
 
 });

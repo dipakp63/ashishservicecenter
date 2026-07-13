@@ -2914,13 +2914,13 @@ app.post('/api/chillar/clear', async (req, res) => {
 // GET /api/sopan-upi/transactions — Fetch all transactions
 app.get('/api/sopan-upi/transactions', async (req, res) => {
   const role = req.headers['x-user-role'];
-  if (role !== 'admin') {
-    return res.status(403).json({ error: 'Unauthorized. Admin privilege required.' });
+  if (role !== 'admin' && role !== 'manager') {
+    return res.status(403).json({ error: 'Unauthorized. Admin or manager privilege required.' });
   }
 
   try {
     const transactions = await db.all(`
-      SELECT id, date, type, amount, description, comment
+      SELECT id, date, type, amount, description, comment, approved
       FROM sopan_upi_transactions
       ORDER BY date ASC, id ASC
     `);
@@ -2934,8 +2934,8 @@ app.get('/api/sopan-upi/transactions', async (req, res) => {
 // POST /api/sopan-upi/transaction — Create a transaction
 app.post('/api/sopan-upi/transaction', async (req, res) => {
   const role = req.headers['x-user-role'];
-  if (role !== 'admin') {
-    return res.status(403).json({ error: 'Unauthorized. Admin privilege required.' });
+  if (role !== 'admin' && role !== 'manager') {
+    return res.status(403).json({ error: 'Unauthorized. Admin or manager privilege required.' });
   }
 
   const { date, type, amount, description, comment } = req.body;
@@ -2952,11 +2952,13 @@ app.post('/api/sopan-upi/transaction', async (req, res) => {
     return res.status(400).json({ error: 'Amount must be a positive number.' });
   }
 
+  const approvedVal = (role === 'admin') ? 1 : 0;
+
   try {
     await db.run(
-      `INSERT INTO sopan_upi_transactions (date, type, amount, description, comment)
-       VALUES (?, ?, ?, ?, ?)`,
-      [date, type, parsedAmount, description, comment || '']
+      `INSERT INTO sopan_upi_transactions (date, type, amount, description, comment, approved)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [date, type, parsedAmount, description, comment || '', approvedVal]
     );
     res.json({ success: true, message: 'Transaction logged successfully.' });
   } catch (err) {
@@ -2968,8 +2970,8 @@ app.post('/api/sopan-upi/transaction', async (req, res) => {
 // PUT /api/sopan-upi/transaction/:id — Update a transaction
 app.put('/api/sopan-upi/transaction/:id', async (req, res) => {
   const role = req.headers['x-user-role'];
-  if (role !== 'admin') {
-    return res.status(403).json({ error: 'Unauthorized. Admin privilege required.' });
+  if (role !== 'admin' && role !== 'manager') {
+    return res.status(403).json({ error: 'Unauthorized. Admin or manager privilege required.' });
   }
 
   const { id } = req.params;
@@ -2989,6 +2991,14 @@ app.put('/api/sopan-upi/transaction/:id', async (req, res) => {
   }
 
   try {
+    const existing = await db.get(`SELECT approved FROM sopan_upi_transactions WHERE id = ?`, [id]);
+    if (!existing) {
+      return res.status(404).json({ error: 'Transaction not found.' });
+    }
+    if (role === 'manager' && existing.approved === 1) {
+      return res.status(400).json({ error: 'Cannot modify an approved transaction.' });
+    }
+
     const result = await db.run(
       `UPDATE sopan_upi_transactions
        SET date = ?, type = ?, amount = ?, description = ?, comment = ?
@@ -3010,13 +3020,21 @@ app.put('/api/sopan-upi/transaction/:id', async (req, res) => {
 // DELETE /api/sopan-upi/transaction/:id — Delete a transaction
 app.delete('/api/sopan-upi/transaction/:id', async (req, res) => {
   const role = req.headers['x-user-role'];
-  if (role !== 'admin') {
-    return res.status(403).json({ error: 'Unauthorized. Admin privilege required.' });
+  if (role !== 'admin' && role !== 'manager') {
+    return res.status(403).json({ error: 'Unauthorized. Admin or manager privilege required.' });
   }
 
   const { id } = req.params;
 
   try {
+    const existing = await db.get(`SELECT approved FROM sopan_upi_transactions WHERE id = ?`, [id]);
+    if (!existing) {
+      return res.status(404).json({ error: 'Transaction not found.' });
+    }
+    if (role === 'manager' && existing.approved === 1) {
+      return res.status(400).json({ error: 'Cannot delete an approved transaction.' });
+    }
+
     const result = await db.run(`DELETE FROM sopan_upi_transactions WHERE id = ?`, [id]);
     if (result.rowsAffected === 0) {
       return res.status(404).json({ error: 'Transaction not found.' });
@@ -3025,6 +3043,29 @@ app.delete('/api/sopan-upi/transaction/:id', async (req, res) => {
   } catch (err) {
     console.error('Error deleting Sopan UPI transaction:', err.message);
     res.status(500).json({ error: 'Database error deleting transaction.' });
+  }
+});
+
+// POST /api/sopan-upi/transaction/:id/approve — Approve a transaction
+app.post('/api/sopan-upi/transaction/:id/approve', async (req, res) => {
+  const role = req.headers['x-user-role'];
+  if (role !== 'admin') {
+    return res.status(403).json({ error: 'Unauthorized. Admin privilege required.' });
+  }
+
+  const { id } = req.params;
+
+  try {
+    const existing = await db.get(`SELECT id FROM sopan_upi_transactions WHERE id = ?`, [id]);
+    if (!existing) {
+      return res.status(404).json({ error: 'Transaction not found.' });
+    }
+
+    await db.run(`UPDATE sopan_upi_transactions SET approved = 1 WHERE id = ?`, [id]);
+    res.json({ success: true, message: 'Transaction approved successfully.' });
+  } catch (err) {
+    console.error('Error approving Sopan UPI transaction:', err.message);
+    res.status(500).json({ error: 'Database error approving transaction.' });
   }
 });
 

@@ -369,7 +369,8 @@ async function initDatabase() {
         type TEXT NOT NULL,
         amount REAL NOT NULL,
         description TEXT NOT NULL,
-        comment TEXT
+        comment TEXT,
+        approved INTEGER DEFAULT 0
       )`,
     },
     {
@@ -433,6 +434,7 @@ async function initDatabase() {
     run(`ALTER TABLE chillar_transactions ADD COLUMN notes_20 INTEGER DEFAULT 0`),
     run(`ALTER TABLE tt_transactions ADD COLUMN tt_entry_id INTEGER DEFAULT NULL`),
     run(`ALTER TABLE porancha_hishob_reconciliation ADD COLUMN phonepe REAL DEFAULT 0`),
+    run(`ALTER TABLE sopan_upi_transactions ADD COLUMN approved INTEGER DEFAULT 0`),
     run(`CREATE INDEX IF NOT EXISTS idx_debtor_transactions_id_date ON debtor_transactions(debtor_id, transaction_date)`),
     run(`CREATE INDEX IF NOT EXISTS idx_employee_transactions_id_date ON employee_transactions(employee_id, transaction_date)`),
     run(`CREATE INDEX IF NOT EXISTS idx_tt_transactions_date ON tt_transactions(date)`),

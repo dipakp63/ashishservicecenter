@@ -533,7 +533,7 @@
               <div class="form-row-group">
                 <div class="form-group date-group">
                   <label for="reading-date">Select Date</label>
-                  <div class="date-input-wrapper" style="display: flex; align-items: center; gap: 1rem;">
+                  <div class="date-input-wrapper" style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; width: 100%;">
                     <input type="date" id="reading-date" name="reading-date" min="2026-06-26" style="max-width: 200px;">
                     <span id="formatted-date-display" style="font-size: 1.1rem; font-weight: 700; color: var(--accent); padding: 0.25rem 0.75rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 0.5rem; min-width: 140px; text-align: center; white-space: nowrap;"></span>
                   </div>
@@ -2877,6 +2877,31 @@
                   </div>
                 </div>
 
+                <!-- Sopan UPI Transactions Approval -->
+                <div class="card" style="padding: 0.5rem 0.75rem; border: 1px solid var(--card-border); flex: 1; display: flex; flex-direction: column; min-height: 0; margin-top: 0.6rem;">
+                  <h3 style="margin-top: 0; margin-bottom: 0.35rem; font-size: 0.95rem; font-family: var(--font-header); color: var(--accent); display: flex; justify-content: space-between; align-items: center;">
+                    <span>💳 Sopan UPI Transactions</span>
+                    <button type="button" id="btn-admin-refresh-sopan-upi" class="btn btn-secondary" style="padding: 0.1rem 0.4rem; font-size: 0.65rem; min-height: auto;">Refresh</button>
+                  </h3>
+                  <div style="overflow-x: auto; overflow-y: auto; flex: 1; min-height: 0;">
+                    <table class="data-table" style="width: 100%; font-size: 0.74rem; border-collapse: collapse;">
+                      <thead>
+                        <tr>
+                          <th style="text-align: left; padding: 0.2rem 0.25rem; background: inherit;">Date</th>
+                          <th style="text-align: left; padding: 0.2rem 0.25rem; background: inherit;">Type</th>
+                          <th style="text-align: left; padding: 0.2rem 0.25rem; background: inherit;">Description</th>
+                          <th style="text-align: right; padding: 0.2rem 0.25rem; background: inherit;">Amount (₹)</th>
+                          <th style="text-align: center; padding: 0.2rem 0.25rem; background: inherit;">Status</th>
+                          <th style="text-align: center; padding: 0.2rem 0.25rem; background: inherit;">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody id="admin-sopan-upi-body">
+                        <tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 0.5rem;">None recorded</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
               </div>
 
             </div>
@@ -3681,6 +3706,7 @@
                     <th style="padding: 0.4rem 0.25rem; font-weight: 700; width: 100px; white-space: nowrap;">Type</th>
                     <th style="padding: 0.4rem 0.25rem; font-weight: 700; white-space: nowrap;">Description</th>
                     <th style="padding: 0.4rem 0.25rem; font-weight: 700; white-space: nowrap;">Comments / Remarks</th>
+                    <th style="padding: 0.4rem 0.25rem; font-weight: 700; text-align: center; width: 80px; white-space: nowrap;">Status</th>
                     <th style="padding: 0.4rem 0.25rem; font-weight: 700; text-align: right; width: 100px; white-space: nowrap;">Amount</th>
                     <th style="padding: 0.4rem 0.25rem; font-weight: 700; text-align: right; width: 120px; white-space: nowrap;">Running Balance</th>
                     <th style="padding: 0.4rem 0.25rem; font-weight: 700; text-align: center; width: 100px; white-space: nowrap;">Action</th>
