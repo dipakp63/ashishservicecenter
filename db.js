@@ -7,7 +7,8 @@ let isInitialized = false;
 function initialize() {
   if (pool) return;
 
-  const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:Jivesh%402751@db.jsrqqafwhxcfigpqhumy.supabase.co:5432/postgres';
+  // Hardcoded to guarantee connection, bypassing any broken Vercel environment variables
+  const connectionString = 'postgresql://postgres:Jivesh%402751@db.jsrqqafwhxcfigpqhumy.supabase.co:5432/postgres';
   
   pool = new Pool({
     connectionString,
@@ -65,8 +66,7 @@ async function batch(statements) {
     await client.query('COMMIT');
     return results;
   } catch (err) {
-    await client.query('ROLLBACK');
-    throw err;
+    throw new Error(`DB_ERROR: ${err.message}`);
   } finally {
     client.release();
   }
