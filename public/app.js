@@ -9275,8 +9275,8 @@ if (dayReading) {
           ${isApproved ? '₹' + txn.computedRunningBalance.toFixed(2) : '-'}
         </td>
         <td style="padding: 0.5rem 0.25rem; text-align: center; white-space: nowrap;">
-          ${(!isApproved && userRole === 'admin') ? `
-            <button type="button" class="btn btn-success btn-approve-upi-txn" data-id="${txn.id}" style="padding: 0.15rem 0.4rem; font-size: 0.68rem; min-height: auto; border-radius: 0.25rem; background: var(--success); border: none; color: white; margin-right: 0.25rem;">
+          ${userRole === 'admin' ? `
+            <button type="button" class="btn btn-success btn-approve-upi-txn" data-id="${txn.id}" ${isApproved ? 'disabled' : ''} style="padding: 0.15rem 0.4rem; font-size: 0.68rem; min-height: auto; border-radius: 0.25rem; background: var(--success); border: none; color: white; margin-right: 0.25rem; ${isApproved ? 'opacity: 0.4; cursor: not-allowed;' : ''}">
               Approve
             </button>
           ` : ''}
