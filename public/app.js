@@ -676,68 +676,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
 
-      // Fetch and render Sopan UPI Transactions on Admin Dashboard
-      const adminSopanUpiBody = document.getElementById('admin-sopan-upi-body');
-      if (adminSopanUpiBody) {
-        adminSopanUpiBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 0.5rem;">Loading...</td></tr>';
-        try {
-          const upiRes = await fetch('/api/sopan-upi/transactions', {
-            headers: {
-              'x-user-role': 'admin'
-            }
-          });
-          if (upiRes.ok) {
-            const allTxns = await upiRes.json();
-            const dateTxns = allTxns.filter(t => t.date === dateValue);
-            
-            adminSopanUpiBody.innerHTML = '';
-            if (dateTxns.length === 0) {
-              adminSopanUpiBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 0.5rem;">None recorded for this date</td></tr>';
-            } else {
-              dateTxns.forEach(t => {
-                const isDeposit = t.type === 'DEPOSIT';
-                const amount = parseFloat(t.amount) || 0;
-                const isApproved = t.approved === 1;
-                const statusBadge = isApproved 
-                  ? `<span style="display: inline-block; padding: 0.1rem 0.35rem; border-radius: 0.2rem; font-size: 0.62rem; font-weight: 700; background: rgba(46, 204, 113, 0.15); color: #2ecc71;">Approved</span>`
-                  : `<span style="display: inline-block; padding: 0.1rem 0.35rem; border-radius: 0.2rem; font-size: 0.62rem; font-weight: 700; background: rgba(241, 196, 15, 0.15); color: #f1c40f;">Pending</span>`;
 
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                  <td style="padding: 0.35rem 0.25rem; white-space: nowrap;">${formatDate(t.date)}</td>
-                  <td style="padding: 0.35rem 0.25rem;">
-                    <span style="display: inline-block; padding: 0.1rem 0.3rem; border-radius: 0.2rem; font-size: 0.6rem; font-weight: 700; background: ${isDeposit ? 'rgba(46, 204, 113, 0.15)' : 'rgba(231, 76, 60, 0.15)'}; color: ${isDeposit ? '#2ecc71' : '#e74c3c'};">
-                      ${isDeposit ? 'DEPOSIT' : 'EXPENSE'}
-                    </span>
-                  </td>
-                  <td style="padding: 0.35rem 0.25rem; word-break: break-all;">${t.description || ''}</td>
-                  <td style="padding: 0.35rem 0.25rem; text-align: right; font-weight: 700; color: ${isDeposit ? '#2ecc71' : 'var(--text-main)'};">
-                    ${isDeposit ? '+' : '-'} ₹${amount.toFixed(2)}
-                  </td>
-                  <td style="padding: 0.35rem 0.25rem; text-align: center;">${statusBadge}</td>
-                  <td style="padding: 0.35rem 0.25rem; text-align: center;">
-                    ${!isApproved ? `
-                      <button type="button" class="btn btn-success btn-admin-approve-upi" data-id="${t.id}" style="padding: 0.1rem 0.35rem; font-size: 0.65rem; min-height: auto; border-radius: 0.2rem; background: var(--success); border: none; color: white;">
-                        Approve
-                      </button>
-                    ` : '✓'}
-                  </td>
-                `;
-                adminSopanUpiBody.appendChild(tr);
-              });
-              
-              adminSopanUpiBody.querySelectorAll('.btn-admin-approve-upi').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                  const id = parseInt(e.target.getAttribute('data-id'), 10);
-                  await approveSopanUpiTransaction(id);
-                });
-              });
-            }
-          }
-        } catch (err) {
-          console.error('Error fetching admin Sopan UPI transactions:', err);
-        }
-      }
 
     } catch (err) {
       showToast('Error loading date details.', 'error');
@@ -8255,7 +8194,20 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
 
-        // Validate all readings are within day boundaries
+        // 1. Fallback empty closing readings to opening readings for Shift 1 and Shift 2
+        for (let shiftNum = 1; shiftNum <= 2; shiftNum++) {
+          const rows = document.querySelectorAll(`#porancha-hishob-table-shift-${shiftNum} .shift-tbody tr`);
+          rows.forEach(tr => {
+            const closingInput = tr.querySelector('.row-closing-input');
+            const openingVal = parseFloat(tr.querySelector('.row-opening-input').value) || 0;
+            if (closingInput && closingInput.value.trim() === '') {
+              closingInput.value = openingVal;
+              closingInput.dispatchEvent(new Event('input'));
+            }
+          });
+        }
+
+        // 2. Validate readings are within day boundaries and check employee assignment for sales
         let isValid = true;
         for (let shiftNum = 1; shiftNum <= 3; shiftNum++) {
           const rows = document.querySelectorAll(`#porancha-hishob-table-shift-${shiftNum} .shift-tbody tr`);
@@ -8263,6 +8215,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const nozzleId = parseInt(tr.querySelector('td[data-nozzle]').getAttribute('data-nozzle')) || 0;
             const opening = parseFloat(tr.querySelector('.row-opening-input').value) || 0;
             const closing = parseFloat(tr.querySelector('.row-closing-input').value) || 0;
+            const employeeSelect = tr.querySelector('.row-employee-select');
+            const employeeId = employeeSelect ? parseInt(employeeSelect.value) : null;
+
+            let sale = closing - opening;
+            if (sale < 0) sale = 0;
+
+            // Enforce employee assignment for any non-zero sale
+            if (sale > 0 && (employeeId === null || isNaN(employeeId))) {
+              showToast(`Please select an employee on duty for Nozzle N${nozzleId} in Shift ${shiftNum} since a sale of ${sale.toFixed(2)} L was recorded.`, 'error');
+              isValid = false;
+            }
             
             const dayReading = currentDayReadingsMap[nozzleId];
 if (dayReading) {
@@ -9484,14 +9447,4 @@ if (dayReading) {
       showToast('Server error deleting transaction.', 'error');
     }
   }
-
-  // Refresh button on admin dashboard
-  const btnAdminRefreshSopanUpi = document.getElementById('btn-admin-refresh-sopan-upi');
-  if (btnAdminRefreshSopanUpi) {
-    btnAdminRefreshSopanUpi.addEventListener('click', () => {
-      const selected = adminFlatpickr ? adminFlatpickr.input.value : (document.getElementById('admin-dashboard-date').value || dateInput.value);
-      fetchAndPopulateAdminDashboard(selected);
-    });
-  }
-
 });
