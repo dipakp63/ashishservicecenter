@@ -9,18 +9,10 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ── Database Initialization Middleware ───────────────────────────────────────
-// Runs once on first request (handles Vercel serverless cold starts gracefully)
-let dbInitialized = false;
+// (Disabled in serverless because tables are already initialized manually and running 35 CREATE TABLE queries causes timeouts)
 app.use(async (req, res, next) => {
-  if (!dbInitialized) {
-    try {
-      await db.initDatabase();
-      dbInitialized = true;
-    } catch (err) {
-      console.error('[INIT] Database initialization failed:', err);
-      return res.status(500).json({ error: 'Database initialization failed.' });
-    }
-  }
+  // initialize connection pool
+  db.pool; // just to trigger initialize() if we exported a getter, or we can just let db operations call initialize()
   next();
 });
 
