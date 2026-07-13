@@ -995,6 +995,7 @@ document.addEventListener('DOMContentLoaded', () => {
     await fetchActiveDate();
     dateInput.value = activeDate;
     dateInput.max = activeDate;
+    dateInput.min = '2026-06-26';
 
     const formattedDisplay = document.getElementById('formatted-date-display');
     if (formattedDisplay) {
@@ -3490,10 +3491,10 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('Error initializing default date:', error);
       // Fallback
       await fetchActiveDate();
-      if (activeDate < '2026-06-01') activeDate = '2026-06-01';
+      if (activeDate < '2026-06-26') activeDate = '2026-06-26';
       dateInput.value = activeDate;
       dateInput.max = activeDate;
-      dateInput.min = '2026-06-01';
+      dateInput.min = '2026-06-26';
       const formattedDisplay = document.getElementById('formatted-date-display');
       if (formattedDisplay) formattedDisplay.textContent = formatDate(activeDate);
       isDayClosed = false;
@@ -7728,6 +7729,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (maxDate) {
         poranchaHishobDateInput.max = maxDate;
       }
+      poranchaHishobDateInput.min = '2026-06-26';
 
       if (!poranchaHishobDateInput.value) {
         if (latestClosedDate) {
@@ -8492,15 +8494,11 @@ if (dayReading) {
 
     // Select dropdown options list: Daily Non-Cash Payments from Day Closing
     let selectOptionsHTML = `<option value="">[Select Adjustment Type]</option>`;
-    selectOptionsHTML += `<option value="Expense (खर्च)">Expense (खर्च)</option>`;
-    selectOptionsHTML += `<option value="हिशोबात कमी">हिशोबात कमी</option>`;
-    selectOptionsHTML += `<option value="मीटर मायनस">मीटर मायनस</option>`;
     
-    const dailyValsSeen = new Set(["", "Expense (खर्च)", "हिशोबात कमी", "मीटर मायनस"]);
+    const dailyValsSeen = new Set(["", "हिशोबात कमी", "मीटर मायनस"]);
     dailyNonCashList.forEach((item, idx) => {
       // Use description as the primary display name (server resolves debtor_id/employee_id to actual names)
       const desc = item.description || item.type;
-      const optVal = `${desc}__${idx}`; // Unique value per row to handle duplicates
       dailyValsSeen.add(desc);
       const amtStr = Number(item.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       const optText = `${desc} (₹${amtStr})`;
@@ -8514,6 +8512,10 @@ if (dayReading) {
         selectOptionsHTML += `<option value="${rowData.type}">${rowData.type} (Saved)</option>`;
       }
     });
+
+    // Put system defined options at the very end
+    selectOptionsHTML += `<option value="हिशोबात कमी">हिशोबात कमी</option>`;
+    selectOptionsHTML += `<option value="मीटर मायनस">मीटर मायनस</option>`;
 
     let cardHTML = `
       <section class="card" style="padding: 1rem; border-radius: 0.75rem; display: flex; flex-direction: column; gap: 0.85rem;">
@@ -8571,7 +8573,7 @@ if (dayReading) {
               <!-- Subtotal Cash Display -->
               <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem; padding: 0.45rem 0.55rem; background: rgba(0,0,0,0.15); border-radius: 0.4rem;">
                 <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Cash</span>
-                <span id="recon-card-total-cash" style="font-size: 0.95rem; font-weight: 800; color: var(--success);">₹ 0.00</span>
+                <span id="recon-card-total-cash" style="font-size: 0.95rem; font-weight: 800; color: var(--success); white-space: nowrap;">₹ 0.00</span>
               </div>
 
             </div>
@@ -8603,15 +8605,15 @@ if (dayReading) {
         <div style="border-top: 1px dashed var(--panel-border); padding-top: 0.65rem; margin-top: 0.5rem; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; background: rgba(255,255,255,0.015); padding: 0.65rem 0.8rem; border-radius: 0.6rem;">
           <div style="text-align: center;">
             <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Settled</span>
-            <h4 id="recon-card-settled" style="margin: 0.15rem 0 0 0; font-size: 1.1rem; font-weight: 800; color: var(--accent);">₹ 0.00</h4>
+            <h4 id="recon-card-settled" style="margin: 0.15rem 0 0 0; font-size: 1.1rem; font-weight: 800; color: var(--accent); white-space: nowrap;">₹ 0.00</h4>
           </div>
           <div style="text-align: center;">
             <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Sales</span>
-            <h4 style="margin: 0.15rem 0 0 0; font-size: 1.1rem; font-weight: 800; color: var(--success);">₹ ${Number(emp.totalSale).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h4>
+            <h4 style="margin: 0.15rem 0 0 0; font-size: 1.1rem; font-weight: 800; color: var(--success); white-space: nowrap;">₹ ${Number(emp.totalSale).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h4>
           </div>
           <div style="text-align: center;">
             <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Shortfall (तूट)</span>
-            <h4 id="recon-card-shortfall" style="margin: 0.15rem 0 0 0; font-size: 1.1rem; font-weight: 800; color: var(--danger);">₹ 0.00</h4>
+            <h4 id="recon-card-shortfall" style="margin: 0.15rem 0 0 0; font-size: 1.1rem; font-weight: 800; color: var(--danger); white-space: nowrap;">₹ 0.00</h4>
           </div>
         </div>
       </section>`;
@@ -8632,7 +8634,7 @@ if (dayReading) {
       const selectedValuesGlobal = new Set();
       reconEmployees.forEach(otherEmp => {
         otherEmp.dropdowns.forEach(d => {
-          if (d && d.type && d.type !== 'Expense (खर्च)' && d.type !== 'हिशोबात कमी' && d.type !== 'मीटर मायनस') {
+          if (d && d.type && d.type !== 'हिशोबात कमी' && d.type !== 'मीटर मायनस') {
             selectedValuesGlobal.add(d.type);
           }
         });
@@ -8645,9 +8647,6 @@ if (dayReading) {
         const currentVal = inp.value;
 
         let html = `<option value="">[Select Adjustment Type]</option>`;
-        html += `<option value="Expense (खर्च)">Expense (खर्च)</option>`;
-        html += `<option value="हिशोबात कमी">हिशोबात कमी</option>`;
-        html += `<option value="मीटर मायनस">मीटर मायनस</option>`;
 
         dailyNonCashList.forEach((item) => {
           const desc = item.description || item.type;
@@ -8663,9 +8662,13 @@ if (dayReading) {
         // Append saved value defensively if it is not in the active options list
         const rowIdx = parseInt(row.getAttribute('data-row'), 10);
         const rowData = emp.dropdowns[rowIdx];
-        if (rowData && rowData.type && rowData.type !== 'Expense (खर्च)' && rowData.type !== 'हिशोबात कमी' && rowData.type !== 'मीटर मायनस' && !html.includes(`value="${rowData.type}"`)) {
+        if (rowData && rowData.type && rowData.type !== 'हिशोबात कमी' && rowData.type !== 'मीटर मायनस' && !html.includes(`value="${rowData.type}"`)) {
           html += `<option value="${rowData.type}">${rowData.type} (Saved)</option>`;
         }
+
+        // Put predefined options at the end
+        html += `<option value="हिशोबात कमी">हिशोबात कमी</option>`;
+        html += `<option value="मीटर मायनस">मीटर मायनस</option>`;
 
         const datalist = row.querySelector('datalist');
         if (datalist) {
@@ -8704,12 +8707,11 @@ if (dayReading) {
         totalCashSpan.textContent = '₹ ' + cashTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       }
 
-      // Sum adjustments
+      // Sum adjustments (calculate even if the description type is empty)
       let adjTotal = 0;
       adjRows.forEach(row => {
-        const inp = row.querySelector('.adj-type-input');
         const valInp = row.querySelector('.adj-amount-input');
-        if (inp && inp.value.trim()) {
+        if (valInp && valInp.value.trim() !== '') {
           adjTotal += parseFloat(valInp.value) || 0;
         }
       });
@@ -8796,6 +8798,39 @@ if (dayReading) {
 
     // Run initial calculations
     calculateCardTotals();
+
+    // Auto-focus and select the first input (500 notes count)
+    const firstInput = container.querySelector('.count-input[data-denom="500"]');
+    if (firstInput) {
+      firstInput.focus();
+      if (typeof firstInput.select === 'function') {
+        firstInput.select();
+      }
+    }
+
+    // Bind Enter key to move focus to next element
+    const focusableElements = Array.from(container.querySelectorAll(
+      '.count-input, .coins-input, .phonepe-input, .adj-type-input, .adj-amount-input'
+    ));
+
+    focusableElements.forEach((el, index) => {
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault(); // Prevent default browser behavior
+          const nextEl = focusableElements[index + 1];
+          if (nextEl) {
+            nextEl.focus();
+            if (typeof nextEl.select === 'function') {
+              nextEl.select();
+            }
+          } else {
+            // Last element: focus the next step button
+            const nextStepBtn = document.getElementById('btn-recon-next-step');
+            if (nextStepBtn) nextStepBtn.focus();
+          }
+        }
+      });
+    });
   }
 
   async function validateDynamicPassword(input) {
