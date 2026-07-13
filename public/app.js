@@ -395,7 +395,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const a = li.querySelector('a');
         if (a) {
           const id = a.id;
-          if (id === 'nav-admin-dashboard' || id === 'nav-secret' || id === 'nav-exit' || id === 'nav-reverse-day' || id === 'nav-sopan-upi') {
+          if (id === 'nav-admin-dashboard' || id === 'nav-secret' || id === 'nav-exit' || id === 'nav-reverse-day' || id === 'nav-sopan-upi' || id === 'nav-gst') {
             li.style.display = 'block';
           } else {
             li.style.display = 'none';
@@ -412,7 +412,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const a = li.querySelector('a');
         if (a) {
           const id = a.id;
-          if (id === 'nav-admin-dashboard' || id === 'nav-secret' || id === 'nav-reverse-day') {
+          if (id === 'nav-admin-dashboard' || id === 'nav-secret' || id === 'nav-reverse-day' || id === 'nav-gst') {
             li.style.display = 'none';
           } else {
             li.style.display = 'block';
@@ -684,7 +684,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function showView(viewName) {
-    if (viewName === 'admin-dashboard' || viewName === 'secret') {
+    if (viewName === 'admin-dashboard' || viewName === 'secret' || viewName === 'gst') {
       const role = sessionStorage.getItem('pumperp_user_role') || 'manager';
       if (role !== 'admin') {
         showToast('Access denied: Admin only view.', 'error');
@@ -837,7 +837,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (viewName.startsWith('udhari-') || viewName === 'udhari') {
       if (udhariToggle) udhariToggle.classList.add('active');
       if (otherToggle) otherToggle.classList.remove('active');
-    } else if (viewName === 'reminders' || viewName === 'gst' || viewName === 'employee-management' || viewName === 'tanker-receipts' || viewName === 'tanker-label-wizard') {
+    } else if (viewName === 'reminders' || viewName === 'employee-management' || viewName === 'tanker-receipts' || viewName === 'tanker-label-wizard') {
       if (otherToggle) otherToggle.classList.add('active');
       if (udhariToggle) udhariToggle.classList.remove('active');
     } else {
@@ -9268,7 +9268,7 @@ if (dayReading) {
         <td style="padding: 0.5rem 0.25rem; word-break: break-all;">${txn.description || ''}</td>
         <td style="padding: 0.5rem 0.25rem; color: var(--text-muted); font-style: italic; word-break: break-all;">${txn.comment || ''}</td>
         <td style="padding: 0.5rem 0.25rem; text-align: center;">${statusBadge}</td>
-        <td style="padding: 0.5rem 0.25rem; text-align: right; font-weight: 700; color: ${isDeposit ? '#2ecc71' : 'var(--text-main)'};">
+        <td style="padding: 0.5rem 0.25rem; text-align: right; font-weight: 700; color: ${isDeposit ? '#2ecc71' : '#e74c3c'};">
           ${isDeposit ? '+' : '-'} ₹${amount.toFixed(2)}
         </td>
         <td style="padding: 0.5rem 0.25rem; text-align: right; font-weight: 700; color: var(--accent);">
@@ -9280,14 +9280,12 @@ if (dayReading) {
               Approve
             </button>
           ` : ''}
-          ${(userRole === 'admin' || !isApproved) ? `
-            <button type="button" class="btn btn-secondary btn-edit-upi-txn" data-id="${txn.id}" style="padding: 0.15rem 0.4rem; font-size: 0.68rem; min-height: auto; border-radius: 0.25rem; margin-right: 0.25rem;">
-              Edit
-            </button>
-            <button type="button" class="btn btn-danger btn-delete-upi-txn" data-id="${txn.id}" style="padding: 0.15rem 0.4rem; font-size: 0.68rem; min-height: auto; border-radius: 0.25rem; background: var(--danger); border: none;">
-              Delete
-            </button>
-          ` : ''}
+          <button type="button" class="btn btn-secondary btn-edit-upi-txn" data-id="${txn.id}" ${(userRole !== 'admin' && isApproved) ? 'disabled style="padding: 0.15rem 0.4rem; font-size: 0.68rem; min-height: auto; border-radius: 0.25rem; margin-right: 0.25rem; opacity: 0.4; cursor: not-allowed;"' : 'style="padding: 0.15rem 0.4rem; font-size: 0.68rem; min-height: auto; border-radius: 0.25rem; margin-right: 0.25rem;"'}>
+            Edit
+          </button>
+          <button type="button" class="btn btn-danger btn-delete-upi-txn" data-id="${txn.id}" ${(userRole !== 'admin' && isApproved) ? 'disabled style="padding: 0.15rem 0.4rem; font-size: 0.68rem; min-height: auto; border-radius: 0.25rem; background: var(--danger); border: none; opacity: 0.4; cursor: not-allowed;"' : 'style="padding: 0.15rem 0.4rem; font-size: 0.68rem; min-height: auto; border-radius: 0.25rem; background: var(--danger); border: none;"'}>
+            Delete
+          </button>
         </td>
       `;
       tbody.appendChild(tr);

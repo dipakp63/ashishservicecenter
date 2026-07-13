@@ -136,7 +136,7 @@ function sendWhatsAppReport(monthStr, csvContent) {
   const apiURL = process.env.WHATSAPP_API_URL;
   const apiToken = process.env.WHATSAPP_API_TOKEN;
 
-  const message = `⛽ *PumpERP GST R1 & 3B Monthly Report* ⛽\n\nReport for Month: *${monthStr}*\n\nThe CSV report has been generated successfully.`;
+  const message = `⛽ *PumpERP GST R1 & 3B Monthly Data* ⛽\n\nReport for Month: *${monthStr}*\n\nThe CSV report has been generated successfully.`;
 
   if (apiURL && apiToken) {
     console.log(`[WhatsApp Sender] Sending report for ${monthStr} to ${whatsappNo} via API...`);

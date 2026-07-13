@@ -436,6 +436,12 @@
               <span class="nav-text">Sopan UPI Account</span>
             </a>
           </li>
+          <li id="li-gst" style="display: none;">
+            <a href="#" class="nav-item" id="nav-gst">
+              <span class="nav-icon">📄</span>
+              <span class="nav-text">GST R1 & 3B Monthly Data</span>
+            </a>
+          </li>
           <li>
             <a href="#" class="nav-item" id="nav-exit">
               <span class="nav-icon">🚪</span>
@@ -486,13 +492,7 @@
             <span class="nav-text">Reminders</span>
           </a>
         </li>
-        <li>
-          <a href="#" class="nav-item" id="nav-gst">
-            <span class="nav-icon" style="font-size: 1rem; width: 1.2rem;">📄</span>
-            <span class="nav-text">GST R1 & 3B Data</span>
-          </a>
-        </li>
-      
+
         <li>
           <a href="#" class="nav-item" id="nav-employee-management">
             <span class="nav-icon" style="font-size: 1rem; width: 1.2rem;">👥</span>
@@ -1849,7 +1849,7 @@
       <div id="view-gst-data" class="view-pane" style="display: none;">
         <header class="content-header">
           <div class="header-title-wrapper">
-            <h1>GST R1 & 3B Monthly Report</h1>
+            <h1>GST R1 & 3B Monthly Data</h1>
             <p class="subtitle">Monthly sales breakdown for GST filing</p>
           </div>
         </header>
@@ -3662,7 +3662,7 @@
               <h2 style="font-size: 0.9rem; color: var(--accent); margin: 0;">📋 Sopan UPI Ledger Book</h2>
             </div>
             
-            <div style="max-height: 380px; overflow-y: auto; width: 100%;">
+            <div class="custom-scrollbar" style="max-height: 380px; overflow-y: scroll; width: 100%;">
               <table class="table" id="sopan-upi-ledger-table" style="width: 100%; border-collapse: collapse; font-size: 0.75rem;">
                 <thead>
                   <tr style="border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.015); position: sticky; top: 0; z-index: 1;">

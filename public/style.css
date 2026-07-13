@@ -2447,4 +2447,30 @@ body.theme-hpcl .wizard-input:focus {
   box-shadow: 0 0 0 2px rgba(11, 78, 162, 0.15) !important;
 }
 
+/* Custom Scrollbars */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
 
+/* HPCL Theme Overrides for Scrollbar */
+body.theme-hpcl .custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+body.theme-hpcl .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+body.theme-hpcl .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
