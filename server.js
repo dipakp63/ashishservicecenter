@@ -560,8 +560,10 @@ app.post('/api/readings', async (req, res) => {
       }
 
       statements.push({
-        sql: `INSERT OR REPLACE INTO readings (date, nozzle_id, product, opening_reading, closing_reading, testing_qty)
-              VALUES (?, ?, ?, ?, ?, ?)`,
+        sql: `INSERT INTO readings (date, nozzle_id, product, opening_reading, closing_reading, testing_qty)
+              VALUES (?, ?, ?, ?, ?, ?)
+              ON CONFLICT (date, nozzle_id) DO UPDATE SET
+              product = EXCLUDED.product, opening_reading = EXCLUDED.opening_reading, closing_reading = EXCLUDED.closing_reading, testing_qty = EXCLUDED.testing_qty`,
         args: [date, r.nozzle_id, r.product, opening, closing, testing],
       });
     }
@@ -685,8 +687,10 @@ app.post('/api/tanks', async (req, res) => {
       const ttDecant = parseInt(t.tt_decantation, 10) || 0;
 
       statements.push({
-        sql: `INSERT OR REPLACE INTO tank_readings (date, tank_id, tank_name, product, capacity, opening_dip, opening_stock, closing_dip, closing_stock, decantation_qty, tt_decantation)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        sql: `INSERT INTO tank_readings (date, tank_id, tank_name, product, capacity, opening_dip, opening_stock, closing_dip, closing_stock, decantation_qty, tt_decantation)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              ON CONFLICT (date, tank_id) DO UPDATE SET
+              tank_name = EXCLUDED.tank_name, product = EXCLUDED.product, capacity = EXCLUDED.capacity, opening_dip = EXCLUDED.opening_dip, opening_stock = EXCLUDED.opening_stock, closing_dip = EXCLUDED.closing_dip, closing_stock = EXCLUDED.closing_stock, decantation_qty = EXCLUDED.decantation_qty, tt_decantation = EXCLUDED.tt_decantation`,
         args: [date, t.tank_id, t.tank_name, t.product, capacity, openingDip, opening, dip, closing, decantation, ttDecant],
       });
     }
@@ -762,7 +766,8 @@ app.post('/api/rates', async (req, res) => {
     }
 
     await db.run(
-      `INSERT OR REPLACE INTO rates (date, rate_power, rate_petrol, rate_diesel) VALUES (?, ?, ?, ?)`,
+      `INSERT INTO rates (date, rate_power, rate_petrol, rate_diesel) VALUES (?, ?, ?, ?)
+       ON CONFLICT (date) DO UPDATE SET rate_power = EXCLUDED.rate_power, rate_petrol = EXCLUDED.rate_petrol, rate_diesel = EXCLUDED.rate_diesel`,
       [date, power, petrol, diesel]
     );
 
@@ -859,11 +864,15 @@ app.post('/api/cash', async (req, res) => {
     // Build transaction batch
     const statements = [
       {
-        sql: `INSERT OR REPLACE INTO cash_reconciliation (
+        sql: `INSERT INTO cash_reconciliation (
                 date, total_sales_value, total_cash_received, shortfall,
                 notes_500, notes_200, notes_100, notes_50, notes_20, notes_10, coins,
                 coins_20, coins_10, coins_5, coins_2, coins_1
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              ON CONFLICT (date) DO UPDATE SET
+                total_sales_value = EXCLUDED.total_sales_value, total_cash_received = EXCLUDED.total_cash_received, shortfall = EXCLUDED.shortfall,
+                notes_500 = EXCLUDED.notes_500, notes_200 = EXCLUDED.notes_200, notes_100 = EXCLUDED.notes_100, notes_50 = EXCLUDED.notes_50, notes_20 = EXCLUDED.notes_20, notes_10 = EXCLUDED.notes_10, coins = EXCLUDED.coins,
+                coins_20 = EXCLUDED.coins_20, coins_10 = EXCLUDED.coins_10, coins_5 = EXCLUDED.coins_5, coins_2 = EXCLUDED.coins_2, coins_1 = EXCLUDED.coins_1`,
         args: [
           date,
           parseFloat(total_sales_value),
@@ -1178,8 +1187,11 @@ app.post('/api/profit-margins', async (req, res) => {
     const dfDiesel = parseFloat(diff_diesel) || 0;
 
     await db.run(
-      `INSERT OR REPLACE INTO profit_margins (month, dealer_power, dealer_petrol, dealer_diesel, diff_power, diff_petrol, diff_diesel)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO profit_margins (month, dealer_power, dealer_petrol, dealer_diesel, diff_power, diff_petrol, diff_diesel)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT (month) DO UPDATE SET
+       dealer_power = EXCLUDED.dealer_power, dealer_petrol = EXCLUDED.dealer_petrol, dealer_diesel = EXCLUDED.dealer_diesel,
+       diff_power = EXCLUDED.diff_power, diff_petrol = EXCLUDED.diff_petrol, diff_diesel = EXCLUDED.diff_diesel`,
       [month, dPower, dPetrol, dDiesel, dfPower, dfPetrol, dfDiesel]
     );
 
@@ -1280,7 +1292,7 @@ app.post('/api/hpcl/transaction', async (req, res) => {
     }
 
     const result = await db.run(
-      `INSERT INTO hpcl_transactions (date, description, type, amount, running_balance) VALUES (?, ?, ?, ?, 0)`,
+      `INSERT INTO hpcl_transactions (date, description, type, amount, running_balance) VALUES (?, ?, ?, ?, 0) RETURNING id`,
       [date, description, type, parsedAmount]
     );
 
@@ -1368,7 +1380,7 @@ app.post('/api/hpcl/opening-balance', async (req, res) => {
     }
 
     await db.run(
-      `INSERT OR REPLACE INTO hpcl_config (key, value) VALUES ('hpcl_opening_balance', ?)`,
+      `INSERT INTO hpcl_config (key, value) VALUES ('hpcl_opening_balance', ?) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
       [parsedVal.toString()]
     );
 
@@ -1500,7 +1512,7 @@ app.post('/api/debtors', async (req, res) => {
     }
 
     const result = await db.run(
-      `INSERT INTO debtors (debtor_name, mobile, address) VALUES (?, ?, ?)`,
+      `INSERT INTO debtors (debtor_name, mobile, address) VALUES (?, ?, ?) RETURNING id`,
       [trimmedName, (mobile || '').trim(), (address || '').trim()]
     );
 
@@ -1826,9 +1838,9 @@ app.get('/api/employees', async (req, res) => {
         e.is_active,
         0 AS opening_balance,
         COALESCE((SELECT SUM(advance_given) FROM employee_transactions
-          WHERE employee_id = e.id AND strftime('%Y-%m', transaction_date) = ?), 0) AS month_given,
+          WHERE employee_id = e.id AND TO_CHAR(transaction_date::date, 'YYYY-MM') = ?), 0) AS month_given,
         COALESCE((SELECT SUM(amount_settled) FROM employee_transactions
-          WHERE employee_id = e.id AND strftime('%Y-%m', transaction_date) = ?), 0) AS month_settled
+          WHERE employee_id = e.id AND TO_CHAR(transaction_date::date, 'YYYY-MM') = ?), 0) AS month_settled
       FROM employees e
       ORDER BY e.name ASC
     `, [month, month]);
@@ -1853,7 +1865,7 @@ app.post('/api/employees', async (req, res) => {
       return res.status(400).json({ error: 'An employee with this name already exists.' });
     }
     const result = await db.run(
-      `INSERT INTO employees (name, mobile) VALUES (?, ?)`,
+      `INSERT INTO employees (name, mobile) VALUES (?, ?) RETURNING id`,
       [trimmedName, (mobile || '').trim()]
     );
     res.json({ success: true, message: 'Employee added successfully.', employee: { id: result.lastInsertRowid, name: trimmedName } });
@@ -1940,7 +1952,7 @@ app.get('/api/employees/:id/transactions', async (req, res) => {
     const rows = await db.all(`
       SELECT id, transaction_date, transaction_type, description, advance_given, amount_settled, remarks
       FROM employee_transactions WHERE employee_id = ?
-        AND strftime('%Y-%m', transaction_date) = ?
+        AND TO_CHAR(transaction_date::date, 'YYYY-MM') = ?
       ORDER BY transaction_date ASC, id ASC
     `, [id, month]);
 

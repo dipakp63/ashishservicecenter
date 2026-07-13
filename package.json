@@ -13,12 +13,12 @@
     "clear-db": "node clear_db.js"
   },
   "dependencies": {
-    "@libsql/client": "^0.14.0",
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "pg": "^8.22.0",
+    "sqlite3": "^6.0.1"
   },
   "devDependencies": {
-    "localtunnel": "^2.0.2",
-    "sqlite3": "^5.1.7"
+    "localtunnel": "^2.0.2"
   },
   "engines": {
     "node": ">=18.0.0"
