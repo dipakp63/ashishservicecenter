@@ -103,8 +103,8 @@ const runTest = async () => {
     if (creditRes.statusCode !== 200) {
       throw new Error(`Failed to post credit: ${JSON.stringify(creditRes.body)}`);
     }
-    if (creditRes.body.transaction.running_balance !== 1404700) {
-      throw new Error(`Expected running balance to be 1404700, got ${creditRes.body.transaction.running_balance}`);
+    if (creditRes.body.transaction.running_balance !== -1395300) {
+      throw new Error(`Expected running balance to be -1395300, got ${creditRes.body.transaction.running_balance}`);
     }
     console.log('🎉 Credit posting running balance check passed.');
 
@@ -121,8 +121,8 @@ const runTest = async () => {
     if (debitRes.statusCode !== 200) {
       throw new Error(`Failed to post debit: ${JSON.stringify(debitRes.body)}`);
     }
-    if (debitRes.body.transaction.running_balance !== 404700) {
-      throw new Error(`Expected running balance to be 404700, got ${debitRes.body.transaction.running_balance}`);
+    if (debitRes.body.transaction.running_balance !== -395300) {
+      throw new Error(`Expected running balance to be -395300, got ${debitRes.body.transaction.running_balance}`);
     }
     console.log('🎉 Debit posting running balance check passed.');
 
@@ -209,9 +209,9 @@ const runTest = async () => {
 
     // Find the next transaction in the sequence (Auto Tx 1, which was a Debit of 10000 on 2026-06-03)
     const nextTx = allTxAfter.find(t => t.description === 'Auto Tx 1');
-    console.log(`Checking recalculated balance of ${nextTx.description}. Expected: 1394700, Got: ${nextTx.running_balance}`);
-    if (nextTx.running_balance !== 1394700) {
-      throw new Error(`Running balance was not recalculated correctly! Expected 1394700, got ${nextTx.running_balance}`);
+    console.log(`Checking recalculated balance of ${nextTx.description}. Expected: -1385300, Got: ${nextTx.running_balance}`);
+    if (nextTx.running_balance !== -1385300) {
+      throw new Error(`Running balance was not recalculated correctly! Expected -1385300, got ${nextTx.running_balance}`);
     }
     console.log('🎉 Deletion ledger recalculation passed.');
 
@@ -236,9 +236,9 @@ const runTest = async () => {
 
     // Transaction 1 (Credit + 1400000) should now have running balance = 1410000 (10000 + 1400000)
     const tx1Recalculated = allTxAfterOpChange.find(t => t.description.includes('RTGS'));
-    console.log(`Checking shifted balance of first credit. Expected: 1410000, Got: ${tx1Recalculated.running_balance}`);
-    if (tx1Recalculated.running_balance !== 1410000) {
-      throw new Error(`Expected first credit running balance to be 1410000, got ${tx1Recalculated.running_balance}`);
+    console.log(`Checking shifted balance of first credit. Expected: -1390000, Got: ${tx1Recalculated.running_balance}`);
+    if (tx1Recalculated.running_balance !== -1390000) {
+      throw new Error(`Expected first credit running balance to be -1390000, got ${tx1Recalculated.running_balance}`);
     }
 
     // Testing Reset Endpoint

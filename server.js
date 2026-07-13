@@ -287,9 +287,9 @@ async function recalculateHpclLedger() {
 
   for (const row of rows) {
     if (row.type === 'CREDIT') {
-      currentBalance += row.amount;
-    } else if (row.type === 'DEBIT') {
       currentBalance -= row.amount;
+    } else if (row.type === 'DEBIT') {
+      currentBalance += row.amount;
     }
     updates.push({
       sql: 'UPDATE hpcl_transactions SET running_balance = ? WHERE id = ?',
