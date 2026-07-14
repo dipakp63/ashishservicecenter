@@ -395,7 +395,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const a = li.querySelector('a');
         if (a) {
           const id = a.id;
-          if (id === 'nav-admin-dashboard' || id === 'nav-secret' || id === 'nav-exit' || id === 'nav-reverse-day' || id === 'nav-sopan-upi' || id === 'nav-gst') {
+          if (id === 'nav-admin-dashboard' || id === 'nav-secret' || id === 'nav-exit' || id === 'nav-reverse-day' || id === 'nav-sopan-upi' || id === 'nav-gst' || id === 'nav-load-calc') {
             li.style.display = 'block';
           } else {
             li.style.display = 'none';
@@ -412,7 +412,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const a = li.querySelector('a');
         if (a) {
           const id = a.id;
-          if (id === 'nav-admin-dashboard' || id === 'nav-secret' || id === 'nav-reverse-day' || id === 'nav-gst') {
+          if (id === 'nav-admin-dashboard' || id === 'nav-secret' || id === 'nav-reverse-day' || id === 'nav-gst' || id === 'nav-load-calc') {
             li.style.display = 'none';
           } else {
             li.style.display = 'block';
@@ -684,7 +684,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function showView(viewName) {
-    if (viewName === 'admin-dashboard' || viewName === 'secret' || viewName === 'gst') {
+    if (viewName === 'admin-dashboard' || viewName === 'secret' || viewName === 'gst' || viewName === 'load-calc') {
       const role = sessionStorage.getItem('pumperp_user_role') || 'manager';
       if (role !== 'admin') {
         showToast('Access denied: Admin only view.', 'error');
@@ -752,6 +752,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (viewShiftReconciliation) viewShiftReconciliation.style.display = viewName === 'shift-reconciliation' ? 'block' : 'none';
 
     if (viewAdminDashboard) viewAdminDashboard.style.display = viewName === 'admin-dashboard' ? 'block' : 'none';
+
+    const viewLoadCalculator = document.getElementById('view-load-calculator');
+    if (viewLoadCalculator) {
+      viewLoadCalculator.style.display = viewName === 'load-calc' ? 'block' : 'none';
+      if (viewName === 'load-calc' && typeof window.updateAdminLoadCalc === 'function') {
+        window.updateAdminLoadCalc();
+      }
+    }
 
     const viewSopanUpi = document.getElementById('view-sopan-upi');
     if (viewSopanUpi) {
@@ -851,6 +859,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const navTankerCalc = document.getElementById('nav-tanker-calc');
     const navCashCalc = document.getElementById('nav-cash-calc');
     const navGst = document.getElementById('nav-gst');
+    const navLoadCalc = document.getElementById('nav-load-calc');
     const navEmployeeManagement = document.getElementById('nav-employee-management');
     const navHpclTracker = document.getElementById('nav-hpcl-tracker');
     const navTtLedger = document.getElementById('nav-tt-ledger');
@@ -883,6 +892,7 @@ document.addEventListener('DOMContentLoaded', () => {
     else if (viewName === 'chillar-record' && navChillarRecord) navChillarRecord.classList.add('active');
     else if (viewName === 'admin-dashboard' && navAdminDashboard) navAdminDashboard.classList.add('active');
     else if (viewName === 'secret' && navSecret) navSecret.classList.add('active');
+    else if (viewName === 'load-calc' && navLoadCalc) navLoadCalc.classList.add('active');
     else if ((viewName === 'porancha-hishob' || viewName === 'shift-reconciliation') && navPoranchaHishob) navPoranchaHishob.classList.add('active');
     else if ((viewName === 'tanker-receipts' || viewName === 'tanker-label-wizard') && navTankerReceipts) navTankerReceipts.classList.add('active');
     else if (navDayClosing && !['udhari', 'other', 'tt-ledger', 'tanker-receipts', 'tanker-label-wizard', 'chillar-record', 'porancha-hishob', 'shift-reconciliation', 'admin', 'secret'].some(pre => viewName.startsWith(pre))) navDayClosing.classList.add('active');
@@ -956,6 +966,14 @@ document.addEventListener('DOMContentLoaded', () => {
     navCashCalcSide.addEventListener('click', (e) => {
       e.preventDefault();
       showView('cash-calc');
+    });
+  }
+
+  const navLoadCalcSide = document.getElementById('nav-load-calc');
+  if (navLoadCalcSide) {
+    navLoadCalcSide.addEventListener('click', (e) => {
+      e.preventDefault();
+      showView('load-calc');
     });
   }
 
@@ -3765,6 +3783,96 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
   // --- End Tanker Calculator Logic ---
+
+  // --- Admin Load Calculator Logic ---
+  (function initAdminLoadCalc() {
+    const fmt = (v) => '₹' + v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    window.updateAdminLoadCalc = function() {
+      let grandTotal = 0;
+
+      // poWer
+      const qtyPower = parseFloat(document.getElementById('lc-qty-power')?.value) || 0;
+      const ratePower = parseFloat(document.getElementById('lc-rate-power')?.value) || 0;
+      const vatPctPower = parseFloat(document.getElementById('lc-vat-power')?.value) || 0;
+      const surchargePower = parseFloat(document.getElementById('lc-surcharge-power')?.value) || 0;
+      const sslfPower = parseFloat(document.getElementById('lc-sslf-power')?.value) || 0;
+
+      const rateTotalPower = ratePower * qtyPower;
+      const vatKlPower = ratePower * (vatPctPower / 100);
+      const vatTotalPower = rateTotalPower * (vatPctPower / 100);
+      const surchargeTotalPower = surchargePower * qtyPower;
+      const sslfTotalPower = sslfPower * qtyPower;
+
+      document.getElementById('lc-ratekl-power').textContent = fmt(ratePower);
+      document.getElementById('lc-ratetotal-power').textContent = fmt(rateTotalPower);
+      document.getElementById('lc-vatkl-power').textContent = fmt(vatKlPower);
+      document.getElementById('lc-vattotal-power').textContent = fmt(vatTotalPower);
+      document.getElementById('lc-surchargekl-power').textContent = fmt(surchargePower);
+      document.getElementById('lc-surchargetotal-power').textContent = fmt(surchargeTotalPower);
+      document.getElementById('lc-sslfkl-power').textContent = fmt(sslfPower);
+      document.getElementById('lc-sslftotal-power').textContent = fmt(sslfTotalPower);
+
+      grandTotal += rateTotalPower + vatTotalPower + surchargeTotalPower + sslfTotalPower;
+
+      // Petrol
+      const qtyPetrol = parseFloat(document.getElementById('lc-qty-petrol')?.value) || 0;
+      const ratePetrol = parseFloat(document.getElementById('lc-rate-petrol')?.value) || 0;
+      const vatPctPetrol = parseFloat(document.getElementById('lc-vat-petrol')?.value) || 0;
+      const surchargePetrol = parseFloat(document.getElementById('lc-surcharge-petrol')?.value) || 0;
+      const sslfPetrol = parseFloat(document.getElementById('lc-sslf-petrol')?.value) || 0;
+
+      const rateTotalPetrol = ratePetrol * qtyPetrol;
+      const vatKlPetrol = ratePetrol * (vatPctPetrol / 100);
+      const vatTotalPetrol = rateTotalPetrol * (vatPctPetrol / 100);
+      const surchargeTotalPetrol = surchargePetrol * qtyPetrol;
+      const sslfTotalPetrol = sslfPetrol * qtyPetrol;
+
+      document.getElementById('lc-ratekl-petrol').textContent = fmt(ratePetrol);
+      document.getElementById('lc-ratetotal-petrol').textContent = fmt(rateTotalPetrol);
+      document.getElementById('lc-vatkl-petrol').textContent = fmt(vatKlPetrol);
+      document.getElementById('lc-vattotal-petrol').textContent = fmt(vatTotalPetrol);
+      document.getElementById('lc-surchargekl-petrol').textContent = fmt(surchargePetrol);
+      document.getElementById('lc-surchargetotal-petrol').textContent = fmt(surchargeTotalPetrol);
+      document.getElementById('lc-sslfkl-petrol').textContent = fmt(sslfPetrol);
+      document.getElementById('lc-sslftotal-petrol').textContent = fmt(sslfTotalPetrol);
+
+      grandTotal += rateTotalPetrol + vatTotalPetrol + surchargeTotalPetrol + sslfTotalPetrol;
+
+      // Diesel (no VAT Surcharge)
+      const qtyDiesel = parseFloat(document.getElementById('lc-qty-diesel')?.value) || 0;
+      const rateDiesel = parseFloat(document.getElementById('lc-rate-diesel')?.value) || 0;
+      const vatPctDiesel = parseFloat(document.getElementById('lc-vat-diesel')?.value) || 0;
+      const sslfDiesel = parseFloat(document.getElementById('lc-sslf-diesel')?.value) || 0;
+
+      const rateTotalDiesel = rateDiesel * qtyDiesel;
+      const vatKlDiesel = rateDiesel * (vatPctDiesel / 100);
+      const vatTotalDiesel = rateTotalDiesel * (vatPctDiesel / 100);
+      const sslfTotalDiesel = sslfDiesel * qtyDiesel;
+
+      document.getElementById('lc-ratekl-diesel').textContent = fmt(rateDiesel);
+      document.getElementById('lc-ratetotal-diesel').textContent = fmt(rateTotalDiesel);
+      document.getElementById('lc-vatkl-diesel').textContent = fmt(vatKlDiesel);
+      document.getElementById('lc-vattotal-diesel').textContent = fmt(vatTotalDiesel);
+      document.getElementById('lc-sslfkl-diesel').textContent = fmt(sslfDiesel);
+      document.getElementById('lc-sslftotal-diesel').textContent = fmt(sslfTotalDiesel);
+
+      grandTotal += rateTotalDiesel + vatTotalDiesel + sslfTotalDiesel;
+
+      // Summary
+      const hpclBalance = parseFloat(document.getElementById('lc-hpcl-balance')?.value) || 0;
+      const rtgs = grandTotal + hpclBalance;
+
+      document.getElementById('lc-grand-total').textContent = fmt(grandTotal);
+      document.getElementById('lc-rtgs-total').textContent = fmt(rtgs);
+    };
+
+    // Attach input listeners
+    document.querySelectorAll('.lc-input, .lc-rate-input').forEach(input => {
+      input.addEventListener('input', () => window.updateAdminLoadCalc());
+    });
+  })();
+  // --- End Admin Load Calculator Logic ---
 
   // Global Enter key navigation for textboxes
   document.addEventListener('keydown', (e) => {
