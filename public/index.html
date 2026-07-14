@@ -1598,92 +1598,285 @@
       <div id="view-tanker-calculation" class="view-pane" style="display: none;">
         <header class="content-header">
           <div class="header-title-wrapper">
-            <h1>Tanker Calculation</h1>
-            <p class="subtitle">Calculate tanker volumes and densities</p>
+            <h1 id="tanker-title">Load Calculator 2.0</h1>
+            <p id="tanker-subtitle" class="subtitle">Calculate tanker load cost breakdown with VAT, Surcharge & SSLF Recovery</p>
+          </div>
+          <!-- Tabs Navigation -->
+          <div class="tanker-tabs" style="display: flex; gap: 0.5rem; margin-top: 1rem; border-bottom: 2px solid var(--panel-border); padding-bottom: 0.5rem;">
+            <button type="button" id="tab-btn-load-calc-2" class="calc-tab-btn active">
+              Load Calculator 2.0
+            </button>
+            <button type="button" id="tab-btn-load-calc-1" class="calc-tab-btn">
+              Load Calculator 1.0
+            </button>
           </div>
         </header>
-        <main class="content-body">
-          <section class="card">
-            <div class="card-header">
-              <h2>Tanker RTGS Calculator</h2>
-              <p>Enter the required volume for each product. Billing rates are automatically calculated (RSP - Commission).</p>
-            </div>
-            <form id="tanker-calc-form" class="tanker-form" style="margin-top: 1.5rem;">
-              <div class="tanker-calc-grid" style="display: flex; flex-direction: column; gap: 1rem; max-width: 600px; margin: 0 auto;">
-                
-                <!-- poWer Row -->
-                <div class="product-power" style="display: grid; grid-template-columns: 80px 150px 1fr 120px; align-items: center; gap: 1rem; padding: 1rem; border: 1px solid var(--power-border); border-radius: 0.5rem; background: var(--power-bg);">
-                  <div style="font-weight: 700; font-size: 1.1rem; color: var(--power-color);">poWer</div>
-                  <div>
-                    <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Requirement (L)</label>
-                    <input type="number" id="tanker-req-power" class="calc-input-tanker" data-product="poWer" min="0" placeholder="0" style="width: 100%; padding: 0.5rem; border-radius: 0.35rem; background: var(--panel-bg); border: 1px solid var(--power-border); color: var(--text-main); font-family: monospace; font-size: 1.1rem;">
-                  </div>
-                  <div>
-                    <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.25rem;">RSP: ₹<input type="number" id="tanker-rsp-power" class="calc-input-tanker-rsp" step="0.01" min="0" style="width: 70px; padding: 0.2rem; border-radius: 0.25rem; background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--text-main); font-family: monospace; font-size: 0.85rem;"></div>
-                    <div style="font-size: 0.85rem; color: var(--text-main); margin-top: 0.25rem;">Billing: ₹<span id="tanker-bill-power">0.00</span>/L</div>
-                  </div>
-                  <div style="text-align: right;">
-                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Amount</div>
-                    <div id="tanker-amt-power" style="font-weight: 700; font-size: 1.2rem; color: var(--power-color); font-family: monospace;">₹ 0.00</div>
-                  </div>
-                </div>
+        <main class="content-body" style="padding: 0.15rem 0;">
+          
+          <!-- Tab 1: Load Calculator 2.0 -->
+          <div id="tab-content-load-calc-2" style="display: block; width: 100%;">
+            <section class="card" style="width: 100%; padding: 0.4rem; margin-bottom: 0;">
+              <!-- Calculator Table -->
+              <div style="overflow-x: auto; margin-top: 0.15rem;">
+                <table id="load-calc-table" style="max-width: 950px; margin: 0 auto; width: 100%; border-collapse: collapse; font-size: 0.88rem; table-layout: fixed;">
+                  <thead>
+                    <tr style="background: rgba(255,255,255,0.05); border-bottom: 1.5px solid rgba(255,255,255,0.1);">
+                      <th style="padding: 0.2rem 0.4rem; text-align: left; font-weight: 700; color: var(--text-main); width: 10%;">Product</th>
+                      <th style="padding: 0.2rem 0.4rem; text-align: center; font-weight: 700; color: var(--text-main); width: 14%;">Order Qty<br>(KL)</th>
+                      <th style="padding: 0.2rem 0.4rem; text-align: left; font-weight: 700; color: var(--text-main); width: 22%;">Description Component</th>
+                      <th style="padding: 0.2rem 0.4rem; text-align: right; font-weight: 700; color: var(--text-main); width: 20%;">Rate/KL</th>
+                      <th style="padding: 0.2rem 0.4rem; text-align: right; font-weight: 700; color: var(--text-main); width: 18%;">Rate/KL (₹)</th>
+                      <th style="padding: 0.2rem 0.4rem; text-align: right; font-weight: 700; color: var(--text-main); width: 16%;">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <!-- ═══════ poWer Section (Red) ═══════ -->
+                    <tr style="background: rgba(239, 68, 68, 0.05); border-left: 4px solid #ef4444;">
+                      <td rowspan="4" style="padding: 0.2rem 0.4rem; font-weight: 700; font-size: 1.05rem; color: #ef4444; vertical-align: middle; border-bottom: 1.5px solid rgba(239,68,68,0.2);">poWer</td>
+                      <td rowspan="4" style="padding: 0.2rem 0.4rem; text-align: center; vertical-align: middle; border-bottom: 1.5px solid rgba(239,68,68,0.2);">
+                        <input type="number" id="lc-qty-power" class="lc-input" min="0" value="0" step="1" style="width: 80px; text-align: center; font-size: 1.1rem; font-weight: 700; padding: 0.15rem 0.25rem; border-radius: 0.25rem; background: var(--panel-bg); border: 1px solid rgba(239,68,68,0.3); color: #ef4444;">
+                      </td>
+                      <td style="padding: 0.2rem 0.4rem; font-weight: 600; color: var(--text-main);">Rate</td>
+                      <td style="padding: 0.2rem 0.4rem; text-align: right;">
+                        <div style="display: inline-flex; align-items: center; gap: 0.2rem; justify-content: flex-end;">
+                          <input type="number" id="lc-rate-power" class="lc-rate-input" step="0.01" value="82499.41" style="width: 115px; text-align: right; font-size: 0.85rem; font-weight: 600; padding: 0.15rem 0.25rem; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--text-main);">
+                          <span style="font-size: 0.8rem; color: var(--text-muted);">/KL</span>
+                        </div>
+                      </td>
+                      <td id="lc-ratekl-power" style="padding: 0.2rem 0.4rem; text-align: right; font-weight: 600; color: var(--text-main);">₹82,499.41</td>
+                      <td id="lc-ratetotal-power" style="padding: 0.2rem 0.4rem; text-align: right; font-weight: 700; color: var(--text-main);">₹0.00</td>
+                    </tr>
+                    <tr style="background: rgba(239, 68, 68, 0.02); border-left: 4px solid #ef4444;">
+                      <td style="padding: 0.2rem 0.4rem; font-weight: 600; color: var(--text-main);">VAT</td>
+                      <td style="padding: 0.2rem 0.4rem; text-align: right;">
+                        <div style="display: inline-flex; align-items: center; gap: 0.2rem; justify-content: flex-end;">
+                          <input type="number" id="lc-vat-power" class="lc-rate-input" step="0.1" value="25" style="width: 65px; text-align: right; font-size: 0.85rem; font-weight: 600; padding: 0.15rem 0.25rem; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--text-main);">
+                          <span style="font-size: 0.8rem; color: var(--text-muted);">%</span>
+                        </div>
+                      </td>
+                      <td id="lc-vatkl-power" style="padding: 0.2rem 0.4rem; text-align: right; color: var(--text-muted);">₹20,624.85</td>
+                      <td id="lc-vattotal-power" style="padding: 0.2rem 0.4rem; text-align: right; font-weight: 600; color: var(--text-main);">₹0.00</td>
+                    </tr>
+                    <tr style="background: rgba(239, 68, 68, 0.05); border-left: 4px solid #ef4444;">
+                      <td style="padding: 0.2rem 0.4rem; font-weight: 600; color: var(--text-main);">VAT Surcharge</td>
+                      <td style="padding: 0.2rem 0.4rem; text-align: right;">
+                        <div style="display: inline-flex; align-items: center; gap: 0.2rem; justify-content: flex-end;">
+                          <input type="number" id="lc-surcharge-power" class="lc-rate-input" step="0.01" value="5120.00" style="width: 100px; text-align: right; font-size: 0.85rem; font-weight: 600; padding: 0.15rem 0.25rem; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--text-main);">
+                          <span style="font-size: 0.8rem; color: var(--text-muted);">/KL</span>
+                        </div>
+                      </td>
+                      <td id="lc-surchargekl-power" style="padding: 0.2rem 0.4rem; text-align: right; color: var(--text-muted);">₹5,120.00</td>
+                      <td id="lc-surchargetotal-power" style="padding: 0.2rem 0.4rem; text-align: right; font-weight: 600; color: var(--text-main);">₹0.00</td>
+                    </tr>
+                    <tr style="background: rgba(239, 68, 68, 0.02); border-left: 4px solid #ef4444; border-bottom: 1.5px solid rgba(239,68,68,0.2);">
+                      <td style="padding: 0.2rem 0.4rem; font-weight: 600; color: var(--text-main);">SSLF Recovery</td>
+                      <td style="padding: 0.2rem 0.4rem; text-align: right;">
+                        <div style="display: inline-flex; align-items: center; gap: 0.2rem; justify-content: flex-end;">
+                          <input type="number" id="lc-sslf-power" class="lc-rate-input" step="0.01" value="523.33" style="width: 100px; text-align: right; font-size: 0.85rem; font-weight: 600; padding: 0.15rem 0.25rem; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--text-main);">
+                          <span style="font-size: 0.8rem; color: var(--text-muted);">/KL</span>
+                        </div>
+                      </td>
+                      <td id="lc-sslfkl-power" style="padding: 0.2rem 0.4rem; text-align: right; color: var(--text-muted);">₹523.33</td>
+                      <td id="lc-sslftotal-power" style="padding: 0.2rem 0.4rem; text-align: right; font-weight: 600; color: var(--text-main);">₹0.00</td>
+                    </tr>
 
-                <!-- Petrol Row -->
-                <div class="product-petrol" style="display: grid; grid-template-columns: 80px 150px 1fr 120px; align-items: center; gap: 1rem; padding: 1rem; border: 1px solid var(--petrol-border); border-radius: 0.5rem; background: var(--petrol-bg);">
-                  <div style="font-weight: 700; font-size: 1.1rem; color: var(--petrol-color);">Petrol</div>
-                  <div>
-                    <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Requirement (L)</label>
-                    <input type="number" id="tanker-req-petrol" class="calc-input-tanker" data-product="Petrol" min="0" placeholder="0" style="width: 100%; padding: 0.5rem; border-radius: 0.35rem; background: var(--panel-bg); border: 1px solid var(--petrol-border); color: var(--text-main); font-family: monospace; font-size: 1.1rem;">
-                  </div>
-                  <div>
-                    <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.25rem;">RSP: ₹<input type="number" id="tanker-rsp-petrol" class="calc-input-tanker-rsp" step="0.01" min="0" style="width: 70px; padding: 0.2rem; border-radius: 0.25rem; background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--text-main); font-family: monospace; font-size: 0.85rem;"></div>
-                    <div style="font-size: 0.85rem; color: var(--text-main); margin-top: 0.25rem;">Billing: ₹<span id="tanker-bill-petrol">0.00</span>/L</div>
-                  </div>
-                  <div style="text-align: right;">
-                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Amount</div>
-                    <div id="tanker-amt-petrol" style="font-weight: 700; font-size: 1.2rem; color: var(--petrol-color); font-family: monospace;">₹ 0.00</div>
-                  </div>
-                </div>
+                    <!-- ═══════ Petrol Section (Green) ═══════ -->
+                    <tr style="background: rgba(16, 185, 129, 0.05); border-left: 4px solid #10b981;">
+                      <td rowspan="4" style="padding: 0.2rem 0.4rem; font-weight: 700; font-size: 1.05rem; color: #10b981; vertical-align: middle; border-bottom: 1.5px solid rgba(16,185,129,0.2);">Petrol</td>
+                      <td rowspan="4" style="padding: 0.2rem 0.4rem; text-align: center; vertical-align: middle; border-bottom: 1.5px solid rgba(16,185,129,0.2);">
+                        <input type="number" id="lc-qty-petrol" class="lc-input" min="0" value="0" step="1" style="width: 80px; text-align: center; font-size: 1.1rem; font-weight: 700; padding: 0.15rem 0.25rem; border-radius: 0.25rem; background: var(--panel-bg); border: 1px solid rgba(16,185,129,0.3); color: #10b981;">
+                      </td>
+                      <td style="padding: 0.2rem 0.4rem; font-weight: 600; color: var(--text-main);">Rate</td>
+                      <td style="padding: 0.2rem 0.4rem; text-align: right;">
+                        <div style="display: inline-flex; align-items: center; gap: 0.2rem; justify-content: flex-end;">
+                          <input type="number" id="lc-rate-petrol" class="lc-rate-input" step="0.01" value="77074.59" style="width: 115px; text-align: right; font-size: 0.85rem; font-weight: 600; padding: 0.15rem 0.25rem; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--text-main);">
+                          <span style="font-size: 0.8rem; color: var(--text-muted);">/KL</span>
+                        </div>
+                      </td>
+                      <td id="lc-ratekl-petrol" style="padding: 0.2rem 0.4rem; text-align: right; font-weight: 600; color: var(--text-main);">₹77,074.59</td>
+                      <td id="lc-ratetotal-petrol" style="padding: 0.2rem 0.4rem; text-align: right; font-weight: 700; color: var(--text-main);">₹0.00</td>
+                    </tr>
+                    <tr style="background: rgba(16, 185, 129, 0.02); border-left: 4px solid #10b981;">
+                      <td style="padding: 0.2rem 0.4rem; font-weight: 600; color: var(--text-main);">VAT</td>
+                      <td style="padding: 0.2rem 0.4rem; text-align: right;">
+                        <div style="display: inline-flex; align-items: center; gap: 0.2rem; justify-content: flex-end;">
+                          <input type="number" id="lc-vat-petrol" class="lc-rate-input" step="0.1" value="25" style="width: 65px; text-align: right; font-size: 0.85rem; font-weight: 600; padding: 0.15rem 0.25rem; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--text-main);">
+                          <span style="font-size: 0.8rem; color: var(--text-muted);">%</span>
+                        </div>
+                      </td>
+                      <td id="lc-vatkl-petrol" style="padding: 0.2rem 0.4rem; text-align: right; color: var(--text-muted);">₹19,268.65</td>
+                      <td id="lc-vattotal-petrol" style="padding: 0.2rem 0.4rem; text-align: right; font-weight: 600; color: var(--text-main);">₹0.00</td>
+                    </tr>
+                    <tr style="background: rgba(16, 185, 129, 0.05); border-left: 4px solid #10b981;">
+                      <td style="padding: 0.2rem 0.4rem; font-weight: 600; color: var(--text-main);">VAT Surcharge</td>
+                      <td style="padding: 0.2rem 0.4rem; text-align: right;">
+                        <div style="display: inline-flex; align-items: center; gap: 0.2rem; justify-content: flex-end;">
+                          <input type="number" id="lc-surcharge-petrol" class="lc-rate-input" step="0.01" value="5120.00" style="width: 100px; text-align: right; font-size: 0.85rem; font-weight: 600; padding: 0.15rem 0.25rem; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--text-main);">
+                          <span style="font-size: 0.8rem; color: var(--text-muted);">/KL</span>
+                        </div>
+                      </td>
+                      <td id="lc-surchargekl-petrol" style="padding: 0.2rem 0.4rem; text-align: right; color: var(--text-muted);">₹5,120.00</td>
+                      <td id="lc-surchargetotal-petrol" style="padding: 0.2rem 0.4rem; text-align: right; font-weight: 600; color: var(--text-main);">₹0.00</td>
+                    </tr>
+                    <tr style="background: rgba(16, 185, 129, 0.02); border-left: 4px solid #10b981; border-bottom: 1.5px solid rgba(16,185,129,0.2);">
+                      <td style="padding: 0.2rem 0.4rem; font-weight: 600; color: var(--text-main);">SSLF Recovery</td>
+                      <td style="padding: 0.2rem 0.4rem; text-align: right;">
+                        <div style="display: inline-flex; align-items: center; gap: 0.2rem; justify-content: flex-end;">
+                          <input type="number" id="lc-sslf-petrol" class="lc-rate-input" step="0.01" value="523.33" style="width: 100px; text-align: right; font-size: 0.85rem; font-weight: 600; padding: 0.15rem 0.25rem; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--text-main);">
+                          <span style="font-size: 0.8rem; color: var(--text-muted);">/KL</span>
+                        </div>
+                      </td>
+                      <td id="lc-sslfkl-petrol" style="padding: 0.2rem 0.4rem; text-align: right; color: var(--text-muted);">₹523.33</td>
+                      <td id="lc-sslftotal-petrol" style="padding: 0.2rem 0.4rem; text-align: right; font-weight: 600; color: var(--text-main);">₹0.00</td>
+                    </tr>
 
-                <!-- Diesel Row -->
-                <div class="product-diesel" style="display: grid; grid-template-columns: 80px 150px 1fr 120px; align-items: center; gap: 1rem; padding: 1rem; border: 1px solid var(--diesel-border); border-radius: 0.5rem; background: var(--diesel-bg);">
-                  <div style="font-weight: 700; font-size: 1.1rem; color: var(--diesel-color);">Diesel</div>
-                  <div>
-                    <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Requirement (L)</label>
-                    <input type="number" id="tanker-req-diesel" class="calc-input-tanker" data-product="Diesel" min="0" placeholder="0" style="width: 100%; padding: 0.5rem; border-radius: 0.35rem; background: var(--panel-bg); border: 1px solid var(--diesel-border); color: var(--text-main); font-family: monospace; font-size: 1.1rem;">
-                  </div>
-                  <div>
-                    <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.25rem;">RSP: ₹<input type="number" id="tanker-rsp-diesel" class="calc-input-tanker-rsp" step="0.01" min="0" style="width: 70px; padding: 0.2rem; border-radius: 0.25rem; background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--text-main); font-family: monospace; font-size: 0.85rem;"></div>
-                    <div style="font-size: 0.85rem; color: var(--text-main); margin-top: 0.25rem;">Billing: ₹<span id="tanker-bill-diesel">0.00</span>/L</div>
-                  </div>
-                  <div style="text-align: right;">
-                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Amount</div>
-                    <div id="tanker-amt-diesel" style="font-weight: 700; font-size: 1.2rem; color: var(--diesel-color); font-family: monospace;">₹ 0.00</div>
-                  </div>
-                </div>
+                    <!-- ═══════ Diesel Section (Blue) ═══════ -->
+                    <tr style="background: rgba(59, 130, 246, 0.05); border-left: 4px solid #3b82f6;">
+                      <td rowspan="3" style="padding: 0.2rem 0.4rem; font-weight: 700; font-size: 1.05rem; color: #3b82f6; vertical-align: middle; border-bottom: 1.5px solid rgba(59,130,246,0.2);">Diesel</td>
+                      <td rowspan="3" style="padding: 0.2rem 0.4rem; text-align: center; vertical-align: middle; border-bottom: 1.5px solid rgba(59,130,246,0.2);">
+                        <input type="number" id="lc-qty-diesel" class="lc-input" min="0" value="0" step="1" style="width: 80px; text-align: center; font-size: 1.1rem; font-weight: 700; padding: 0.15rem 0.25rem; border-radius: 0.25rem; background: var(--panel-bg); border: 1px solid rgba(59, 130, 246, 0.3); color: #3b82f6;">
+                      </td>
+                      <td style="padding: 0.2rem 0.4rem; font-weight: 600; color: var(--text-main);">Rate</td>
+                      <td style="padding: 0.2rem 0.4rem; text-align: right;">
+                        <div style="display: inline-flex; align-items: center; gap: 0.2rem; justify-content: flex-end;">
+                          <input type="number" id="lc-rate-diesel" class="lc-rate-input" step="0.01" value="73892.29" style="width: 115px; text-align: right; font-size: 0.85rem; font-weight: 600; padding: 0.15rem 0.25rem; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--text-main);">
+                          <span style="font-size: 0.8rem; color: var(--text-muted);">/KL</span>
+                        </div>
+                      </td>
+                      <td id="lc-ratekl-diesel" style="padding: 0.2rem 0.4rem; text-align: right; font-weight: 600; color: var(--text-main);">₹73,892.29</td>
+                      <td id="lc-ratetotal-diesel" style="padding: 0.2rem 0.4rem; text-align: right; font-weight: 700; color: var(--text-main);">₹0.00</td>
+                    </tr>
+                    <tr style="background: rgba(59, 130, 246, 0.02); border-left: 4px solid #3b82f6;">
+                      <td style="padding: 0.2rem 0.4rem; font-weight: 600; color: var(--text-main);">VAT (25%)</td>
+                      <td style="padding: 0.2rem 0.4rem; text-align: right;">
+                        <div style="display: inline-flex; align-items: center; gap: 0.2rem; justify-content: flex-end;">
+                          <input type="number" id="lc-vat-diesel" class="lc-rate-input" step="0.1" value="21" style="width: 65px; text-align: right; font-size: 0.85rem; font-weight: 600; padding: 0.15rem 0.25rem; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--text-main);">
+                          <span style="font-size: 0.8rem; color: var(--text-muted);">%</span>
+                        </div>
+                      </td>
+                      <td id="lc-vatkl-diesel" style="padding: 0.2rem 0.4rem; text-align: right; color: var(--text-muted);">₹15,517.38</td>
+                      <td id="lc-vattotal-diesel" style="padding: 0.2rem 0.4rem; text-align: right; font-weight: 600; color: var(--text-main);">₹0.00</td>
+                    </tr>
+                    <tr style="background: rgba(59, 130, 246, 0.05); border-left: 4px solid #3b82f6; border-bottom: 1.5px solid rgba(59,130,246,0.2);">
+                      <td style="padding: 0.2rem 0.4rem; font-weight: 600; color: var(--text-main);">SSLF Recovery</td>
+                      <td style="padding: 0.2rem 0.4rem; text-align: right;">
+                        <div style="display: inline-flex; align-items: center; gap: 0.2rem; justify-content: flex-end;">
+                          <input type="number" id="lc-sslf-diesel" class="lc-rate-input" step="0.01" value="436.10" style="width: 100px; text-align: right; font-size: 0.85rem; font-weight: 600; padding: 0.15rem 0.25rem; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--text-main);">
+                          <span style="font-size: 0.8rem; color: var(--text-muted);">/KL</span>
+                        </div>
+                      </td>
+                      <td id="lc-sslfkl-diesel" style="padding: 0.2rem 0.4rem; text-align: right; color: var(--text-muted);">₹436.10</td>
+                      <td id="lc-sslftotal-diesel" style="padding: 0.2rem 0.4rem; text-align: right; font-weight: 600; color: var(--text-main);">₹0.00</td>
+                    </tr>
+                  </tbody>
 
-                <hr style="border: 0; border-top: 1px dashed var(--panel-border); margin: 0.5rem 0;">
-
-                <!-- HPCL Portal Balance -->
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: rgba(0, 45, 98, 0.1); border-radius: 0.5rem; border: 1px solid rgba(0, 45, 98, 0.25);">
-                  <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">HPCL Portal Balance (₹)</div>
-                  <div>
-                    <input type="number" id="tanker-hpcl-balance" class="calc-input-tanker" min="0" placeholder="0" style="width: 150px; padding: 0.5rem; border-radius: 0.35rem; background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--text-main); font-family: monospace; font-size: 1.2rem; text-align: right;">
-                  </div>
-                </div>
-
-                <!-- Total RTGS Amount -->
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: var(--panel-bg); border-radius: 0.5rem; border: 1px solid var(--panel-border);">
-                  <div style="font-weight: 700; font-size: 1.2rem; color: var(--text-main);">Total RTGS Amount</div>
-                  <div id="tanker-grand-total" style="font-weight: 800; font-size: 1.6rem; color: var(--success); font-family: monospace;">₹ 0.00</div>
-                </div>
+                  <!-- Summary Footer -->
+                  <tfoot>
+                    <tr style="background: rgba(16, 185, 129, 0.08); border-top: 1.5px solid rgba(16,185,129,0.3);">
+                      <td colspan="5" style="padding: 0.25rem 0.4rem; text-align: right; font-weight: 800; font-size: 0.95rem; color: var(--text-main);">Grand Total:</td>
+                      <td id="lc-grand-total" style="padding: 0.25rem 0.4rem; text-align: right; font-weight: 800; font-size: 1.05rem; color: #10b981;">₹0.00</td>
+                    </tr>
+                    <tr style="background: rgba(0, 45, 98, 0.05);">
+                      <td colspan="5" style="padding: 0.2rem 0.4rem; text-align: right; font-weight: 700; font-size: 0.9rem; color: var(--text-main);">HPCL Portal Balance:</td>
+                      <td style="padding: 0.2rem 0.4rem; text-align: right;">
+                        <input type="number" id="lc-hpcl-balance" class="lc-input" min="0" value="0" step="0.01" style="width: 150px; text-align: right; font-size: 0.95rem; font-weight: 700; padding: 0.15rem 0.25rem; border-radius: 0.25rem; background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--text-main);">
+                      </td>
+                    </tr>
+                    <tr style="background: rgba(239, 68, 68, 0.08); border-top: 1.5px solid rgba(239,68,68,0.3);">
+                      <td colspan="5" style="padding: 0.3rem 0.4rem; text-align: right; font-weight: 800; font-size: 1.05rem; color: #ef4444;">RTGS is to be Done:</td>
+                      <td id="lc-rtgs-total" style="padding: 0.3rem 0.4rem; text-align: right; font-weight: 800; font-size: 1.2rem; color: #ef4444;">₹0.00</td>
+                    </tr>
+                  </tfoot>
+                </table>
               </div>
-            </form>
-          </section>
+            </section>
+          </div>
+
+          <!-- Tab 2: Load Calculator 1.0 -->
+          <div id="tab-content-load-calc-1" style="display: none; width: 100%;">
+            <section class="card">
+              <div class="card-header">
+                <h2>Tanker RTGS Calculator</h2>
+                <p>Enter the required volume for each product. Billing rates are automatically calculated (RSP - Commission).</p>
+              </div>
+              <form id="tanker-calc-form" class="tanker-form" style="margin-top: 1.5rem;">
+                <div class="tanker-calc-grid" style="display: flex; flex-direction: column; gap: 1rem; max-width: 600px; margin: 0 auto;">
+                  
+                  <!-- poWer Row -->
+                  <div class="product-power" style="display: grid; grid-template-columns: 80px 150px 1fr 120px; align-items: center; gap: 1rem; padding: 1rem; border: 1px solid var(--power-border); border-radius: 0.5rem; background: var(--power-bg);">
+                    <div style="font-weight: 700; font-size: 1.1rem; color: var(--power-color);">poWer</div>
+                    <div>
+                      <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Requirement (L)</label>
+                      <input type="number" id="tanker-req-power" class="calc-input-tanker" data-product="poWer" min="0" placeholder="0" style="width: 100%; padding: 0.5rem; border-radius: 0.35rem; background: var(--panel-bg); border: 1px solid var(--power-border); color: var(--text-main); font-family: monospace; font-size: 1.1rem;">
+                    </div>
+                    <div>
+                      <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.25rem;">RSP: ₹<input type="number" id="tanker-rsp-power" class="calc-input-tanker-rsp" step="0.01" min="0" style="width: 70px; padding: 0.2rem; border-radius: 0.25rem; background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--text-main); font-family: monospace; font-size: 0.85rem;"></div>
+                      <div style="font-size: 0.85rem; color: var(--text-main); margin-top: 0.25rem;">Billing: ₹<span id="tanker-bill-power">0.00</span>/L</div>
+                    </div>
+                    <div style="text-align: right;">
+                      <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Amount</div>
+                      <div id="tanker-amt-power" style="font-weight: 700; font-size: 1.2rem; color: var(--power-color); font-family: monospace;">₹ 0.00</div>
+                    </div>
+                  </div>
+
+                  <!-- Petrol Row -->
+                  <div class="product-petrol" style="display: grid; grid-template-columns: 80px 150px 1fr 120px; align-items: center; gap: 1rem; padding: 1rem; border: 1px solid var(--petrol-border); border-radius: 0.5rem; background: var(--petrol-bg);">
+                    <div style="font-weight: 700; font-size: 1.1rem; color: var(--petrol-color);">Petrol</div>
+                    <div>
+                      <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Requirement (L)</label>
+                      <input type="number" id="tanker-req-petrol" class="calc-input-tanker" data-product="Petrol" min="0" placeholder="0" style="width: 100%; padding: 0.5rem; border-radius: 0.35rem; background: var(--panel-bg); border: 1px solid var(--petrol-border); color: var(--text-main); font-family: monospace; font-size: 1.1rem;">
+                    </div>
+                    <div>
+                      <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.25rem;">RSP: ₹<input type="number" id="tanker-rsp-petrol" class="calc-input-tanker-rsp" step="0.01" min="0" style="width: 70px; padding: 0.2rem; border-radius: 0.25rem; background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--text-main); font-family: monospace; font-size: 0.85rem;"></div>
+                      <div style="font-size: 0.85rem; color: var(--text-main); margin-top: 0.25rem;">Billing: ₹<span id="tanker-bill-petrol">0.00</span>/L</div>
+                    </div>
+                    <div style="text-align: right;">
+                      <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Amount</div>
+                      <div id="tanker-amt-petrol" style="font-weight: 700; font-size: 1.2rem; color: var(--petrol-color); font-family: monospace;">₹ 0.00</div>
+                    </div>
+                  </div>
+
+                  <!-- Diesel Row -->
+                  <div class="product-diesel" style="display: grid; grid-template-columns: 80px 150px 1fr 120px; align-items: center; gap: 1rem; padding: 1rem; border: 1px solid var(--diesel-border); border-radius: 0.5rem; background: var(--diesel-bg);">
+                    <div style="font-weight: 700; font-size: 1.1rem; color: var(--diesel-color);">Diesel</div>
+                    <div>
+                      <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Requirement (L)</label>
+                      <input type="number" id="tanker-req-diesel" class="calc-input-tanker" data-product="Diesel" min="0" placeholder="0" style="width: 100%; padding: 0.5rem; border-radius: 0.35rem; background: var(--panel-bg); border: 1px solid var(--diesel-border); color: var(--text-main); font-family: monospace; font-size: 1.1rem;">
+                    </div>
+                    <div>
+                      <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.25rem;">RSP: ₹<input type="number" id="tanker-rsp-diesel" class="calc-input-tanker-rsp" step="0.01" min="0" style="width: 70px; padding: 0.2rem; border-radius: 0.25rem; background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--text-main); font-family: monospace; font-size: 0.85rem;"></div>
+                      <div style="font-size: 0.85rem; color: var(--text-main); margin-top: 0.25rem;">Billing: ₹<span id="tanker-bill-diesel">0.00</span>/L</div>
+                    </div>
+                    <div style="text-align: right;">
+                      <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Amount</div>
+                      <div id="tanker-amt-diesel" style="font-weight: 700; font-size: 1.2rem; color: var(--diesel-color); font-family: monospace;">₹ 0.00</div>
+                    </div>
+                  </div>
+
+                  <hr style="border: 0; border-top: 1px dashed var(--panel-border); margin: 0.5rem 0;">
+
+                  <!-- HPCL Portal Balance -->
+                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: rgba(0, 45, 98, 0.1); border-radius: 0.5rem; border: 1px solid rgba(0, 45, 98, 0.25);">
+                    <div style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);">HPCL Portal Balance (₹)</div>
+                    <div>
+                      <input type="number" id="tanker-hpcl-balance" class="calc-input-tanker" min="0" placeholder="0" style="width: 150px; padding: 0.5rem; border-radius: 0.35rem; background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--text-main); font-family: monospace; font-size: 1.2rem; text-align: right;">
+                    </div>
+                  </div>
+
+                  <!-- Total RTGS Amount -->
+                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: var(--panel-bg); border-radius: 0.5rem; border: 1px solid var(--panel-border);">
+                    <div style="font-weight: 700; font-size: 1.2rem; color: var(--text-main);">Total RTGS Amount</div>
+                    <div id="tanker-grand-total" style="font-weight: 800; font-size: 1.6rem; color: var(--success); font-family: monospace;">₹ 0.00</div>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+
         </main>
       </div>
 
-      <!-- VIEW: Cash Calculator -->
+<!-- VIEW: Cash Calculator -->
       <div id="view-cash-calculator" class="view-pane" style="display: none;">
         <header class="content-header">
           <div class="header-title-wrapper">
@@ -2702,195 +2895,7 @@
       </div>
 
       <!-- VIEW: Admin Load Calculator -->
-      <div id="view-load-calculator" class="view-pane" style="display: none;">
-        <header class="content-header" style="margin-bottom: 0.25rem;">
-          <div class="header-title-wrapper">
-            <h1 style="font-size: 1.25rem; margin: 0;">🧮 Load Calculator</h1>
-            <p class="subtitle" style="font-size: 0.75rem; margin: 0;">Calculate tanker load cost breakdown with VAT, Surcharge & SSLF Recovery</p>
-          </div>
-        </header>
-        <main class="content-body" style="padding: 0.15rem 0;">
-          <section class="card" style="width: 100%; padding: 0.4rem; margin-bottom: 0;">
-            <div class="card-header" style="text-align: center; border-bottom: none; padding-bottom: 0.15rem;">
-              <h2 style="font-family: var(--font-header); font-size: 1.15rem; color: var(--accent); margin: 0;">Load Calculator</h2>
-            </div>
-
-            <!-- Calculator Table -->
-            <div style="overflow-x: auto; margin-top: 0.15rem;">
-              <table id="load-calc-table" style="max-width: 950px; margin: 0 auto; width: 100%; border-collapse: collapse; font-size: 0.88rem; table-layout: fixed;">
-                <thead>
-                  <tr style="background: rgba(255,255,255,0.05); border-bottom: 1.5px solid rgba(255,255,255,0.1);">
-                    <th style="padding: 0.2rem 0.4rem; text-align: left; font-weight: 700; color: var(--text-main); width: 10%;">Product</th>
-                    <th style="padding: 0.2rem 0.4rem; text-align: center; font-weight: 700; color: var(--text-main); width: 14%;">Order Qty<br>(KL)</th>
-                    <th style="padding: 0.2rem 0.4rem; text-align: left; font-weight: 700; color: var(--text-main); width: 22%;">Description Component</th>
-                    <th style="padding: 0.2rem 0.4rem; text-align: right; font-weight: 700; color: var(--text-main); width: 20%;">Rate/KL</th>
-                    <th style="padding: 0.2rem 0.4rem; text-align: right; font-weight: 700; color: var(--text-main); width: 18%;">Rate/KL (₹)</th>
-                    <th style="padding: 0.2rem 0.4rem; text-align: right; font-weight: 700; color: var(--text-main); width: 16%;">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <!-- ═══════ poWer Section (Red) ═══════ -->
-                  <tr style="background: rgba(239, 68, 68, 0.05); border-left: 4px solid #ef4444;">
-                    <td rowspan="4" style="padding: 0.2rem 0.4rem; font-weight: 700; font-size: 1.05rem; color: #ef4444; vertical-align: middle; border-bottom: 1.5px solid rgba(239,68,68,0.2);">poWer</td>
-                    <td rowspan="4" style="padding: 0.2rem 0.4rem; text-align: center; vertical-align: middle; border-bottom: 1.5px solid rgba(239,68,68,0.2);">
-                      <input type="number" id="lc-qty-power" class="lc-input" min="0" value="0" step="1" style="width: 80px; text-align: center; font-size: 1.1rem; font-weight: 700; padding: 0.15rem 0.25rem; border-radius: 0.25rem; background: var(--panel-bg); border: 1px solid rgba(239,68,68,0.3); color: #ef4444;">
-                    </td>
-                    <td style="padding: 0.2rem 0.4rem; font-weight: 600; color: var(--text-main);">Rate</td>
-                    <td style="padding: 0.2rem 0.4rem; text-align: right;">
-                      <div style="display: inline-flex; align-items: center; gap: 0.2rem; justify-content: flex-end;">
-                        <input type="number" id="lc-rate-power" class="lc-rate-input" step="0.01" value="82499.41" style="width: 115px; text-align: right; font-size: 0.85rem; font-weight: 600; padding: 0.15rem 0.25rem; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--text-main);">
-                        <span style="font-size: 0.8rem; color: var(--text-muted);">/KL</span>
-                      </div>
-                    </td>
-                    <td id="lc-ratekl-power" style="padding: 0.2rem 0.4rem; text-align: right; font-weight: 600; color: var(--text-main);">₹82,499.41</td>
-                    <td id="lc-ratetotal-power" style="padding: 0.2rem 0.4rem; text-align: right; font-weight: 700; color: var(--text-main);">₹0.00</td>
-                  </tr>
-                  <tr style="background: rgba(239, 68, 68, 0.02); border-left: 4px solid #ef4444;">
-                    <td style="padding: 0.2rem 0.4rem; font-weight: 600; color: var(--text-main);">VAT</td>
-                    <td style="padding: 0.2rem 0.4rem; text-align: right;">
-                      <div style="display: inline-flex; align-items: center; gap: 0.2rem; justify-content: flex-end;">
-                        <input type="number" id="lc-vat-power" class="lc-rate-input" step="0.1" value="25" style="width: 65px; text-align: right; font-size: 0.85rem; font-weight: 600; padding: 0.15rem 0.25rem; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--text-main);">
-                        <span style="font-size: 0.8rem; color: var(--text-muted);">%</span>
-                      </div>
-                    </td>
-                    <td id="lc-vatkl-power" style="padding: 0.2rem 0.4rem; text-align: right; color: var(--text-muted);">₹20,624.85</td>
-                    <td id="lc-vattotal-power" style="padding: 0.2rem 0.4rem; text-align: right; font-weight: 600; color: var(--text-main);">₹0.00</td>
-                  </tr>
-                  <tr style="background: rgba(239, 68, 68, 0.05); border-left: 4px solid #ef4444;">
-                    <td style="padding: 0.2rem 0.4rem; font-weight: 600; color: var(--text-main);">VAT Surcharge</td>
-                    <td style="padding: 0.2rem 0.4rem; text-align: right;">
-                      <div style="display: inline-flex; align-items: center; gap: 0.2rem; justify-content: flex-end;">
-                        <input type="number" id="lc-surcharge-power" class="lc-rate-input" step="0.01" value="5120.00" style="width: 100px; text-align: right; font-size: 0.85rem; font-weight: 600; padding: 0.15rem 0.25rem; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--text-main);">
-                        <span style="font-size: 0.8rem; color: var(--text-muted);">/KL</span>
-                      </div>
-                    </td>
-                    <td id="lc-surchargekl-power" style="padding: 0.2rem 0.4rem; text-align: right; color: var(--text-muted);">₹5,120.00</td>
-                    <td id="lc-surchargetotal-power" style="padding: 0.2rem 0.4rem; text-align: right; font-weight: 600; color: var(--text-main);">₹0.00</td>
-                  </tr>
-                  <tr style="background: rgba(239, 68, 68, 0.02); border-left: 4px solid #ef4444; border-bottom: 1.5px solid rgba(239,68,68,0.2);">
-                    <td style="padding: 0.2rem 0.4rem; font-weight: 600; color: var(--text-main);">SSLF Recovery</td>
-                    <td style="padding: 0.2rem 0.4rem; text-align: right;">
-                      <div style="display: inline-flex; align-items: center; gap: 0.2rem; justify-content: flex-end;">
-                        <input type="number" id="lc-sslf-power" class="lc-rate-input" step="0.01" value="523.33" style="width: 100px; text-align: right; font-size: 0.85rem; font-weight: 600; padding: 0.15rem 0.25rem; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--text-main);">
-                        <span style="font-size: 0.8rem; color: var(--text-muted);">/KL</span>
-                      </div>
-                    </td>
-                    <td id="lc-sslfkl-power" style="padding: 0.2rem 0.4rem; text-align: right; color: var(--text-muted);">₹523.33</td>
-                    <td id="lc-sslftotal-power" style="padding: 0.2rem 0.4rem; text-align: right; font-weight: 600; color: var(--text-main);">₹0.00</td>
-                  </tr>
-
-                  <!-- ═══════ Petrol Section (Green) ═══════ -->
-                  <tr style="background: rgba(16, 185, 129, 0.05); border-left: 4px solid #10b981;">
-                    <td rowspan="4" style="padding: 0.2rem 0.4rem; font-weight: 700; font-size: 1.05rem; color: #10b981; vertical-align: middle; border-bottom: 1.5px solid rgba(16,185,129,0.2);">Petrol</td>
-                    <td rowspan="4" style="padding: 0.2rem 0.4rem; text-align: center; vertical-align: middle; border-bottom: 1.5px solid rgba(16,185,129,0.2);">
-                      <input type="number" id="lc-qty-petrol" class="lc-input" min="0" value="0" step="1" style="width: 80px; text-align: center; font-size: 1.1rem; font-weight: 700; padding: 0.15rem 0.25rem; border-radius: 0.25rem; background: var(--panel-bg); border: 1px solid rgba(16,185,129,0.3); color: #10b981;">
-                    </td>
-                    <td style="padding: 0.2rem 0.4rem; font-weight: 600; color: var(--text-main);">Rate</td>
-                    <td style="padding: 0.2rem 0.4rem; text-align: right;">
-                      <div style="display: inline-flex; align-items: center; gap: 0.2rem; justify-content: flex-end;">
-                        <input type="number" id="lc-rate-petrol" class="lc-rate-input" step="0.01" value="77074.59" style="width: 115px; text-align: right; font-size: 0.85rem; font-weight: 600; padding: 0.15rem 0.25rem; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--text-main);">
-                        <span style="font-size: 0.8rem; color: var(--text-muted);">/KL</span>
-                      </div>
-                    </td>
-                    <td id="lc-ratekl-petrol" style="padding: 0.2rem 0.4rem; text-align: right; font-weight: 600; color: var(--text-main);">₹77,074.59</td>
-                    <td id="lc-ratetotal-petrol" style="padding: 0.2rem 0.4rem; text-align: right; font-weight: 700; color: var(--text-main);">₹0.00</td>
-                  </tr>
-                  <tr style="background: rgba(16, 185, 129, 0.02); border-left: 4px solid #10b981;">
-                    <td style="padding: 0.2rem 0.4rem; font-weight: 600; color: var(--text-main);">VAT</td>
-                    <td style="padding: 0.2rem 0.4rem; text-align: right;">
-                      <div style="display: inline-flex; align-items: center; gap: 0.2rem; justify-content: flex-end;">
-                        <input type="number" id="lc-vat-petrol" class="lc-rate-input" step="0.1" value="25" style="width: 65px; text-align: right; font-size: 0.85rem; font-weight: 600; padding: 0.15rem 0.25rem; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--text-main);">
-                        <span style="font-size: 0.8rem; color: var(--text-muted);">%</span>
-                      </div>
-                    </td>
-                    <td id="lc-vatkl-petrol" style="padding: 0.2rem 0.4rem; text-align: right; color: var(--text-muted);">₹19,268.65</td>
-                    <td id="lc-vattotal-petrol" style="padding: 0.2rem 0.4rem; text-align: right; font-weight: 600; color: var(--text-main);">₹0.00</td>
-                  </tr>
-                  <tr style="background: rgba(16, 185, 129, 0.05); border-left: 4px solid #10b981;">
-                    <td style="padding: 0.2rem 0.4rem; font-weight: 600; color: var(--text-main);">VAT Surcharge</td>
-                    <td style="padding: 0.2rem 0.4rem; text-align: right;">
-                      <div style="display: inline-flex; align-items: center; gap: 0.2rem; justify-content: flex-end;">
-                        <input type="number" id="lc-surcharge-petrol" class="lc-rate-input" step="0.01" value="5120.00" style="width: 100px; text-align: right; font-size: 0.85rem; font-weight: 600; padding: 0.15rem 0.25rem; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--text-main);">
-                        <span style="font-size: 0.8rem; color: var(--text-muted);">/KL</span>
-                      </div>
-                    </td>
-                    <td id="lc-surchargekl-petrol" style="padding: 0.2rem 0.4rem; text-align: right; color: var(--text-muted);">₹5,120.00</td>
-                    <td id="lc-surchargetotal-petrol" style="padding: 0.2rem 0.4rem; text-align: right; font-weight: 600; color: var(--text-main);">₹0.00</td>
-                  </tr>
-                  <tr style="background: rgba(16, 185, 129, 0.02); border-left: 4px solid #10b981; border-bottom: 1.5px solid rgba(16,185,129,0.2);">
-                    <td style="padding: 0.2rem 0.4rem; font-weight: 600; color: var(--text-main);">SSLF Recovery</td>
-                    <td style="padding: 0.2rem 0.4rem; text-align: right;">
-                      <div style="display: inline-flex; align-items: center; gap: 0.2rem; justify-content: flex-end;">
-                        <input type="number" id="lc-sslf-petrol" class="lc-rate-input" step="0.01" value="523.33" style="width: 100px; text-align: right; font-size: 0.85rem; font-weight: 600; padding: 0.15rem 0.25rem; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--text-main);">
-                        <span style="font-size: 0.8rem; color: var(--text-muted);">/KL</span>
-                      </div>
-                    </td>
-                    <td id="lc-sslfkl-petrol" style="padding: 0.2rem 0.4rem; text-align: right; color: var(--text-muted);">₹523.33</td>
-                    <td id="lc-sslftotal-petrol" style="padding: 0.2rem 0.4rem; text-align: right; font-weight: 600; color: var(--text-main);">₹0.00</td>
-                  </tr>
-
-                  <!-- ═══════ Diesel Section (Blue) ═══════ -->
-                  <tr style="background: rgba(59, 130, 246, 0.05); border-left: 4px solid #3b82f6;">
-                    <td rowspan="3" style="padding: 0.2rem 0.4rem; font-weight: 700; font-size: 1.05rem; color: #3b82f6; vertical-align: middle; border-bottom: 1.5px solid rgba(59,130,246,0.2);">Diesel</td>
-                    <td rowspan="3" style="padding: 0.2rem 0.4rem; text-align: center; vertical-align: middle; border-bottom: 1.5px solid rgba(59,130,246,0.2);">
-                      <input type="number" id="lc-qty-diesel" class="lc-input" min="0" value="0" step="1" style="width: 80px; text-align: center; font-size: 1.1rem; font-weight: 700; padding: 0.15rem 0.25rem; border-radius: 0.25rem; background: var(--panel-bg); border: 1px solid rgba(59, 130, 246, 0.3); color: #3b82f6;">
-                    </td>
-                    <td style="padding: 0.2rem 0.4rem; font-weight: 600; color: var(--text-main);">Rate</td>
-                    <td style="padding: 0.2rem 0.4rem; text-align: right;">
-                      <div style="display: inline-flex; align-items: center; gap: 0.2rem; justify-content: flex-end;">
-                        <input type="number" id="lc-rate-diesel" class="lc-rate-input" step="0.01" value="73892.29" style="width: 115px; text-align: right; font-size: 0.85rem; font-weight: 600; padding: 0.15rem 0.25rem; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--text-main);">
-                        <span style="font-size: 0.8rem; color: var(--text-muted);">/KL</span>
-                      </div>
-                    </td>
-                    <td id="lc-ratekl-diesel" style="padding: 0.2rem 0.4rem; text-align: right; font-weight: 600; color: var(--text-main);">₹73,892.29</td>
-                    <td id="lc-ratetotal-diesel" style="padding: 0.2rem 0.4rem; text-align: right; font-weight: 700; color: var(--text-main);">₹0.00</td>
-                  </tr>
-                  <tr style="background: rgba(59, 130, 246, 0.02); border-left: 4px solid #3b82f6;">
-                    <td style="padding: 0.2rem 0.4rem; font-weight: 600; color: var(--text-main);">VAT (25%)</td>
-                    <td style="padding: 0.2rem 0.4rem; text-align: right;">
-                      <div style="display: inline-flex; align-items: center; gap: 0.2rem; justify-content: flex-end;">
-                        <input type="number" id="lc-vat-diesel" class="lc-rate-input" step="0.1" value="21" style="width: 65px; text-align: right; font-size: 0.85rem; font-weight: 600; padding: 0.15rem 0.25rem; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--text-main);">
-                        <span style="font-size: 0.8rem; color: var(--text-muted);">%</span>
-                      </div>
-                    </td>
-                    <td id="lc-vatkl-diesel" style="padding: 0.2rem 0.4rem; text-align: right; color: var(--text-muted);">₹15,517.38</td>
-                    <td id="lc-vattotal-diesel" style="padding: 0.2rem 0.4rem; text-align: right; font-weight: 600; color: var(--text-main);">₹0.00</td>
-                  </tr>
-                  <tr style="background: rgba(59, 130, 246, 0.05); border-left: 4px solid #3b82f6; border-bottom: 1.5px solid rgba(59,130,246,0.2);">
-                    <td style="padding: 0.2rem 0.4rem; font-weight: 600; color: var(--text-main);">SSLF Recovery</td>
-                    <td style="padding: 0.2rem 0.4rem; text-align: right;">
-                      <div style="display: inline-flex; align-items: center; gap: 0.2rem; justify-content: flex-end;">
-                        <input type="number" id="lc-sslf-diesel" class="lc-rate-input" step="0.01" value="436.10" style="width: 100px; text-align: right; font-size: 0.85rem; font-weight: 600; padding: 0.15rem 0.25rem; border-radius: 0.2rem; background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--text-main);">
-                        <span style="font-size: 0.8rem; color: var(--text-muted);">/KL</span>
-                      </div>
-                    </td>
-                    <td id="lc-sslfkl-diesel" style="padding: 0.2rem 0.4rem; text-align: right; color: var(--text-muted);">₹436.10</td>
-                    <td id="lc-sslftotal-diesel" style="padding: 0.2rem 0.4rem; text-align: right; font-weight: 600; color: var(--text-main);">₹0.00</td>
-                  </tr>
-                </tbody>
-
-                <!-- Summary Footer -->
-                <tfoot>
-                  <tr style="background: rgba(16, 185, 129, 0.08); border-top: 1.5px solid rgba(16,185,129,0.3);">
-                    <td colspan="5" style="padding: 0.25rem 0.4rem; text-align: right; font-weight: 800; font-size: 0.95rem; color: var(--text-main);">Grand Total:</td>
-                    <td id="lc-grand-total" style="padding: 0.25rem 0.4rem; text-align: right; font-weight: 800; font-size: 1.05rem; color: #10b981;">₹0.00</td>
-                  </tr>
-                  <tr style="background: rgba(0, 45, 98, 0.05);">
-                    <td colspan="5" style="padding: 0.2rem 0.4rem; text-align: right; font-weight: 700; font-size: 0.9rem; color: var(--text-main);">HPCL Portal Balance:</td>
-                    <td style="padding: 0.2rem 0.4rem; text-align: right;">
-                      <input type="number" id="lc-hpcl-balance" class="lc-input" min="0" value="0" step="0.01" style="width: 150px; text-align: right; font-size: 0.95rem; font-weight: 700; padding: 0.15rem 0.25rem; border-radius: 0.25rem; background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--text-main);">
-                    </td>
-                  </tr>
-                  <tr style="background: rgba(239, 68, 68, 0.08); border-top: 1.5px solid rgba(239,68,68,0.3);">
-                    <td colspan="5" style="padding: 0.3rem 0.4rem; text-align: right; font-weight: 800; font-size: 1.05rem; color: #ef4444;">RTGS is to be Done:</td>
-                    <td id="lc-rtgs-total" style="padding: 0.3rem 0.4rem; text-align: right; font-weight: 800; font-size: 1.2rem; color: #ef4444;">₹0.00</td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </section>
-        </main>
-      </div>
+      <div id="view-load-calculator" class="view-pane" style="display: none;"></div>
 
       <!-- VIEW: Admin Day Summary -->
       <div id="view-admin-dashboard" class="view-pane" style="display: none;">

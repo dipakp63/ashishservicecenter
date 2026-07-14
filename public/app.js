@@ -728,7 +728,18 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const viewTankerCalculation = document.getElementById('view-tanker-calculation');
     const viewCashCalculator = document.getElementById('view-cash-calculator');
-    if (viewTankerCalculation) viewTankerCalculation.style.display = viewName === 'tanker' ? 'block' : 'none';
+    if (viewTankerCalculation) {
+      viewTankerCalculation.style.display = (viewName === 'tanker' || viewName === 'load-calc') ? 'block' : 'none';
+      if (viewName === 'tanker') {
+        if (typeof window.switchTankerTab === 'function') {
+          window.switchTankerTab('load-calc-1');
+        }
+      } else if (viewName === 'load-calc') {
+        if (typeof window.switchTankerTab === 'function') {
+          window.switchTankerTab('load-calc-2');
+        }
+      }
+    }
     if (viewCashCalculator) viewCashCalculator.style.display = viewName === 'cash-calc' ? 'block' : 'none';
 
     const viewTankerLabelWizard = document.getElementById('view-tanker-label-wizard');
@@ -755,10 +766,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const viewLoadCalculator = document.getElementById('view-load-calculator');
     if (viewLoadCalculator) {
-      viewLoadCalculator.style.display = viewName === 'load-calc' ? 'block' : 'none';
-      if (viewName === 'load-calc' && typeof window.updateAdminLoadCalc === 'function') {
-        window.updateAdminLoadCalc();
-      }
+      viewLoadCalculator.style.display = 'none';
     }
 
     const viewSopanUpi = document.getElementById('view-sopan-upi');
@@ -3873,6 +3881,56 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   })();
   // --- End Admin Load Calculator Logic ---
+
+  // --- Tanker Calculation Tab Switching Logic ---
+  window.switchTankerTab = function(tabId) {
+    const tab2Btn = document.getElementById('tab-btn-load-calc-2');
+    const tab1Btn = document.getElementById('tab-btn-load-calc-1');
+    const tab2Content = document.getElementById('tab-content-load-calc-2');
+    const tab1Content = document.getElementById('tab-content-load-calc-1');
+    const tankerTitle = document.getElementById('tanker-title');
+    const tankerSubtitle = document.getElementById('tanker-subtitle');
+
+    if (!tab2Btn || !tab1Btn || !tab2Content || !tab1Content) return;
+
+    if (tabId === 'load-calc-2') {
+      tab2Btn.classList.add('active');
+      tab1Btn.classList.remove('active');
+      tab2Content.style.display = 'block';
+      tab1Content.style.display = 'none';
+      if (tankerTitle) tankerTitle.textContent = 'Load Calculator 2.0';
+      if (tankerSubtitle) tankerSubtitle.textContent = 'Calculate tanker load cost breakdown with VAT, Surcharge & SSLF Recovery';
+      
+      if (typeof window.updateAdminLoadCalc === 'function') {
+        window.updateAdminLoadCalc();
+      }
+    } else {
+      tab1Btn.classList.add('active');
+      tab2Btn.classList.remove('active');
+      tab1Content.style.display = 'block';
+      tab2Content.style.display = 'none';
+      if (tankerTitle) tankerTitle.textContent = 'Load Calculator 1.0';
+      if (tankerSubtitle) tankerSubtitle.textContent = 'Calculate tanker volumes and densities (RTGS Calculator)';
+      
+      if (typeof window.updateTankerCalculator === 'function') {
+        window.updateTankerCalculator(false);
+      }
+    }
+  };
+
+  // Wire up the click listeners on tabs
+  const tab2Btn = document.getElementById('tab-btn-load-calc-2');
+  const tab1Btn = document.getElementById('tab-btn-load-calc-1');
+  if (tab2Btn) {
+    tab2Btn.addEventListener('click', () => {
+      window.switchTankerTab('load-calc-2');
+    });
+  }
+  if (tab1Btn) {
+    tab1Btn.addEventListener('click', () => {
+      window.switchTankerTab('load-calc-1');
+    });
+  }
 
   // Global Enter key navigation for textboxes
   document.addEventListener('keydown', (e) => {
