@@ -192,7 +192,7 @@ async function generateAndSendMonthlyReport(monthStr) {
     FROM readings r
     LEFT JOIN rates rt ON r.date = rt.date
     WHERE r.date LIKE ?
-    GROUP BY r.date, r.product
+    GROUP BY r.date, r.product, rt.rate_power, rt.rate_petrol, rt.rate_diesel
     ORDER BY r.date ASC, r.product ASC
   `;
 
@@ -1084,7 +1084,7 @@ app.get('/api/gst-report', async (req, res) => {
       LEFT JOIN rates rt ON r.date = rt.date
       LEFT JOIN cash_reconciliation c ON r.date = c.date
       WHERE r.date LIKE ?
-      GROUP BY r.date, r.product
+      GROUP BY r.date, r.product, rt.rate_power, rt.rate_petrol, rt.rate_diesel, c.date
       ORDER BY r.date ASC, r.product ASC
     `;
 
@@ -1438,7 +1438,7 @@ app.get('/api/debtors/summary', async (req, res) => {
         COALESCE(SUM(dt.debit_amount), 0) - COALESCE(SUM(dt.credit_amount), 0) AS outstanding
       FROM debtors d
       LEFT JOIN debtor_transactions dt ON d.id = dt.debtor_id
-      GROUP BY d.id
+      GROUP BY d.id, d.debtor_name, d.mobile
       ORDER BY outstanding DESC
     `);
     res.json(rows);
@@ -1473,7 +1473,7 @@ app.get('/api/debtors', async (req, res) => {
         COALESCE(SUM(dt.debit_amount), 0) - COALESCE(SUM(dt.credit_amount), 0) AS outstanding
       FROM debtors d
       LEFT JOIN debtor_transactions dt ON d.id = dt.debtor_id
-      GROUP BY d.id
+      GROUP BY d.id, d.debtor_name, d.mobile, d.address, d.is_active, d.created_at
       ${orderBy}
     `);
     res.json(rows);
