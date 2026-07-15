@@ -9254,22 +9254,22 @@ if (dayReading) {
           <td style="padding: 0.35rem 0.15rem; font-weight: 600; white-space: nowrap; border: 1px solid rgba(255,255,255,0.15); text-align: center;">${formatDate(row.date)}</td>
           
           <td style="padding: 0.35rem 0.15rem; text-align: center; color: var(--power-color); border: 1px solid rgba(255,255,255,0.15);">${row.power_qty > 0 ? row.power_qty.toFixed(2) : '-'}</td>
-          <td style="padding: 0.35rem 0.15rem; text-align: center; color: var(--power-color); font-weight: 600; border: 1px solid rgba(255,255,255,0.15);">${powerDealerProfit > 0 ? '₹' + powerDealerProfit.toFixed(2) : '-'}</td>
+          <td style="padding: 0.35rem 0.15rem; text-align: center; color: var(--power-color); font-weight: 600; border: 1px solid rgba(255,255,255,0.15);">${formatIndianCurrency(powerDealerProfit)}</td>
           
           <td style="padding: 0.35rem 0.15rem; text-align: center; color: var(--success); border: 1px solid rgba(255,255,255,0.15);">${row.petrol_qty > 0 ? row.petrol_qty.toFixed(2) : '-'}</td>
-          <td style="padding: 0.35rem 0.15rem; text-align: center; color: var(--success); font-weight: 600; border: 1px solid rgba(255,255,255,0.15);">${petrolDealerProfit > 0 ? '₹' + petrolDealerProfit.toFixed(2) : '-'}</td>
+          <td style="padding: 0.35rem 0.15rem; text-align: center; color: var(--success); font-weight: 600; border: 1px solid rgba(255,255,255,0.15);">${formatIndianCurrency(petrolDealerProfit)}</td>
           
           <td style="padding: 0.35rem 0.15rem; text-align: center; color: var(--diesel-color); border: 1px solid rgba(255,255,255,0.15);">${row.diesel_qty > 0 ? row.diesel_qty.toFixed(2) : '-'}</td>
-          <td style="padding: 0.35rem 0.15rem; text-align: center; color: var(--diesel-color); font-weight: 600; border: 1px solid rgba(255,255,255,0.15);">${dieselDealerProfit > 0 ? '₹' + dieselDealerProfit.toFixed(2) : '-'}</td>
+          <td style="padding: 0.35rem 0.15rem; text-align: center; color: var(--diesel-color); font-weight: 600; border: 1px solid rgba(255,255,255,0.15);">${formatIndianCurrency(dieselDealerProfit)}</td>
           
-          <td style="padding: 0.35rem 0.15rem; text-align: center; color: var(--accent); font-weight: 700; border: 1px solid rgba(255,255,255,0.15);">₹${dealerTotalProfit.toFixed(2)}</td>
+          <td style="padding: 0.35rem 0.15rem; text-align: center; color: var(--accent); font-weight: 700; border: 1px solid rgba(255,255,255,0.15);">${formatIndianCurrency(dealerTotalProfit, true)}</td>
           
-          <td style="padding: 0.35rem 0.15rem; text-align: center; color: var(--power-color); border: 1px solid rgba(255,255,255,0.15);">${powerDiffProfit > 0 ? '₹' + powerDiffProfit.toFixed(2) : '-'}</td>
-          <td style="padding: 0.35rem 0.15rem; text-align: center; color: var(--success); border: 1px solid rgba(255,255,255,0.15);">${petrolDiffProfit > 0 ? '₹' + petrolDiffProfit.toFixed(2) : '-'}</td>
-          <td style="padding: 0.35rem 0.15rem; text-align: center; color: var(--diesel-color); border: 1px solid rgba(255,255,255,0.15);">${dieselDiffProfit > 0 ? '₹' + dieselDiffProfit.toFixed(2) : '-'}</td>
+          <td style="padding: 0.35rem 0.15rem; text-align: center; color: var(--power-color); border: 1px solid rgba(255,255,255,0.15);">${formatIndianCurrency(powerDiffProfit)}</td>
+          <td style="padding: 0.35rem 0.15rem; text-align: center; color: var(--success); border: 1px solid rgba(255,255,255,0.15);">${formatIndianCurrency(petrolDiffProfit)}</td>
+          <td style="padding: 0.35rem 0.15rem; text-align: center; color: var(--diesel-color); border: 1px solid rgba(255,255,255,0.15);">${formatIndianCurrency(dieselDiffProfit)}</td>
           
-          <td style="padding: 0.35rem 0.15rem; text-align: center; color: var(--accent); font-weight: 700; border: 1px solid rgba(255,255,255,0.15);">₹${diffTotalProfit.toFixed(2)}</td>
-          <td style="padding: 0.35rem 0.15rem; text-align: center; color: var(--accent); font-weight: 800; border: 1px solid rgba(255,255,255,0.15);">₹${totalProfit.toFixed(2)}</td>
+          <td style="padding: 0.35rem 0.15rem; text-align: center; color: var(--accent); font-weight: 700; border: 1px solid rgba(255,255,255,0.15);">${formatIndianCurrency(diffTotalProfit, true)}</td>
+          <td style="padding: 0.35rem 0.15rem; text-align: center; color: var(--accent); font-weight: 800; border: 1px solid rgba(255,255,255,0.15);">${formatIndianCurrency(totalProfit, true)}</td>
         `;
         tableBody.appendChild(tr);
       });
@@ -9279,22 +9279,22 @@ if (dayReading) {
         tableFooter.innerHTML = `
           <td style="padding: 0.4rem 0.15rem; white-space: nowrap; border: 1px solid rgba(255,255,255,0.15); text-align: center;">TOTAL</td>
           <td style="padding: 0.4rem 0.15rem; text-align: center; color: var(--power-color); border: 1px solid rgba(255,255,255,0.15);">${totalPowerQty.toFixed(2)}</td>
-          <td style="padding: 0.4rem 0.15rem; text-align: center; color: var(--power-color); font-weight: 700; border: 1px solid rgba(255,255,255,0.15);">₹${totalPowerDealerProfit.toFixed(2)}</td>
+          <td style="padding: 0.4rem 0.15rem; text-align: center; color: var(--power-color); font-weight: 700; border: 1px solid rgba(255,255,255,0.15);">${formatIndianCurrency(totalPowerDealerProfit, true)}</td>
           
           <td style="padding: 0.4rem 0.15rem; text-align: center; color: var(--success); border: 1px solid rgba(255,255,255,0.15);">${totalPetrolQty.toFixed(2)}</td>
-          <td style="padding: 0.4rem 0.15rem; text-align: center; color: var(--success); font-weight: 700; border: 1px solid rgba(255,255,255,0.15);">₹${totalPetrolDealerProfit.toFixed(2)}</td>
+          <td style="padding: 0.4rem 0.15rem; text-align: center; color: var(--success); font-weight: 700; border: 1px solid rgba(255,255,255,0.15);">${formatIndianCurrency(totalPetrolDealerProfit, true)}</td>
           
           <td style="padding: 0.4rem 0.15rem; text-align: center; color: var(--diesel-color); border: 1px solid rgba(255,255,255,0.15);">${totalDieselQty.toFixed(2)}</td>
-          <td style="padding: 0.4rem 0.15rem; text-align: center; color: var(--diesel-color); font-weight: 700; border: 1px solid rgba(255,255,255,0.15);">₹${totalDieselDealerProfit.toFixed(2)}</td>
+          <td style="padding: 0.4rem 0.15rem; text-align: center; color: var(--diesel-color); font-weight: 700; border: 1px solid rgba(255,255,255,0.15);">${formatIndianCurrency(totalDieselDealerProfit, true)}</td>
           
-          <td style="padding: 0.4rem 0.15rem; text-align: center; color: var(--accent); font-weight: 800; border: 1px solid rgba(255,255,255,0.15);">₹${totalDealerProfitSum.toFixed(2)}</td>
+          <td style="padding: 0.4rem 0.15rem; text-align: center; color: var(--accent); font-weight: 800; border: 1px solid rgba(255,255,255,0.15);">${formatIndianCurrency(totalDealerProfitSum, true)}</td>
           
-          <td style="padding: 0.4rem 0.15rem; text-align: center; color: var(--power-color); border: 1px solid rgba(255,255,255,0.15);">₹${totalPowerDiffProfit.toFixed(2)}</td>
-          <td style="padding: 0.4rem 0.15rem; text-align: center; color: var(--success); border: 1px solid rgba(255,255,255,0.15);">₹${totalPetrolDiffProfit.toFixed(2)}</td>
-          <td style="padding: 0.4rem 0.15rem; text-align: center; color: var(--diesel-color); border: 1px solid rgba(255,255,255,0.15);">₹${totalDieselDiffProfit.toFixed(2)}</td>
+          <td style="padding: 0.4rem 0.15rem; text-align: center; color: var(--power-color); border: 1px solid rgba(255,255,255,0.15);">${formatIndianCurrency(totalPowerDiffProfit, true)}</td>
+          <td style="padding: 0.4rem 0.15rem; text-align: center; color: var(--success); border: 1px solid rgba(255,255,255,0.15);">${formatIndianCurrency(totalPetrolDiffProfit, true)}</td>
+          <td style="padding: 0.4rem 0.15rem; text-align: center; color: var(--diesel-color); border: 1px solid rgba(255,255,255,0.15);">${formatIndianCurrency(totalDieselDiffProfit, true)}</td>
           
-          <td style="padding: 0.4rem 0.15rem; text-align: center; color: var(--accent); font-weight: 800; border: 1px solid rgba(255,255,255,0.15);">₹${totalDiffProfitSum.toFixed(2)}</td>
-          <td style="padding: 0.4rem 0.15rem; text-align: center; color: var(--accent); font-weight: 800; border: 1px solid rgba(255,255,255,0.15);">₹${grandTotalProfit.toFixed(2)}</td>
+          <td style="padding: 0.4rem 0.15rem; text-align: center; color: var(--accent); font-weight: 800; border: 1px solid rgba(255,255,255,0.15);">${formatIndianCurrency(totalDiffProfitSum, true)}</td>
+          <td style="padding: 0.4rem 0.15rem; text-align: center; color: var(--accent); font-weight: 800; border: 1px solid rgba(255,255,255,0.15);">${formatIndianCurrency(grandTotalProfit, true)}</td>
         `;
       }
     } catch (err) {
