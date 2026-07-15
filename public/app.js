@@ -1619,6 +1619,20 @@ document.addEventListener('DOMContentLoaded', () => {
     return dateString;
   }
 
+  // Format Indian currency helper (e.g. 112155.25 to ₹1,12,155.25, or '-' if 0 and not allowZero)
+  function formatIndianCurrency(amount, allowZero = false) {
+    if (amount === undefined || amount === null || isNaN(amount) || (!allowZero && amount <= 0)) return '-';
+    const x = Math.abs(parseFloat(amount)).toFixed(2);
+    const parts = x.split('.');
+    let lastThree = parts[0].substring(parts[0].length - 3);
+    const otherParts = parts[0].substring(0, parts[0].length - 3);
+    if (otherParts !== '') {
+      lastThree = ',' + lastThree;
+    }
+    const res = otherParts.replace(/\B(?=(\d{2})+(?!\d))/g, ",") + lastThree + '.' + parts[1];
+    return (amount < 0 ? '-₹' : '₹') + res;
+  }
+
   // Listeners for live difference calculations & validation triggers
   for (let id = 1; id <= 6; id++) {
     const openingEl = document.getElementById(`nozzle-${id}-opening`);
